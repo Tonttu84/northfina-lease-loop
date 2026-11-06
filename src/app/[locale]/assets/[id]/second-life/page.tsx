@@ -260,7 +260,7 @@ function WaitingList({ match, ctx }: { match: MatchResult; ctx: Ctx }) {
       padded={false}
       className="relative overflow-x-auto"
     >
-      <p className="px-4 pt-4 text-sm text-ink-muted sm:px-6">{t('secondLife.match.rules')}</p>
+      <p className="px-4 text-sm text-ink-muted sm:px-6">{t('secondLife.match.rules')}</p>
       <table className="mt-3 w-full min-w-[44rem] text-left text-sm">
         <thead className="border-b border-line text-ink-muted">
           <tr>
