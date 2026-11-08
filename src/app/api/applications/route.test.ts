@@ -144,7 +144,7 @@ describe('POST /api/applications', () => {
     ['a null answer', { answers: { q_full_name: null } }],
     ['an answer key without the q_ prefix', { answers: { birth_date: '1997-04-12' } }],
     ['an answer key with capitals', { answers: { q_Full_Name: 'x' } }],
-    ['an answer of 100 000 characters', { answers: { q_full_name: 'x'.repeat(100_000) } }],
+    ['an answer of 501 characters', { answers: { q_full_name: 'x'.repeat(501) } }],
     ['a list of 21 owners', { answers: { q_beneficial_owners: Array(21).fill('owner') } }],
     ['an owner of 201 characters', { answers: { q_beneficial_owners: ['x'.repeat(201)] } }],
     ['an empty quote id', { quoteId: '' }],
@@ -166,6 +166,17 @@ describe('POST /api/applications', () => {
     const result = await post(body);
     expectRefusal(result, 400, 'VALIDATION_ERROR');
     expect(Array.isArray(result.body.error?.details)).toBe(true);
+    expect(await holder.db.application.count()).toBe(0);
+  });
+
+  it('a body over 64 kB is refused with 413 PAYLOAD_TOO_LARGE before anything is read', async () => {
+    actAs('cust-aino');
+    const body = {
+      quoteId: 'any',
+      customerId: 'cust-aino',
+      answers: { q_full_name: 'x'.repeat(100_000) },
+    };
+    expectRefusal(await post(body), 413, 'PAYLOAD_TOO_LARGE');
     expect(await holder.db.application.count()).toBe(0);
   });
 
