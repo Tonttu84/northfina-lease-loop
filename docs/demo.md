@@ -1,6 +1,6 @@
 # Demo script: the pitch run (10 to 12 minutes)
 
-The run we show the judges, one presenter at the keyboard. It clicks through the product; the "Code tour" in the [README](../README.md) is the other walk, through the code. The numbers below come from the README "Status" table and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh.
+The run we show the judges, one presenter at the keyboard. It clicks through the product; the "Code tour" in the [README](../README.md) is the other walk, through the code. The numbers below come from the README "Status" table and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh. The run itself is clicked through in a browser by `npm run test:e2e` (card 1 and card 6 from the Run buttons to the contract and the signing link, the actor picker, the second-life page, the language switch, the audit badges and the tamper script, the catalogue filters; [features/e2e-tests.md](features/e2e-tests.md)).
 
 ## Before you start (not on the clock)
 

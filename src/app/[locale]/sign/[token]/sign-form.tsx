@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { responseFailureText, type FailureLabels } from '@/components/api-failure';
 import { Button, Notice } from '@/components/ui';
+import { useHydrated } from '@/components/use-hydrated';
 
 type SignFormProps = {
   token: string;
@@ -17,6 +18,7 @@ export function SignForm({ token, labels, failures }: SignFormProps) {
   const router = useRouter();
   const [pending, setPending] = useState<'sign' | 'decline' | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const hydrated = useHydrated();
 
   async function act(action: 'sign' | 'decline') {
     setPending(action);
@@ -47,7 +49,7 @@ export function SignForm({ token, labels, failures }: SignFormProps) {
         <Button
           onClick={() => act('sign')}
           pending={pending === 'sign'}
-          disabled={pending !== null}
+          disabled={pending !== null || !hydrated}
         >
           {labels.sign}
         </Button>
@@ -55,7 +57,7 @@ export function SignForm({ token, labels, failures }: SignFormProps) {
           variant="danger"
           onClick={() => act('decline')}
           pending={pending === 'decline'}
-          disabled={pending !== null}
+          disabled={pending !== null || !hydrated}
         >
           {labels.decline}
         </Button>

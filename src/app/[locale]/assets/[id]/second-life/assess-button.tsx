@@ -10,6 +10,7 @@ import { Button, Notice } from '@/components/ui';
 import { getT, type MessageKey } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 import { authzRefusalKey } from '@/components/authz-refusal';
+import { useHydrated } from '@/components/use-hydrated';
 
 const REFUSALS = [
   'demand_taken',
@@ -24,6 +25,7 @@ export function AssessButton({ assetId, locale }: { assetId: string; locale: Loc
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useHydrated();
 
   async function assess() {
     setPending(true);
@@ -54,6 +56,7 @@ export function AssessButton({ assetId, locale }: { assetId: string; locale: Loc
       <Button
         type="button"
         onClick={assess}
+        disabled={!hydrated}
         pending={pending}
         pendingLabel={t('secondLife.pending')}
       >

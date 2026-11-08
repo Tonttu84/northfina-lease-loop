@@ -14,6 +14,7 @@ One page per feature slice, shipped in the same pull request as its code (AGENTS
 - [signatories.md](signatories.md): the company's signatory list, the signing link that alone signs card 6, and the admin applying on a customer's behalf (wave 2).
 - [audit-chain.md](audit-chain.md): the tamper-evident audit chain, its verifier, the badge with the head hash and the tamper demo (wave 2); the seal: Ed25519 signatures, the anchor file and the timestamp-authority receipt (D81).
 - [test-isolation.md](test-isolation.md): how the tests stay independent: one reset, named handlers, no concurrency (D44, wave 2).
+- [e2e-tests.md](e2e-tests.md): the pitch run clicked through in a real browser with Playwright on the built app, one spec per step of the demo script (polish).
 - [my-leases.md](my-leases.md): "My leases" in the top navigation, a customer's contracts and unsigned applications (all of them for admin).
 - [user-portal.md](user-portal.md): My leases grown into the customer's portal (totals, each contract's ways out, every invoice across the contracts) and `/customers/[id]` for the admin (D75, #28).
 - [second-life.md](second-life.md): the assessment of a returned item, the D86 second-life price (the market value) with the refurbish-or-not comparison, the D13 waiting-list match and the third life (wave 3, cards 9 and 10).
