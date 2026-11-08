@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { assetConditionSchema, centsSchema, isoDateSchema } from '@/data/schemas';
 
-export const assessmentParamsSchema = z.object({ id: z.string().min(1) });
+export const assessmentParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 /** The inspected condition and usage (D77); an empty body or {} assesses the stored values. */
 export const assessmentBodySchema = z.strictObject({

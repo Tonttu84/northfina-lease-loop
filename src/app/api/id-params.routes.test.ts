@@ -23,6 +23,7 @@ const exit = await import('./contracts/[id]/exit/route');
 const pay = await import('./invoices/[id]/pay/route');
 const quote = await import('./quotes/[id]/route');
 const passport = await import('./assets/[id]/passport/route');
+const assessments = await import('./assets/[id]/assessments/route');
 
 let cleanup: () => Promise<void>;
 beforeAll(async () => {
@@ -68,6 +69,12 @@ const ROUTES: { name: string; handler: Handler; method: 'GET' | 'POST'; atBound:
     handler: passport.GET as Handler,
     method: 'GET',
     atBound: 404,
+  },
+  {
+    name: 'POST /api/assets/[id]/assessments',
+    handler: assessments.POST as Handler,
+    method: 'POST',
+    atBound: 401,
   },
 ];
 
