@@ -179,6 +179,11 @@ export async function exitContract(
   // D90: a pass-on starts the next deal in the same transaction (src/domain/exits/next-deal.ts).
   const nextQuoteId = exit.mode === 'pass_on' ? randomUUID() : undefined;
   const nextPricing = nextQuoteId ? (pricing ?? (await loadPricingData())) : undefined;
+  // D77 on a pass-on: the item is relisted as the exit valued it, the customer's word held at
+  // the condition it was leased in. The plan's event carries that condition, never the raw report.
+  const handedOver = exit.event.type === 'UNIT_PASSED_ON' ? exit.event : null;
+  if (nextQuoteId && !handedOver)
+    throw new Error('A pass-on plan must carry a UNIT_PASSED_ON event');
 
   try {
     const row = await withAudit(
@@ -208,13 +213,14 @@ export async function exitContract(
         });
         if (!ended) throw new LostExitRace();
         await emit(tx, exit.event);
-        if (nextQuoteId && nextPricing && input.nextCustomerId) {
+        if (nextQuoteId && nextPricing && input.nextCustomerId && handedOver) {
+          // `handedOver` is set whenever `nextQuoteId` is (checked above); the guard narrows the type.
           await startNextDeal(tx, {
             quoteId: nextQuoteId,
             customerId: input.nextCustomerId,
             contractId,
             assetId: context.asset.id,
-            reported: input.reported,
+            reported: { condition: handedOver.condition, usage: handedOver.usage },
             marketValueCents: exit.cost.marketValue.valueCents,
             pricing: nextPricing,
             today,
@@ -268,11 +274,14 @@ export async function nextQuoteIdOf(db: PrismaClient, contractId: string): Promi
 
 /**
  * D90: the item goes straight from hand to hand. On the exit's `tx`, after the catalogue set it
- * `returned`, the assets slice relists it as reported (no refurbishment: none was charged, and
+ * `returned`, the assets slice relists it in the condition the exit valued it (D77: as reported,
+ * never better than at signing) with the usage reported (no refurbishment: none was charged, and
  * planExit refused anything below `good`), the quote slice stores the next customer's quote
  * priced from the market value on the exit day and named for them, the passport writes
- * `repriced` with that value (as the second-life path does), and the item is `reserved` for them
- * so it is not in the public catalogue. A refused quote throws, so the whole exit rolls back.
+ * `repriced` with that value and the quote's amount (as the second-life path does; the price
+ * page, the preview and the signing read the newest `repriced` entry as the item's second-life
+ * price, src/server/second-life-price.ts), and the item is `reserved` for them so it is not in
+ * the public catalogue. A refused quote throws, so the whole exit rolls back.
  */
 async function startNextDeal(
   tx: Parameters<typeof relistReturnedAsset>[0],
