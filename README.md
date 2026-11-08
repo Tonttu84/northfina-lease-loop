@@ -4,7 +4,7 @@
 
 One e-bike, laptop or farm machine, three lives. Lease Loop takes an item from today's price list through a quote, a question flow that asks only what the amount needs, a contract that locks the price but not the tax, monthly invoices with the VAT of their own date, a fair early exit line by line, and a second life priced by the residual curve and offered to the waiting list by rules. Every item has a passport with the CO₂ and the money its later lives saved, and every change sits in a signed, tamper-evident audit chain. No AI anywhere in the product: rules, data and integer cents.
 
-**Result:** shared first place at the Lease Loop hackathon (Northfina × Hive Helsinki, 5–6 November 2026), as Team LeaseMasters. All ten scenario cards of the brief run end to end from one button each on the demo page; the numbers are pinned by tests ([Status](#status)).
+**Result:** shared first place at the Lease Loop hackathon, a 24-hour hackathon by Northfina × Hive Helsinki on 5–6 November 2026, as Team LeaseMasters. All ten scenario cards of the brief run end to end from one button each on the demo page; the numbers are pinned by tests ([Status](#status)).
 
 ## Team
 

@@ -2,7 +2,7 @@
 
 The text of the pull request from `ThomasParratt/northfina-lease-loop` `main` to `etufillari/northfina-lease-loop` `main`, in the order of the organiser's pull request template at the time (the starter's; this repository now carries the team's). Every link is absolute, so it resolves in a PR body on the organiser's repo.
 
-**Result:** shared first place at the hackathon. The PR is [etufillari/northfina-lease-loop#23](https://github.com/etufillari/northfina-lease-loop/pull/23), opened on 6 November 2026 and judged at the 16:00 deadline on the tree of `f1a6f44` (`main`; the PR's head `70f9e02` has the identical tree). The text below is the body as submitted.
+**Result:** shared first place at the 24-hour hackathon. The PR is [etufillari/northfina-lease-loop#23](https://github.com/etufillari/northfina-lease-loop/pull/23), opened on 6 November 2026 and judged at the 16:00 deadline on the tree of `f1a6f44` (`main`; the PR's head `70f9e02` has the identical tree). The text below is the body as submitted.
 
 Title: `Team LeaseMasters: Lease Loop`
 

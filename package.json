@@ -2,7 +2,7 @@
   "name": "lease-loop",
   "version": "1.0.0",
   "private": true,
-  "description": "Lease Loop: a circular-economy leasing app where one e-bike, laptop or farm machine lives three lives. Team LeaseMasters at the Northfina × Hive Helsinki hackathon, November 2026.",
+  "description": "Lease Loop: a circular-economy leasing app where one e-bike, laptop or farm machine lives three lives. Team LeaseMasters at the 24-hour Northfina × Hive Helsinki hackathon, November 2026.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Tonttu84/northfina-lease-loop.git"
