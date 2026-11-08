@@ -73,7 +73,7 @@ Every row must be hashed. The columns are nullable only so the migration applies
 
 **Append-only.** `tests/meta-rules.test.ts` fails on any `auditLog.update`, `updateMany`, `upsert`, `delete` or `deleteMany` under `src/` outside tests; the database itself does not forbid it (a trigger would be the next step on Postgres).
 
-### Demo: tamper with the log (not part of the organiser's 15-minute tour)
+### Demo: tamper with the log (not part of the README code tour)
 
 1. Make a few changes in the app (sign a quote, pay an invoice), open `/en/audit`: the badge says "Chain intact" with the head hash.
 2. In a terminal: `npm run demo:tamper` (or `npm run demo:tamper -- --id 3`). It rewrites `details_json` of the newest row (or row 3) straight in the SQLite file with raw SQL, the way someone with database access could, and prints the row and the verdict before and after.

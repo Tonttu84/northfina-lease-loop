@@ -1,21 +1,25 @@
-# Lease Loop · Northfina × Hive Helsinki hackathon
+# Lease Loop
 
-Starter repo for the **Lease Loop** challenge, 5–6 November 2026 at Hive Helsinki. Teams of 3 build a circular-economy leasing app: one e-bike, laptop or tractor, three lives.
+[![CI](https://github.com/Tonttu84/northfina-lease-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/Tonttu84/northfina-lease-loop/actions/workflows/ci.yml)
 
-- 📋 **The challenge:** [CHALLENGE.md](CHALLENGE.md)
-- 📐 **Engineering rules (35 % of your score):** [RULES.md](RULES.md)
-- 🗂️ **The data pack:** [data/DATA.md](data/DATA.md)
+One e-bike, laptop or farm machine, three lives. Lease Loop takes an item from today's price list through a quote, a question flow that asks only what the amount needs, a contract that locks the price but not the tax, monthly invoices with the VAT of their own date, a fair early exit line by line, and a second life priced by the residual curve and offered to the waiting list by rules. Every item has a passport with the CO₂ and the money its later lives saved, and every change sits in a signed, tamper-evident audit chain. No AI anywhere in the product: rules, data and integer cents.
 
-**Northfina** is a Helsinki-based leasing platform. It started as Etufillari, a bike-leasing service, and now leases any kind of asset. Dealers, banks and customers use it to get from a price quote to a signed contract, then through monthly invoices to the end of the lease. This repo is a small, independent playground, not our product code.
+**Result:** shared first place at the Lease Loop hackathon, a 24-hour hackathon by Northfina × Hive Helsinki on 5–6 November 2026, as Team LeaseMasters. All ten scenario cards of the brief run end to end from one button each on the demo page; the numbers are pinned by tests ([Status](#status)).
 
----
+## Team
+
+| Name     | GitHub                                            | Main focus                                                                                                                                                   |
+| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Johannes | [Tonttu84](https://github.com/Tonttu84)           | coordination and decisions; pricing, invoicing, contracts, exits, second life, signatories, the demo cards                                                   |
+| Thomas   | [ThomasParratt](https://github.com/ThomasParratt) | asset statuses, row schemas, the decision race, question-flow validation, the Sign button, the signed and anchored audit chain, PR reviews                   |
+| Panu     | [panu-kangas](https://github.com/panu-kangas)     | the look, landing and catalogue pages, the price page, the passport card, My leases, catalogue sort, stepping back from an application and who signs a lease |
 
 ## Quick start
 
-You need **Git** and **Node.js 22** (with [nvm](https://github.com/nvm-sh/nvm): `nvm install` reads `.nvmrc`).
+Git and Node.js 22 (with [nvm](https://github.com/nvm-sh/nvm): `nvm install` reads `.nvmrc`).
 
 ```bash
-git clone https://github.com/<your-team>/northfina-lease-loop.git
+git clone https://github.com/Tonttu84/northfina-lease-loop.git
 cd northfina-lease-loop
 nvm install          # Node 22
 npm ci               # installs dependencies and the Git hooks
@@ -23,7 +27,9 @@ npm run db:setup     # creates .env and a local SQLite database with the 30 asse
 npm run dev          # http://localhost:3000
 ```
 
-You should see the asset catalogue in English. Switch to Finnish, Swedish or Estonian in the header.
+The landing page opens in English; Finnish, Swedish and Estonian are in the header. `http://localhost:3000/en/demo` has one Run button per scenario card. The pitch walkthrough, card by card with the number to look at: [docs/demo.md](docs/demo.md).
+
+The demo tools (the clock and the Run buttons) are on under `npm run dev`. On a production build (`npm run build && npm start`) they are off unless `.env` says `DEMO_TOOLS="1"`; set that for a pitch on a built app. A `.env` created before 9 November 2026 may still say `"1"`, since `npm run db:setup` never rewrites an existing file ([docs/features/security.md](docs/features/security.md)).
 
 | Command                 | What it does                                                   |
 | ----------------------- | -------------------------------------------------------------- |
@@ -37,29 +43,25 @@ You should see the asset catalogue in English. Switch to Finnish, Swedish or Est
 | `npm run audit:anchor`  | Have a timestamp authority sign the audit head (D81, network)  |
 | `npm run db:studio`     | Browse the database in your browser                            |
 
----
+## Code tour
 
-## 15-minute tour
-
-New to TypeScript, Next.js or Prisma? Read these files in this order:
+The files to read first, in this order:
 
 1. **`data/`**: the synthetic data pack. Open `assets.json` and `coefficient-table.json`, then the worked example in [DATA.md](data/DATA.md).
-2. **`src/data/`**: Zod schemas that load and type-check every data file. If you want to know a field's type, look here.
-3. **`src/domain/coefficient.ts`** and its test: a pure function that finds the pricing factor, and how we test it. **Your business logic goes in `src/domain/`**, written the same way.
+2. **`src/data/`**: Zod schemas that load and type-check every data file. A field's type is defined here.
+3. **`src/domain/coefficient.ts`** and its test: a pure function that finds the pricing factor, and how it is tested. All business logic is in `src/domain/`, written the same way: pure functions, dates and data passed in, a test file next to each.
 4. **`src/domain/price-list.ts`**: picks the right price for a date. The price list changes on Friday.
-5. **`src/app/[locale]/page.tsx`**: the catalogue page. Next.js App Router: every folder under `src/app/` is a URL.
-6. **`src/app/api/assets/`**: API routes. They use the response envelope (`src/server/api-response.ts`), and the status change writes an audit row in the same transaction (`src/server/audit.ts`).
-7. **`prisma/schema.prisma`**: the database. Add your own models (Contract, Invoice, …) and run `npm run db:migrate`.
+5. **`src/app/[locale]/page.tsx`**: the landing page; `src/app/[locale]/catalogue/page.tsx` is the catalogue. Next.js App Router: every folder under `src/app/` is a URL.
+6. **`src/app/api/assets/`**: API routes. They use the response envelope (`src/server/api-response.ts`), and the status change writes an audit row in the same transaction (`src/server/audit.ts`). Every route has a row in `src/server/routes.ts`, from which [docs/openapi.json](docs/openapi.json) is generated.
+7. **`prisma/schema.prisma`**: the database. A schema change goes through `npm run db:migrate`, never hand-written SQL.
+
+How the app is put together, slice by slice: [docs/team-notes.md](docs/team-notes.md). The engineering rules it is checked against: [RULES.md](RULES.md), enforced by `tests/meta-rules.test.ts` and `npm run check:all`.
 
 Handy docs: [Next.js App Router](https://nextjs.org/docs/app), [TypeScript for programmers who know C](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html), [Prisma](https://www.prisma.io/docs), [Vitest](https://vitest.dev/guide/), [Tailwind CSS](https://tailwindcss.com/docs).
 
-Everything in the skeleton is replaceable. Keep the rules, not necessarily the code.
-
----
-
 ## Status
 
-Kept by each wave's hardening agent (AGENTS.md rule 9); the draft of the submission PR's "Scenario cards that work" and "Smart Problems" sections. Every card runs twice: as a table-driven test on the real data pack in [`src/domain/scenarios/`](src/domain/scenarios/) (pure, `npx vitest run src/domain/scenarios`), and end to end in [`src/server/scenarios/`](src/server/scenarios/) on a real migrated database through the services the routes call: quote, the question flow, the decision, signing, payments, the exit, the passport and the audit chain (`npx vitest run src/server/scenarios`). No todo is left (`grep -rn "it.todo" src` is empty). The demo page runs each card from its own Run button through the same services (`src/server/demo-cards.ts`), and `src/server/demo-cards.test.ts` pins that every run leaves the card's numbers and lands on the page the judges compare. How the tests stay independent: [docs/features/test-isolation.md](docs/features/test-isolation.md).
+One row per scenario card of the brief ([CHALLENGE.md](CHALLENGE.md) section 4): what the judges compare, whether it works, and the tests that prove it. Every card runs twice: as a table-driven test on the real data pack in [`src/domain/scenarios/`](src/domain/scenarios/) (pure, `npx vitest run src/domain/scenarios`), and end to end in [`src/server/scenarios/`](src/server/scenarios/) on a real migrated database through the services the routes call: quote, the question flow, the decision, signing, payments, the exit, the passport and the audit chain (`npx vitest run src/server/scenarios`). No todo is left (`grep -rn "it.todo" src` is empty). The demo page runs each card from its own Run button through the same services (`src/server/demo-cards.ts`), and `src/server/demo-cards.test.ts` pins that every run leaves the card's numbers and lands on the page the judges compare. How the tests stay independent: [docs/features/test-isolation.md](docs/features/test-isolation.md).
 
 | Card               | What the judges compare                                                                                                                                                                                      | Works                                                                                                                                                                                                                                                                                                                                                  | Proved by                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -118,41 +120,16 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 - [Authorization: who may do what, checked before the action](docs/features/authorization.md)
 - [Security: demo mode, the response headers, the public audit log, limits](docs/features/security.md)
 
-## Team notes
+## How we worked
 
-How we work (rules, branches, reviews) and how the app is put together (database, actor, API, events, pages, each slice): [docs/team-notes.md](docs/team-notes.md).
-Mentor questions (all answered): [docs/mentor-questions.md](docs/mentor-questions.md); decisions: [docs/decisions.md](docs/decisions.md).
-The pitch run: [docs/demo.md](docs/demo.md); the submission PR draft: [docs/submission.md](docs/submission.md); the wave reviews: `docs/reviews/`.
+Three people and Claude Code as a pair programmer, over two days. The rules we set ourselves on top of the organiser's (test first, contract first, one owner per table, integer cents, codes instead of sentences, one branch and one squash-merged pull request per task) are in [AGENTS.md](AGENTS.md); how the waves of parallel agent sessions were run, and how the app is put together (database, actor, API, events, pages, each slice): [docs/team-notes.md](docs/team-notes.md).
+Every decision with its reason and what was chosen against: [docs/decisions.md](docs/decisions.md); the mentor questions (all answered): [docs/mentor-questions.md](docs/mentor-questions.md).
+The text of our submission, with how we used the AI tools from our side: [docs/submission.md](docs/submission.md); one time log per task: [docs/log/](docs/log/); the reviews after every wave and after the hackathon: [docs/reviews/](docs/reviews/).
 
----
+## Credits
 
-## Submitting
+Built on the hackathon starter and synthetic data pack by [Northfina](https://www.northfina.fi) ([etufillari/northfina-lease-loop](https://github.com/etufillari/northfina-lease-loop), MIT; the tag `v1.0-kickoff` is where the starter ends and our work begins). The brief: [CHALLENGE.md](CHALLENGE.md); the engineering rules we were judged on and still test ourselves against: [RULES.md](RULES.md); the data pack: [data/DATA.md](data/DATA.md). We wrote the code with Claude Code as a pair programmer; every commit says so in its trailer, and [docs/submission.md](docs/submission.md) and `docs/log/` tell how.
 
-You can't push to this repo. You work in **your own fork** and send us a **pull request**.
+## License
 
-1. **One person per team forks** this repo (the **Fork** button, top right) and adds the other two as collaborators in the fork (_Settings → Collaborators_).
-2. **Enable Actions in the fork**: open the fork's **Actions** tab and click _"I understand my workflows, go ahead and enable them"_. Now CI runs on every push.
-3. Everyone clones the fork and commits as usual. Small, conventional commits; the hooks help.
-4. **Before Friday 6 November 16:00**, open a pull request from your fork to `etufillari/northfina-lease-loop` `main`.
-   - Title: `Team <name>: <your product name>`.
-   - Fill in the template: members, the Smart Problems you picked, and how to demo.
-   - You can open it early and keep pushing until the deadline.
-5. **At 16:00 we record the latest commit of every open pull request.** That commit is what we judge. Anything pushed later is ignored, and pull requests opened after 16:00 don't count.
-
-We won't merge pull requests. They're only how you hand in your work.
-
-**Heads-up:** forks of a public repo are public, so other teams can see your fork. Your commit history shows who built what, and copying another team's work disqualifies both copies.
-
----
-
-## Your code is yours
-
-The starter code in this repo is MIT-licensed (see [LICENSE](LICENSE)); use it however you like.
-
-**Your team owns the code you write.** Opening a pull request gives Northfina permission to read and run your code for judging and for interviews with your team. Nothing more: we won't merge it, reuse it or publish it elsewhere without asking you first.
-
-## Help
-
-- During the hackathon: **#ask-a-mentor** on the hackathon Discord.
-- A bug in this starter repo: open a GitHub issue here.
-- Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+MIT, see [LICENSE](LICENSE). The starter skeleton and the synthetic data pack in `data/` are © 2026 Northfina, released under MIT in [etufillari/northfina-lease-loop](https://github.com/etufillari/northfina-lease-loop); the tag `v1.0-kickoff` marks that starting point. Northfina's note on it: "This license covers the starter code and data pack in this repository. Code written by hackathon teams belongs to those teams." Everything built on it since is © 2026 the team, under the same MIT terms.

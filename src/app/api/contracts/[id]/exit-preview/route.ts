@@ -9,14 +9,14 @@ import { authorize, refusalResponse } from '@/server/authorize';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
 import { readExitContext } from '@/server/exit-data';
-import { exitPreviewQuerySchema } from '@/server/exit-schemas';
+import { exitParamsSchema, exitPreviewQuerySchema } from '@/server/exit-schemas';
 import { previewExit } from '@/server/exits';
 
 const notFound = () => fail(404, 'CONTRACT_NOT_FOUND', 'No such contract');
 
 export const GET = handleRoute(
   async (request, { params }: RouteContext<'/api/contracts/[id]/exit-preview'>) => {
-    const { id } = await params;
+    const { id } = exitParamsSchema.parse(await params);
     const auth = await authorize(db, await readActor(db), 'read_contract', { contract: id });
     if (!auth.ok) return refusalResponse(auth.reason, notFound);
     const searchParams = new URL(request.url).searchParams;

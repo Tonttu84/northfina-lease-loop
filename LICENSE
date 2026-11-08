@@ -1,5 +1,6 @@
 MIT License
 
+Copyright (c) 2026 Team LeaseMasters: Johannes (https://github.com/Tonttu84), Thomas Parratt (https://github.com/ThomasParratt), Panu Kangas (https://github.com/panu-kangas)
 Copyright (c) 2026 Northfina
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,6 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-This license covers the starter code and data pack in this repository.
-Code written by hackathon teams belongs to those teams (see README.md).

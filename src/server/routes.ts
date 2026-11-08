@@ -78,7 +78,7 @@ export type RouteDefinition = {
 
 export const listAssetsQuerySchema = z.object({ category: assetCategorySchema.optional() });
 
-export const assetIdParamsSchema = z.object({ id: z.string().min(1) });
+export const assetIdParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 /** Body of `PATCH /api/assets/[id]/status`. The actor is the cookie's, never the body's (D17). */
 export const changeAssetStatusBodySchema = z.strictObject({
@@ -121,9 +121,9 @@ export const auditLogEntrySchema = z.object({
 
 // ---------- invoices ----------
 
-export const listInvoicesQuerySchema = z.object({ contractId: z.string().min(1) });
+export const listInvoicesQuerySchema = z.object({ contractId: z.string().min(1).max(100) });
 
-export const invoiceIdParamsSchema = z.object({ id: z.string().min(1) });
+export const invoiceIdParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 /** One invoice: money in cents, the VAT rate in basis points (2550 = 25.5 %). */
 export const invoiceViewSchema = z.object({
@@ -274,7 +274,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     method: 'POST',
     path: '/api/demo/clock',
     summary:
-      'Set the demo clock to a day, or clear it with null (the one date the browser may send)',
+      'Set the demo clock to a day, or clear it with null (the one date the browser may send); 404 while DEMO_TOOLS is off (D74)',
     tag: 'demo',
     body: demoClockBodySchema,
     response: demoClockResponseSchema,

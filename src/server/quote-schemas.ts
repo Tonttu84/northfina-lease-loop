@@ -21,7 +21,7 @@ export const previewQuoteQuerySchema = z.object({
   downPaymentCents: intFromQuery.nonnegative().default(0),
 });
 
-export const quoteIdParamsSchema = z.object({ id: z.string().min(1) });
+export const quoteIdParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 export const quoteBreakdownSchema = z.object({
   assetId: z.string(),

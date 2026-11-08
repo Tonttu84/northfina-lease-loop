@@ -1,14 +1,17 @@
 # Team notes
 
-How the team works and how the app is put together, moved out of the README (the README keeps the organiser's text, the status and the feature list). The plan is [kickoff-brief.md](kickoff-brief.md); the mentor questions (all answered) are [mentor-questions.md](mentor-questions.md).
+How the team worked and how the app is put together, kept out of the README (which holds the status table and the feature list). The plan is [kickoff-brief.md](kickoff-brief.md); the mentor questions (all answered) are [mentor-questions.md](mentor-questions.md).
 
 - `AGENTS.md`: the organiser's rules plus our working rules; every agent and person reads it first.
 - `docs/kickoff-brief.md`: the plan (scope, decisions, schema ownership, events, waves, the agent brief template).
 - `docs/decisions.md`: every decision with its reason; `docs/stack-notes.md`: the traps of this stack; `docs/log/`: one time log per task; `docs/reviews/`: the wave reviews.
 - `tests/meta-rules.test.ts`: the engineering rules checked against the repository itself, in `npm test`.
-- The practice repo (`ThomasParratt/leasing-platform`) is a read-only parts bin cloned beside this one; port functions with their tests, never structure.
 - A branch is named after the feature it builds, `<type>/<slice>` with the conventional-commit type as prefix: `feat/pricing`, `feat/invoices`, `chore/wave0-upkeep`, `test/wave1-hardening`; a session that starts on a generated name renames it with `git branch -m` before its first push.
-- Nobody pushes to `main` directly, not even docs or tooling: every change is a branch and a pull request on the fork, CI runs on the PR, and it is squash-merged with a conventional subject.
+- Nobody pushes to `main` directly, not even docs or tooling: every change is a branch and a pull request on this repository, CI runs on the PR, and it is squash-merged with a conventional subject.
+
+### How we worked
+
+Two days, three people, and Claude Code sessions doing most of the typing. Features were built in parallel **waves** (the plan is [kickoff-brief.md](kickoff-brief.md) section 9). A coordinating session (Claude Fable) cut each wave into slices, and one agent session per slice (Claude Opus, D18) ran in its own **slot**, a Git worktree under `.claude/worktrees/` on its own branch, from a **brief** (template: [kickoff-brief.md](kickoff-brief.md) section 11) naming the base commit, the slot, the files it owned and did not own, the tests to write first, the time limit, the README sections to update and the log file. A slot's first command after the base-commit check was `npm run setup`, which copies `node_modules` from the main checkout instead of running `npm ci` again. After every wave two more agents ran beside the next one: a **hardening agent**, which ran every scenario card end to end and kept the README's "Status" table current (card, what the judges compare, works yes or no, the test that proves it; the smart problems with what was done), and a **review-and-upkeep agent**, whose review went to [reviews/](reviews/) and which kept the README's structure (section order, duplicates after merges, links, the demo steps). The practice repo `ThomasParratt/leasing-platform` was a read-only parts bin cloned beside this one: functions were ported with their tests and rewritten under this repo's domain lint, never its structure. Every task kept a time log in [log/](log/), every decision went to [decisions.md](decisions.md) with its reason, and every pull request was squash-merged into `main` after CI and a review. The freeze was Friday 15:00; the last hour went to the demo script, the pitch pages and a green CI on the last commit. What we corrected along the way, from our side: [submission.md](submission.md), "How we used AI tools".
 
 ### Database
 
