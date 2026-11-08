@@ -177,7 +177,7 @@ describe('card 8 passed on early (D90)', () => {
 });
 
 describe('the held item is priced from its passport, not the list (polish review 2026-11-08)', () => {
-  it('card 8 passed on: the price page, the preview and the signing see 259 230, as the quote did', async () => {
+  it('card 8 passed on: the pricing the price page and the preview use holds 259 230, as the quote did', async () => {
     const contract = await card1Month7();
     const result = await exitContract(
       db,
