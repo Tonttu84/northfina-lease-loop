@@ -9,7 +9,7 @@
 // runs as a child process under tsx, exactly as `prisma db seed` runs it.
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 import { createPrismaClient, type PrismaClient } from '../src/server/prisma-client';
 import { resetDb } from '../tests/helpers/reset-db';
 import { DATABASE_ENV, DATABASE_URL } from './env';
@@ -80,6 +80,23 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect };
+
+/**
+ * Clicks a card's Run button and waits for the run to end: the server quotes, applies, signs and
+ * writes the invoices and the signed audit rows, which on a slow runner takes longer than one
+ * expectation's five seconds. The button is disabled while the card runs and enabled again once
+ * the answer is in, so a spec reads the outcome only after that.
+ */
+export async function runCard(page: Page, cardId: number): Promise<void> {
+  const button = page.getByRole('button', { name: `Run card ${cardId}`, exact: true });
+  const answered = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/demo/cards/${cardId}/run`),
+    { timeout: 30_000 }
+  );
+  await button.click();
+  await answered;
+  await expect(button).toBeEnabled({ timeout: 30_000 });
+}
 
 /** A money string as the page writes it; fi, sv and et put a no-break space before the €. */
 export const money = (text: string) =>

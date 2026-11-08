@@ -1,11 +1,11 @@
 // The header's language switch keeps the page and its query (review finding 14): card 1's
 // contract opened from My leases (`?from=leases`) switches to Finnish at the same address, and
 // the numbers come out in the Finnish format, 107,30 € with a no-break space.
-import { expect, money, test } from './fixtures';
+import { expect, money, runCard, test } from './fixtures';
 
 test('switching to suomi keeps the contract page and its query, in Finnish', async ({ page }) => {
   await page.goto('/en/demo');
-  await page.getByRole('button', { name: 'Run card 1', exact: true }).click();
+  await runCard(page, 1);
   const open = page.getByRole('link', { name: 'Open the page to compare' });
   await expect(open).toBeVisible();
   const contractPath = (await open.getAttribute('href'))!;

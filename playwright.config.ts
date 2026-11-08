@@ -19,7 +19,7 @@ export default defineConfig({
   workers: 1,
   retries: 0, // a flaky spec is a bug; CI shows it
   forbidOnly: CI,
-  timeout: 30_000,
+  timeout: 60_000, // a test runs at most one card, several seconds on a slow runner, and a page or two
   globalTimeout: 15 * 60_000, // AGENTS.md rule 11: every loop ends
   expect: { timeout: 5_000 },
   reporter: CI ? [['github'], ['html', { open: 'never' }]] : [['list']],

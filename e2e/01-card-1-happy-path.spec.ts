@@ -2,13 +2,13 @@
 // the contract, and the contract page with the numbers the README Status table pins (net 10 730,
 // gross 13 466 twice, then 13 520 from January 2027 at 26 % VAT). A second click is refused and
 // links the first run's contract (D70).
-import { expect, test } from './fixtures';
+import { expect, runCard, test } from './fixtures';
 
 test('runs card 1 from the demo page and lands on the contract with its numbers', async ({
   page,
 }) => {
   await page.goto('/en/demo');
-  await page.getByRole('button', { name: 'Run card 1', exact: true }).click();
+  await runCard(page, 1);
 
   await expect(page.getByText('What it did')).toBeVisible();
   const steps = page.getByRole('list').filter({ hasText: /^Quoted ebike-003/ });
@@ -32,14 +32,13 @@ test('runs card 1 from the demo page and lands on the contract with its numbers'
 
 test('a second click on card 1 is refused and links the first run', async ({ page }) => {
   await page.goto('/en/demo');
-  const run = page.getByRole('button', { name: 'Run card 1', exact: true });
-  await run.click();
+  await runCard(page, 1);
   const open = page.getByRole('link', { name: 'Open the page to compare' });
   await expect(open).toBeVisible();
   const contractHref = await open.getAttribute('href');
   expect(contractHref).toMatch(/^\/en\/contracts\/[^/?#]+$/);
 
-  await run.click();
+  await runCard(page, 1);
   const refused = page.getByRole('status').filter({ hasText: 'Card 1 has already run' });
   await expect(refused).toBeVisible();
   await expect(refused).toContainText('the clock and the actor are set again');

@@ -2,7 +2,7 @@
 // Norvi's coordinator account sees the page but no outbox; the admin sees the demo outbox and
 // opens the link; the link signs once (the application becomes approved), a second POST on it
 // is 409 SIGNING_LINK_USED, and a token nobody was sent gets the not-found notice.
-import { expect, test } from './fixtures';
+import { expect, runCard, test } from './fixtures';
 
 const OUTBOX = 'Demo outbox: the signing link';
 
@@ -11,7 +11,7 @@ test('the coordinator sees no link, the admin does, and the link signs exactly o
   actAs,
 }) => {
   await page.goto('/en/demo');
-  await page.getByRole('button', { name: 'Run card 6', exact: true }).click();
+  await runCard(page, 6);
   await page.getByRole('link', { name: 'Open the page to compare' }).click();
   await expect(page).toHaveURL(/\/en\/applications\/[^/?#]+$/);
 

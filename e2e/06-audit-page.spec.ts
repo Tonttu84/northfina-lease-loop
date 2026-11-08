@@ -1,14 +1,14 @@
 // The audit page after a run (docs/features/audit-chain.md): the three badges agree (intact up
 // to the same entry the anchors reach, every entry signed), every row names the run's actor,
 // and the pitch's `npm run demo:tamper` turns the badge to "broken" at the edited row.
-import { expect, tamperAuditLog, test } from './fixtures';
+import { expect, runCard, tamperAuditLog, test } from './fixtures';
 
 test('the badges agree and name the run; the tamper script breaks the chain', async ({ page }) => {
   await page.goto('/en/audit');
   await expect(page.getByText(/^Nothing has changed yet/)).toBeVisible();
 
   await page.goto('/en/demo');
-  await page.getByRole('button', { name: 'Run card 1', exact: true }).click();
+  await runCard(page, 1);
   await expect(page.getByRole('link', { name: 'Open the page to compare' })).toBeVisible();
 
   await page.goto('/en/audit');
