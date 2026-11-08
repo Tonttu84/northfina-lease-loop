@@ -9,12 +9,13 @@ import { authorize, forbiddenResponse, refusalResponse } from '@/server/authoriz
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
 import { payInvoice } from '@/server/invoices';
+import { invoiceIdParamsSchema } from '@/server/routes';
 
 const notFound = () => fail(404, 'INVOICE_NOT_FOUND', 'No such invoice');
 
 export const POST = handleRoute(
   async (_request, { params }: RouteContext<'/api/invoices/[id]/pay'>) => {
-    const { id } = await params;
+    const { id } = invoiceIdParamsSchema.parse(await params);
     const actor = await readActor(db);
     const auth = await authorize(db, actor, 'pay_invoice', { invoice: id });
     if (!auth.ok) return refusalResponse(auth.reason, notFound);

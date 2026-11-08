@@ -8,7 +8,7 @@ import { exitModeSchema } from '@/domain/exits/mode';
 import { contractStatusSchema, invoiceKindSchema } from '@/domain/statuses';
 import { contractViewSchema } from './contract-schemas';
 
-export const exitParamsSchema = z.object({ id: z.string().min(1) });
+export const exitParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 /** The usage the customer reports; the unit must be the category's (km for an e-bike). */
 export const reportedUsageSchema = z.strictObject({

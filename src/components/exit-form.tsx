@@ -51,6 +51,8 @@ export function ExitForm(props: ExitFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // True while the exit is posted: `pending` only covers the refresh after it (polish review).
+  const [sending, setSending] = useState(false);
   const firstRun = useRef(true);
 
   const usageValue = /^\d{1,8}$/.test(usageText) ? Number(usageText) : null;
@@ -61,6 +63,16 @@ export function ExitForm(props: ExitFormProps) {
     asks && answered
       ? { condition, usageValue }
       : { condition: props.initial.condition, usageValue: props.initial.usageValue };
+
+  /** The refusal `{ code, params }` from the error details, with its params (review finding 14). */
+  function refusalText(details?: { code?: unknown; params?: Record<string, string | number> }) {
+    const authz = authzRefusalKey(details?.code);
+    if (authz) return t(authz);
+    const key = `exit.refusal.${String(details?.code)}`;
+    return key in messages.en
+      ? t(key as MessageKey, exitRefusalValues(details?.params, t, locale))
+      : t('exit.error');
+  }
 
   useEffect(() => {
     if (firstRun.current) {
@@ -98,36 +110,33 @@ export function ExitForm(props: ExitFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractId, mode, reported.condition, reported.usageValue]);
 
-  /** The refusal `{ code, params }` from the error details, with its params (review finding 14). */
-  function refusalText(details?: { code?: unknown; params?: Record<string, string | number> }) {
-    const authz = authzRefusalKey(details?.code);
-    if (authz) return t(authz);
-    const key = `exit.refusal.${String(details?.code)}`;
-    return key in messages.en
-      ? t(key as MessageKey, exitRefusalValues(details?.params, t, locale))
-      : t('exit.error');
-  }
-
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (asks && !answered) return;
+    // A second click while the first request runs would post the exit twice: the server refuses
+    // the second (`contract_not_active`), and that refusal would show over an exit that went through.
+    if (sending || (asks && !answered)) return;
+    setSending(true);
     setError(null);
-    const response = await fetch(`/api/contracts/${contractId}/exit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        mode,
-        condition: reported.condition,
-        usage: { unit: usageUnit, value: reported.usageValue },
-        ...(mode === 'pass_on' && nextCustomerId ? { nextCustomerId } : {}),
-      }),
-    }).catch(() => null);
-    const body = response ? await response.json().catch(() => null) : null;
-    if (!body?.success) {
-      setError(refusalText(body?.error?.details));
-      return;
+    try {
+      const response = await fetch(`/api/contracts/${contractId}/exit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mode,
+          condition: reported.condition,
+          usage: { unit: usageUnit, value: reported.usageValue },
+          ...(mode === 'pass_on' && nextCustomerId ? { nextCustomerId } : {}),
+        }),
+      }).catch(() => null);
+      const body = response ? await response.json().catch(() => null) : null;
+      if (!body?.success) {
+        setError(refusalText(body?.error?.details));
+        return;
+      }
+      startTransition(() => router.refresh());
+    } finally {
+      setSending(false);
     }
-    startTransition(() => router.refresh());
   }
 
   const euro = (cents: number) => formatEuro(cents, intlLocale[locale]);
@@ -144,7 +153,7 @@ export function ExitForm(props: ExitFormProps) {
         });
 
   return (
-    <form onSubmit={submit} className="space-y-5" aria-busy={loading || pending}>
+    <form onSubmit={submit} className="space-y-5" aria-busy={loading || sending || pending}>
       <Notice tone={preview.atOrAfterEnd ? 'info' : 'warning'}>
         {t(preview.atOrAfterEnd ? 'exit.atEnd' : 'exit.early', {
           endDate: formatIsoDate(endDate, locale),
@@ -291,11 +300,11 @@ export function ExitForm(props: ExitFormProps) {
       <Button
         type="submit"
         variant={mode === 'buy' ? 'primary' : 'secondary'}
-        disabled={
-          pending || loading || (asks && !answered) || (mode === 'pass_on' && !nextCustomerId)
-        }
+        pending={sending || pending}
+        pendingLabel={t('exit.pending')}
+        disabled={loading || (asks && !answered) || (mode === 'pass_on' && !nextCustomerId)}
       >
-        {pending ? t('exit.pending') : t(`exit.submit.${mode}`)}
+        {t(`exit.submit.${mode}`)}
       </Button>
     </form>
   );

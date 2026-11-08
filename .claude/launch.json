@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "lease-loop-dev",
-      "runtimeExecutable": "C:\\nvm4w\\nodejs\\npm.cmd",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3107"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "--port", "3107"],
       "port": 3107
     }
   ]

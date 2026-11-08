@@ -162,6 +162,8 @@ Each wave runs in slots (worktrees made at 16:30, `npm ci` once). Each agent get
 
 ## 10. The practice repo as a parts bin
 
+_Hackathon-only: this section no longer applies. The practice repo is not a source for this repository (`AGENTS.md`, "Priority of sources"); nothing is ported from it any more._
+
 The practice repo sits beside the fork as a read-only clone. Port a function with its tests, rewrite it under the fork's domain lint, commit it as the slice's own scoped commit. Never port structure.
 
 | Port                                                                                | From (practice repo)                                                                       | To (fork)                                                                      |

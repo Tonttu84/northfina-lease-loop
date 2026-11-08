@@ -4,6 +4,7 @@
 import { readActor } from '@/server/actor';
 import { fail, handleRoute, ok } from '@/server/api-response';
 import { authorize, refusalResponse } from '@/server/authorize';
+import { contractIdParamsSchema } from '@/server/contract-schemas';
 import { getContractDetails } from '@/server/contracts';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
@@ -12,7 +13,7 @@ const notFound = () => fail(404, 'CONTRACT_NOT_FOUND', 'No such contract');
 
 export const GET = handleRoute(
   async (_request, { params }: RouteContext<'/api/contracts/[id]'>) => {
-    const { id } = await params;
+    const { id } = contractIdParamsSchema.parse(await params);
     const auth = await authorize(db, await readActor(db), 'read_contract', { contract: id });
     if (!auth.ok) return refusalResponse(auth.reason, notFound);
 
