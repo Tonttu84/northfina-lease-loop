@@ -2,10 +2,12 @@
 
 // "Continue as": picks the actor (D17: there is no login). Posts the choice to /api/actor,
 // which sets the cookie, then refreshes so the server components read the new actor.
-// The page passes in the customers, the current actor and the translated labels.
+// The page passes in the customers, the current actor and the translated labels. The button is
+// disabled until hydration: before it, the browser would send the form as a native GET.
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, type FormEvent } from 'react';
 import { Button, cx, inputClasses } from '@/components/ui';
+import { useHydrated } from '@/components/use-hydrated';
 
 export type ActorPickerLabels = {
   label: string;
@@ -32,6 +34,7 @@ export function ActorPicker({
   const [selected, setSelected] = useState(current === 'anonymous' ? '' : current);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function send(init: RequestInit) {
     startTransition(async () => {
@@ -83,7 +86,13 @@ export function ActorPicker({
           </option>
         ))}
       </select>
-      <Button type="submit" variant={onDark ? 'onDark' : 'secondary'} size="sm" pending={pending}>
+      <Button
+        type="submit"
+        variant={onDark ? 'onDark' : 'secondary'}
+        size="sm"
+        pending={pending}
+        disabled={!hydrated}
+      >
         {selected === '' && current !== 'anonymous' ? labels.clear : labels.submit}
       </Button>
       {failed ? (
