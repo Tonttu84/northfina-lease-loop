@@ -4400,7 +4400,7 @@
     },
     "/api/demo/clock": {
       "post": {
-        "summary": "Set the demo clock to a day, or clear it with null (the one date the browser may send)",
+        "summary": "Set the demo clock to a day, or clear it with null (the one date the browser may send); 404 while DEMO_TOOLS is off (D74)",
         "tags": ["demo"],
         "parameters": [],
         "requestBody": {

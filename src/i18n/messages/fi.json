@@ -58,7 +58,7 @@
   "demo.clock.pending": "Siirretään kelloa…",
   "demo.clock.error": "Kelloa ei voitu siirtää. Tarkista päivämäärä ja yritä uudelleen.",
   "demo.toolsOff.title": "Demotyökalut ovat pois päältä tässä versiossa",
-  "demo.toolsOff.body": "Kello ja skenaariokortit vastaavat vain, kun DEMO_TOOLS=1 on asetettu; kehitystilassa ne ovat päällä. Aseta se .env-tiedostoon ja käynnistä sovellus uudelleen, jos haluat näyttää demon tuotantoversiossa.",
+  "demo.toolsOff.body": "Kello ja skenaariokortit toimivat vain, kun DEMO_TOOLS=1 on asetettu; kehitystilassa ne ovat päällä. Lisää se .env-tiedostoon ja käynnistä sovellus uudelleen, jos haluat näyttää demon tuotantoversiossa.",
   "demo.cards.title": "Skenaariokortit",
   "demo.cards.intro": "Jokainen painike ajaa korttinsa oikean sovelluksen läpi kortin omina päivinä, asettaa kellon ja käyttäjän ja avaa sivun, jolla luvut verrataan. Jokainen vaihe näkyy muutoslokissa.",
   "demo.card.1": "Onnistunut polku",

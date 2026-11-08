@@ -29,6 +29,8 @@ npm run dev          # http://localhost:3000
 
 The landing page opens in English; Finnish, Swedish and Estonian are in the header. `http://localhost:3000/en/demo` has one Run button per scenario card. The pitch walkthrough, card by card with the number to look at: [docs/demo.md](docs/demo.md).
 
+The demo tools (the clock and the Run buttons) are on under `npm run dev`. On a production build (`npm run build && npm start`) they are off unless `.env` says `DEMO_TOOLS="1"`; set that for a pitch on a built app. A `.env` created before 9 November 2026 may still say `"1"`, since `npm run db:setup` never rewrites an existing file ([docs/features/security.md](docs/features/security.md)).
+
 | Command                 | What it does                                                   |
 | ----------------------- | -------------------------------------------------------------- |
 | `npm run setup`         | Set up a checkout or worktree: dependencies, database, hooks   |
