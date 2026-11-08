@@ -1,3 +1,5 @@
+> Northfina's engineering rules for the Lease Loop hackathon (35 % of the score), kept as the organiser wrote them in [etufillari/northfina-lease-loop](https://github.com/etufillari/northfina-lease-loop) (tag `v1.0-kickoff`). This repository still checks itself against them: `tests/meta-rules.test.ts` and `npm run check:all`.
+
 # Engineering rules
 
 These are the rules we follow every day at Northfina, cut down to fit a hackathon. They're 35 % of your score, and the hooks and CI in this repo already enforce most of them. Don't fight them; they're there to save you at 3 a.m.

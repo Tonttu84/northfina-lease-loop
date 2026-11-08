@@ -11,7 +11,7 @@ import { fail, handleRoute, ok, readJsonBody } from '@/server/api-response';
 import { authorize, forbiddenResponse, refusalResponse } from '@/server/authorize';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
-import { exitBodySchema } from '@/server/exit-schemas';
+import { exitBodySchema, exitParamsSchema } from '@/server/exit-schemas';
 import { exitContract, type ExitServiceRefusal } from '@/server/exits';
 
 const STATUS_OF: Partial<Record<ExitServiceRefusal['code'], number>> = {
@@ -26,7 +26,7 @@ const refused = (status: number, reason: ExitServiceRefusal) =>
 
 export const POST = handleRoute(
   async (request, { params }: RouteContext<'/api/contracts/[id]/exit'>) => {
-    const { id } = await params;
+    const { id } = exitParamsSchema.parse(await params);
     const actor = await readActor(db);
     const auth = await authorize(db, actor, 'exit_contract', { contract: id });
     if (!auth.ok) {

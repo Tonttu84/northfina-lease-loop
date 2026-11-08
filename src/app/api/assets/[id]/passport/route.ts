@@ -12,7 +12,7 @@ export const GET = handleRoute(
     const { id } = assetIdParamsSchema.parse(await params);
     const asOf = await todayForRequest();
     const result = await readPassport(db, id, asOf);
-    if (!result) return fail(404, 'ASSET_NOT_FOUND', `No asset with id "${id}"`);
+    if (!result) return fail(404, 'ASSET_NOT_FOUND', 'No asset with that id');
 
     return ok(
       passportResponseSchema.parse({
