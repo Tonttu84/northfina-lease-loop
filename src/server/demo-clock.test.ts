@@ -51,7 +51,10 @@ describe('resolveToday', () => {
 });
 
 describe('todayForRequest', () => {
-  afterEach(() => cookieStore.clear());
+  afterEach(() => {
+    cookieStore.clear();
+    vi.unstubAllEnvs();
+  });
 
   it('reads the override from the demo clock cookie', async () => {
     cookieStore.set(DEMO_CLOCK_COOKIE, '2027-01-01');
@@ -72,12 +75,14 @@ describe('todayForRequest', () => {
     cookieStore.set(DEMO_CLOCK_COOKIE, '2027-01-01');
     expect(await todayForRequest()).not.toBe('2027-01-01');
     expect(await readDemoClock()).toMatchObject({ overridden: false });
-    vi.unstubAllEnvs();
   });
 });
 
 describe('readDemoClock', () => {
-  afterEach(() => cookieStore.clear());
+  afterEach(() => {
+    cookieStore.clear();
+    vi.unstubAllEnvs();
+  });
 
   it('says the day is moved when the cookie holds another valid day', async () => {
     cookieStore.set(DEMO_CLOCK_COOKIE, '1999-12-31');
@@ -94,6 +99,8 @@ describe('readDemoClock', () => {
 });
 
 describe('demoClockCookieHeader', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('sets the cookie to the day, for the whole site, http-only', async () => {
     const { demoClockCookieHeader } = await import('./demo-clock');
     expect(demoClockCookieHeader('2027-06-05')).toBe(
@@ -110,6 +117,5 @@ describe('demoClockCookieHeader', () => {
     vi.stubEnv('NODE_ENV', 'production');
     const { demoClockCookieHeader } = await import('./demo-clock');
     expect(demoClockCookieHeader('2027-06-05')).toMatch(/; Secure$/);
-    vi.unstubAllEnvs();
   });
 });

@@ -2,7 +2,7 @@
 
 Branch `fix/security-demo-mode-headers` from `main` f1a6f44. The coordinating session (Claude
 Fable), from the polish review of 2026-11-08 (`docs/reviews/polish-2026-11-08.md`, security
-findings 1, 2, 5, 6 and 14 and the first two items of its package). The feature page is
+findings S1, S2, S5, S6 and the secrets note and the first two items of its package). The feature page is
 `docs/features/security.md`.
 
 | Time (Helsinki) | Step                                                                                                                                                                                                                                                                              |

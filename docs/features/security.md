@@ -18,7 +18,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 
 ## Decisions
 
-- D74 (extended here): `DEMO_TOOLS` gates the clock as well as the card runner; the default follows the build.
+- D74: `DEMO_TOOLS` now gates the clock as well as the card runner, and the default follows the build. The D74 row in `docs/decisions.md` is unchanged; this page is the record.
 - D17: no login; nothing here changes who may pick admin. A door on the picker (an access code and a signed cookie) is the next step if a public URL stays up unattended, and is written up in the polish review (`docs/reviews/polish-2026-11-08.md`, security finding 1).
 
 ## Pure functions
