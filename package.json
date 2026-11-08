@@ -5,9 +5,9 @@
   "description": "Lease Loop: a circular-economy leasing app where one e-bike, laptop or farm machine lives three lives. Team LeaseMasters at the Northfina × Hive Helsinki hackathon, November 2026.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ThomasParratt/northfina-lease-loop.git"
+    "url": "git+https://github.com/Tonttu84/northfina-lease-loop.git"
   },
-  "homepage": "https://github.com/ThomasParratt/northfina-lease-loop#readme",
+  "homepage": "https://github.com/Tonttu84/northfina-lease-loop#readme",
   "type": "module",
   "engines": {
     "node": ">=22"
