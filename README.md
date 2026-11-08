@@ -1,6 +1,6 @@
 # Lease Loop
 
-[![CI](https://github.com/ThomasParratt/northfina-lease-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/ThomasParratt/northfina-lease-loop/actions/workflows/ci.yml)
+[![CI](https://github.com/Tonttu84/northfina-lease-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/Tonttu84/northfina-lease-loop/actions/workflows/ci.yml)
 
 One e-bike, laptop or farm machine, three lives. Lease Loop takes an item from today's price list through a quote, a question flow that asks only what the amount needs, a contract that locks the price but not the tax, monthly invoices with the VAT of their own date, a fair early exit line by line, and a second life priced by the residual curve and offered to the waiting list by rules. Every item has a passport with the CO₂ and the money its later lives saved, and every change sits in a signed, tamper-evident audit chain. No AI anywhere in the product: rules, data and integer cents.
 
@@ -19,7 +19,7 @@ One e-bike, laptop or farm machine, three lives. Lease Loop takes an item from t
 Git and Node.js 22 (with [nvm](https://github.com/nvm-sh/nvm): `nvm install` reads `.nvmrc`).
 
 ```bash
-git clone https://github.com/ThomasParratt/northfina-lease-loop.git
+git clone https://github.com/Tonttu84/northfina-lease-loop.git
 cd northfina-lease-loop
 nvm install          # Node 22
 npm ci               # installs dependencies and the Git hooks
