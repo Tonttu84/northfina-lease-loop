@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { MASKED, redactAuditActor, redactAuditDetails, redactAuditEntry } from './redact';
 
 describe('redactAuditDetails', () => {
-  it('masks a private key at any depth and leaves the rest as it is', () => {
+  it('masks a private key at any depth, the derived ones too, and leaves the rest as it is', () => {
     const details = {
       quoteId: 'q-1',
       decision: 'rejected',
       reasons: [
         { code: 'too_young', params: { birthDate: '2009-03-10', eighteenOn: '2027-03-10' } },
+        { code: 'unaffordable', params: { monthlyNetCents: 10_730, maxRentCents: 9_000 } },
         { code: 'income_implausible', params: { incomeCents: 9_000_000, ceilingCents: 5_000_000 } },
       ],
       signingLinkTo: 'signatory@norvi.example.com',
@@ -16,11 +17,22 @@ describe('redactAuditDetails', () => {
       quoteId: 'q-1',
       decision: 'rejected',
       reasons: [
-        { code: 'too_young', params: { birthDate: MASKED, eighteenOn: '2027-03-10' } },
+        { code: 'too_young', params: { birthDate: MASKED, eighteenOn: MASKED } },
+        { code: 'unaffordable', params: { monthlyNetCents: 10_730, maxRentCents: MASKED } },
         { code: 'income_implausible', params: { incomeCents: MASKED, ceilingCents: 5_000_000 } },
       ],
       signingLinkTo: MASKED,
     });
+  });
+
+  it('masks an e-mail address under any key and keeps an id under the same key', () => {
+    expect(redactAuditDetails({ by: 'signatory@norvi.example.com', via: 'signing_link' })).toEqual({
+      by: MASKED,
+      via: 'signing_link',
+    });
+    expect(redactAuditDetails({ by: 'admin' })).toEqual({ by: 'admin' });
+    expect(redactAuditDetails({ by: 'cust-aino' })).toEqual({ by: 'cust-aino' });
+    expect(redactAuditDetails(['a@b.fi', 'not an address'])).toEqual([MASKED, 'not an address']);
   });
 
   it('never changes the stored value', () => {

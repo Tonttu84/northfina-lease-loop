@@ -74,7 +74,7 @@ describe('GET /api/audit-log', () => {
       details: {
         to: 'approved',
         by: MASKED,
-        reasons: [{ code: 'too_young', params: { birthDate: MASKED, eighteenOn: '2027-03-10' } }],
+        reasons: [{ code: 'too_young', params: { birthDate: MASKED, eighteenOn: MASKED } }],
       },
     });
   });
