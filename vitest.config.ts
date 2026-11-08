@@ -46,7 +46,8 @@ export default defineConfig({
         test: {
           name: 'server',
           include: ['src/**/*.test.ts', 'scripts/**/*.test.mjs', 'tests/**/*.test.ts'],
-          exclude: [...configDefaults.exclude, ...domainTests],
+          // e2e/ holds the Playwright specs (docs/features/e2e-tests.md): another runner, never Vitest.
+          exclude: [...configDefaults.exclude, ...domainTests, 'e2e/**'],
         },
       },
     ],

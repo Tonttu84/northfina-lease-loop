@@ -12,6 +12,9 @@ export default defineConfig([
     '.next/**',
     'out/**',
     'coverage/**',
+    'test-results/**', // Playwright's traces and screenshots
+    'playwright-report/**', // the HTML report holds .js files
+    'blob-report/**',
     'src/generated/**',
     'prisma/migrations/**',
     'next-env.d.ts',

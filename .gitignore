@@ -9,6 +9,10 @@ next-env.d.ts
 
 # tests
 coverage/
+# Playwright: the test database is covered by *.db below; its reports and traces
+test-results/
+playwright-report/
+blob-report/
 
 # Prisma: generated client and local SQLite databases
 src/generated/
