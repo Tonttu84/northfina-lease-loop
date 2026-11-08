@@ -21,7 +21,7 @@ test('switching to suomi keeps the contract page and its query, in Finnish', asy
   await expect(page.getByRole('heading', { name: 'Laskut' })).toBeVisible();
   await expect(page.getByText(money('107,30 €')).first()).toBeVisible();
   await expect(page.getByText(money('134,66 €'))).toHaveCount(2);
-  await expect(page.getByText(money('135,20 €')).first()).toBeVisible();
+  await expect(page.getByText(money('135,20 €'))).toHaveCount(34);
   await expect(page.getByText('€107.30')).toHaveCount(0);
 
   // And back, the query still there.

@@ -1,12 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
+import { DATABASE_ENV } from './e2e/env';
 
 // Browser tests on a built app (`next start`) against its own SQLite file, e2e.db, never dev.db
 // (docs/features/e2e-tests.md). One worker, no parallel files: every spec empties and reseeds
 // the database it reads (D44 rule 1), and the server is the other connection to the same file.
-// The demo tools are on (D74) so the Run buttons answer; DATABASE_URL set here wins over .env,
-// because Next and prisma.config.ts never overwrite a variable already in the environment.
+// The demo tools are on (D74) so the Run buttons answer; the database environment set here
+// (e2e/env.ts) wins over .env, because Next and prisma.config.ts never overwrite a variable
+// already in the environment.
 const PORT = 3100;
-const DATABASE_URL = 'file:./e2e.db';
 const CI = !!process.env.CI;
 // CI has built the app in the step before; locally the run builds it first unless told not to.
 const skipBuild = CI || process.env.E2E_SKIP_BUILD === '1';
@@ -41,6 +42,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/en`,
     reuseExistingServer: false,
     timeout: skipBuild ? 120_000 : 600_000,
-    env: { DATABASE_URL, DEMO_TOOLS: '1', AUDIT_ANCHOR_FILE: '', PORT: String(PORT) },
+    env: { ...DATABASE_ENV, DEMO_TOOLS: '1', PORT: String(PORT) },
   },
 });

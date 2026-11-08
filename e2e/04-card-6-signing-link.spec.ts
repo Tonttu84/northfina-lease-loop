@@ -24,7 +24,11 @@ test('the coordinator sees no link, the admin does, and the link signs exactly o
   await actAs('admin');
   await page.reload();
   await expect(page.getByRole('heading', { name: OUTBOX })).toBeVisible();
-  await expect(page.getByText(/^A signing link was sent to \S+ on 5 November 2026/)).toBeVisible();
+  await expect(
+    page.getByText(
+      /^A signing link was sent to \S+ on 5 November 2026\. It works until 19 November 2026\.$/
+    )
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Open the signing link' }).click();
 
   await expect(page).toHaveURL(/\/en\/sign\/[A-Za-z0-9_-]{32,64}$/);

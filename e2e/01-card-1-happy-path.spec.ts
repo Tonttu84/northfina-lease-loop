@@ -24,7 +24,7 @@ test('runs card 1 from the demo page and lands on the contract with its numbers'
   await expect(page.getByText('€107.30').first()).toBeVisible();
   // November and December 2026 at 25.5 %, then every month from January 2027 at 26 %.
   await expect(page.getByText('€134.66')).toHaveCount(2);
-  await expect(page.getByText('€135.20').first()).toBeVisible();
+  await expect(page.getByText('€135.20')).toHaveCount(34);
   await expect(page.getByText(/VAT is charged at the rate on each invoice date/)).toBeVisible();
   // The run set the actor to Aino, so the header offers her leases.
   await expect(page.getByRole('link', { name: 'My leases' })).toBeVisible();

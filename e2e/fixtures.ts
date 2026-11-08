@@ -12,9 +12,11 @@ import path from 'node:path';
 import { test as base, expect } from '@playwright/test';
 import { createPrismaClient, type PrismaClient } from '../src/server/prisma-client';
 import { resetDb } from '../tests/helpers/reset-db';
+import { DATABASE_ENV, DATABASE_URL } from './env';
 
-/** The same file playwright.config.ts gives the server. */
-export const DATABASE_URL = 'file:./e2e.db';
+// The spec process reads the shell, not .env: it gets the database environment the server gets,
+// so an AUDIT_ANCHOR_FILE exported for dev.db is never the file `resetDb` deletes before a test.
+Object.assign(process.env, DATABASE_ENV);
 
 /**
  * The seeded company signatories' first valid day. `prisma/seed.ts` seeds the real day, which
@@ -41,7 +43,7 @@ const TSX = path.resolve('node_modules/tsx/dist/cli.mjs');
 /** Runs a repository script under tsx against the test database, with a time limit (rule 11). */
 function runScript(script: string): void {
   execFileSync(process.execPath, [TSX, script], {
-    env: { ...process.env, DATABASE_URL, AUDIT_ANCHOR_FILE: '', CHECKPOINT_DISABLE: '1' },
+    env: { ...process.env, ...DATABASE_ENV },
     stdio: 'pipe',
     timeout: 60_000,
   });
