@@ -3,7 +3,9 @@
 // cost already computed, per unit) as its second-life price (D86), through the normal band and
 // factor. The term is the default the price page offers (36 months) when the item may be offered
 // it, else its first allowed term; with none allowed the default stays and the pricing refuses.
-// No down payment: the next customer changes the quote's terms on the price page if they wish.
+// No down payment: the item is held `reserved` for the named customer, out of the catalogue, so
+// they take this quote as it is from their My leases page; the price page shows the item at the
+// same amount but makes no new quote on a reserved item.
 
 /** The term the price page opens on (src/app/[locale]/assets/[id]/page.tsx). */
 export const NEXT_DEAL_DEFAULT_TERM = 36;

@@ -6,6 +6,8 @@
 // apply for and sign through the normal flow.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { loadCustomers } from '@/data/load';
+import { listPriceOn } from '@/domain/price-list';
+import { priceQuote } from '@/domain/pricing';
 import { answersFromCustomer } from '@/domain/question-flow/answers';
 import { payRents, sign, signedContract } from '../../../tests/helpers/journey';
 import { seedPack } from '../../../tests/helpers/invoice-fixture';
@@ -13,11 +15,13 @@ import { resetDb } from '../../../tests/helpers/reset-db';
 import { createTestDb } from '../../../tests/helpers/test-db';
 import { withProductionHandlers } from '../../../tests/helpers/with-handlers';
 import { createApplication } from '../applications';
+import { listAssetEvents } from '../asset-events';
 import { getAsset } from '../assets';
 import { exitContract, previewExit } from '../exits';
 import { listInvoices } from '../invoices';
 import type { PrismaClient } from '../prisma-client';
-import { createQuote, getQuote, listReservedQuotesFor } from '../quotes';
+import { createQuote, getQuote, listReservedQuotesFor, loadPricingData } from '../quotes';
+import { pricingForAsset } from '../second-life-price';
 
 let db: PrismaClient;
 let cleanup: () => Promise<void>;
@@ -169,5 +173,101 @@ describe('card 8 passed on early (D90)', () => {
       reason: { code: 'quote_reserved_for_another_customer' },
     });
     expect((await getAsset(db, 'ebike-003'))?.status).toBe('reserved');
+  });
+});
+
+describe('the held item is priced from its passport, not the list (polish review 2026-11-08)', () => {
+  it('card 8 passed on: the pricing the price page and the preview use holds 259 230, as the quote did', async () => {
+    const contract = await card1Month7();
+    const result = await exitContract(
+      db,
+      {
+        contractId: contract.id,
+        mode: 'pass_on',
+        reported: AINO_REPORTS,
+        nextCustomerId: NEXT,
+        actor: 'cust-aino',
+      },
+      MONTH_7
+    );
+    if (!result.ok) throw new Error(result.reason.code);
+    const quote = (await getQuote(db, result.nextQuoteId!))!;
+    // A pass-on writes no assessment row; the passport's `repriced` entry is the amount.
+    const pricing = await pricingForAsset(db, 'ebike-003', await loadPricingData());
+    expect(listPriceOn(pricing.priceLists, 'ebike-003', MONTH_7)).toMatchObject({
+      ok: true,
+      priceCents: 259_230,
+    });
+    const preview = priceQuote(pricing, {
+      assetId: 'ebike-003',
+      termMonths: 36,
+      downPaymentCents: 0,
+      isoDate: MONTH_7,
+    });
+    expect(preview).toMatchObject({
+      ok: true,
+      quote: { monthlyNetCents: quote.breakdown.monthlyNetCents },
+    });
+  });
+
+  it('D77 on a pass-on: a used item reported better than at signing is relisted as leased, and signed under the next list at the amount of the quote', async () => {
+    // ebike-005 is like_new with 1 200 km in the pack. Aino leases it on 5 Nov (price list v1,
+    // 159 000) and hands it on the same day to Lena, reporting it "new" at 1 300 km; Lena signs
+    // on 6 Nov, under v2 (167 000).
+    const V1_DAY = '2026-11-05';
+    const V2_DAY = '2026-11-06';
+    const { contract } = await signedContract(db, {
+      customerId: 'cust-aino',
+      assetId: 'ebike-005',
+      termMonths: 36,
+      quoteOn: V1_DAY,
+    });
+    const result = await exitContract(
+      db,
+      {
+        contractId: contract.id,
+        mode: 'pass_on',
+        reported: { condition: 'new', usage: { unit: 'km', value: 1_300 } },
+        nextCustomerId: NEXT,
+        actor: 'cust-aino',
+      },
+      V1_DAY
+    );
+    if (!result.ok) throw new Error(result.reason.code);
+    // Relisted in the condition it was leased in (the customer's word never improves it), with
+    // the usage reported, and held for Lena.
+    expect(await getAsset(db, 'ebike-005')).toMatchObject({
+      status: 'reserved',
+      condition: 'like_new',
+      usage: { unit: 'km', value: 1_300 },
+    });
+    const quote = (await getQuote(db, result.nextQuoteId!))!;
+    expect(quote.breakdown.unitListPriceCents).toBeLessThan(159_000);
+    const repriced = (await listAssetEvents(db, 'ebike-005')).filter((e) => e.kind === 'repriced');
+    expect(repriced.at(-1)?.details).toMatchObject({
+      marketValueCents: quote.breakdown.unitListPriceCents,
+      secondLifeFinancedCents: quote.breakdown.financedCents,
+    });
+    // The price lock at signing compares with the held item's amount, not with list v2, so the
+    // rent it names is the quote's own.
+    const customer = (await loadCustomers()).find((c) => c.id === NEXT)!;
+    const applied = await createApplication(db, {
+      quoteId: quote.id,
+      customerId: NEXT,
+      answers: answersFromCustomer(customer),
+      today: V2_DAY,
+      actor: NEXT,
+    });
+    if (!applied.ok) throw new Error(String(applied.reason));
+    const signed = await sign(db, applied.application.id, NEXT, V2_DAY);
+    if (!signed.ok) throw new Error(signed.reason.code);
+    expect(signed.details.contract.monthlyNetCents).toBe(quote.breakdown.monthlyNetCents);
+    expect(signed.details.priceLock).toMatchObject({
+      params: {
+        priceListVersion: 1,
+        currentPriceListVersion: 2,
+        currentMonthlyNetCents: quote.breakdown.monthlyNetCents,
+      },
+    });
   });
 });
