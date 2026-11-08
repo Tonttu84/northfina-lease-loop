@@ -57,6 +57,8 @@
   "demo.clock.reset": "Back to the real day",
   "demo.clock.pending": "Moving the clock…",
   "demo.clock.error": "The clock could not be moved. Check the date and try again.",
+  "demo.toolsOff.title": "The demo tools are off in this build",
+  "demo.toolsOff.body": "The clock and the scenario cards answer only while DEMO_TOOLS=1 is set; in development they are on. Set it in .env and restart the app to show the demo on a production build.",
   "demo.cards.title": "Scenario cards",
   "demo.cards.intro": "Each button runs its card through the real app on the card's own days, sets the clock and who you act as, and opens the page where the numbers are compared. Every step is in the audit log.",
   "demo.card.1": "Happy path",

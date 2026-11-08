@@ -57,6 +57,8 @@
   "demo.clock.reset": "Tillbaka till den verkliga dagen",
   "demo.clock.pending": "Flyttar klockan…",
   "demo.clock.error": "Klockan kunde inte flyttas. Kontrollera datumet och försök igen.",
+  "demo.toolsOff.title": "Demoverktygen är avstängda i den här versionen",
+  "demo.toolsOff.body": "Klockan och scenariokorten fungerar bara när DEMO_TOOLS=1 är satt; under utveckling är de på. Sätt det i .env och starta om appen för att visa demon i en produktionsversion.",
   "demo.cards.title": "Scenariokort",
   "demo.cards.intro": "Varje knapp kör sitt kort genom den riktiga appen på kortets egna dagar, ställer klockan och vem du agerar som och öppnar sidan där siffrorna jämförs. Varje steg finns i ändringsloggen.",
   "demo.card.1": "Den lyckliga vägen",

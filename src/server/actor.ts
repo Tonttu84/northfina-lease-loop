@@ -2,6 +2,7 @@
 // cookie with a customer id or `admin`, and every withAudit entry names that actor. A cookie
 // that names nobody we know reads as `anonymous`.
 import { cookies } from 'next/headers';
+import { secureFlag } from './cookie-flags';
 import { listCustomers } from './customers';
 import type { PrismaClient } from './prisma-client';
 
@@ -29,12 +30,12 @@ export function actorFromCookieValue(
 
 /** `Set-Cookie` value that remembers the actor for 30 days. */
 export function actorCookieHeader(actor: Actor): string {
-  return `${ACTOR_COOKIE}=${encodeURIComponent(actor)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax`;
+  return `${ACTOR_COOKIE}=${encodeURIComponent(actor)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax${secureFlag()}`;
 }
 
 /** `Set-Cookie` value that forgets the actor. */
 export function clearActorCookieHeader(): string {
-  return `${ACTOR_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`;
+  return `${ACTOR_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureFlag()}`;
 }
 
 /** Checks a cookie value against the customers in the database. */

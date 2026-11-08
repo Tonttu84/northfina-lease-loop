@@ -4,6 +4,8 @@
 // while a server component renders). Pages and routes call `todayForRequest()` once and
 // pass the day down; the domain never sees a clock.
 import { cookies } from 'next/headers';
+import { secureFlag } from './cookie-flags';
+import { demoToolsOn } from './demo-tools';
 import { todayIso } from './today';
 
 export const DEMO_CLOCK_COOKIE = 'lease-loop-as-of';
@@ -14,8 +16,8 @@ export const DEMO_CLOCK_COOKIE = 'lease-loop-as-of';
  */
 export function demoClockCookieHeader(asOf: string | null): string {
   return asOf === null
-    ? `${DEMO_CLOCK_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`
-    : `${DEMO_CLOCK_COOKIE}=${asOf}; Path=/; HttpOnly; SameSite=Lax`;
+    ? `${DEMO_CLOCK_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureFlag()}`
+    : `${DEMO_CLOCK_COOKIE}=${asOf}; Path=/; HttpOnly; SameSite=Lax${secureFlag()}`;
 }
 
 /** True for a real calendar day written `YYYY-MM-DD` (so `2026-02-29` is false). */
@@ -47,7 +49,10 @@ export type DemoClock = {
 export async function readDemoClock(): Promise<DemoClock> {
   const store = await cookies();
   const systemToday = todayIso();
-  const today = resolveToday(systemToday, store.get(DEMO_CLOCK_COOKIE)?.value);
+  // D74: the clock is a demo tool. With the tools off a cookie moves nothing, so every date rule
+  // (a quote's validity, a signing link's expiry, the age at signing) runs on the real day.
+  const override = demoToolsOn() ? store.get(DEMO_CLOCK_COOKIE)?.value : undefined;
+  const today = resolveToday(systemToday, override);
   return { today, systemToday, overridden: today !== systemToday };
 }
 

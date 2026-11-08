@@ -57,6 +57,8 @@
   "demo.clock.reset": "Tagasi tegelikku päeva",
   "demo.clock.pending": "Kella nihutatakse…",
   "demo.clock.error": "Kella ei õnnestunud nihutada. Kontrolli kuupäeva ja proovi uuesti.",
+  "demo.toolsOff.title": "Demotööriistad on selles versioonis välja lülitatud",
+  "demo.toolsOff.body": "Kell ja stsenaariumikaardid vastavad ainult siis, kui DEMO_TOOLS=1 on seatud; arenduses on need sees. Lisa see .env-faili ja käivita rakendus uuesti, et näidata demot toodanguversioonis.",
   "demo.cards.title": "Stsenaariumikaardid",
   "demo.cards.intro": "Iga nupp käivitab oma kaardi päris rakenduses kaardi enda päevadel, seab kella ja kasutaja ning avab lehe, kus numbreid võrreldakse. Iga samm on muudatuste logis.",
   "demo.card.1": "Õnnelik tee",
