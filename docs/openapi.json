@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "lease-loop",
-    "version": "0.1.0",
-    "description": "Lease Loop hackathon starter: a walking skeleton for a circular-economy leasing app."
+    "version": "1.0.0",
+    "description": "Lease Loop: a circular-economy leasing app where one e-bike, laptop or farm machine lives three lives. Team LeaseMasters at the 24-hour Northfina × Hive Helsinki hackathon, November 2026."
   },
   "tags": [
     {

@@ -24,7 +24,17 @@ src/generated/
 # misc
 .DS_Store
 npm-debug.log*
+*.log
+.eslintcache
 .vercel
+
+# editors and operating systems
+.idea/
+Thumbs.db
+
+# Playwright reports and traces
+playwright-report/
+test-results/
 
 # Claude Code agent worktrees and per-person settings
 .claude/worktrees/
