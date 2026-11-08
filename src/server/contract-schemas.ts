@@ -15,7 +15,7 @@ export const signContractBodySchema = z.strictObject({
   startDate: isoDateSchema.optional(),
 });
 
-export const contractIdParamsSchema = z.object({ id: z.string().min(1) });
+export const contractIdParamsSchema = z.object({ id: z.string().min(1).max(100) });
 
 /** A code with params; the page writes it in the visitor's language. */
 export const contractCodeSchema = z.object({

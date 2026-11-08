@@ -1,6 +1,6 @@
 # Demo script: the pitch run (10 to 12 minutes)
 
-The run we show the judges, one presenter at the keyboard. It clicks through the product; the organiser's "15-minute tour" in the [README](../README.md) is the other walk, through the code, and stays as it is. The numbers below come from the README "Status" table and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh.
+The run we show the judges, one presenter at the keyboard. It clicks through the product; the "Code tour" in the [README](../README.md) is the other walk, through the code. The numbers below come from the README "Status" table and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh.
 
 ## Before you start (not on the clock)
 
