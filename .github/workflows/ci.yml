@@ -75,13 +75,18 @@ jobs:
         run: npm run build
 
       # Browser tests on the built app (docs/features/e2e-tests.md). The browser binary is
-      # cached on the lockfile hash: a new Playwright version downloads it once.
+      # cached on the Playwright version: a new version downloads it once, another dependency
+      # bump does not.
+      - name: Playwright version
+        id: pw-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Playwright browser (cache)
         id: pw-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
 
       - name: Install Playwright browser
         if: steps.pw-cache.outputs.cache-hit != 'true'
