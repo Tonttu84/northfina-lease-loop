@@ -2,6 +2,13 @@
 export { canonicalJson } from './canonical';
 export { auditDetailLines, type AuditDetailLine } from './details';
 export {
+  MASKED,
+  PRIVATE_DETAIL_KEYS,
+  redactAuditActor,
+  redactAuditDetails,
+  redactAuditEntry,
+} from './redact';
+export {
   GENESIS_HASH,
   hashAuditEntry,
   verifyAuditChain,

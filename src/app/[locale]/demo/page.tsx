@@ -24,6 +24,7 @@ import { verifyAuditChain } from '@/server/audit';
 import { db } from '@/server/db';
 import { DEMO_CARDS } from '@/server/demo-cards';
 import { readDemoClock } from '@/server/demo-clock';
+import { demoToolsOn } from '@/server/demo-tools';
 import { CardList } from './card-list';
 import { ClockForm } from './clock-form';
 
@@ -43,6 +44,9 @@ export default async function DemoPage({ params }: PageProps<'/[locale]/demo'>) 
   await connection();
 
   const t = getT(locale);
+  // D74: with the tools off (a production build without DEMO_TOOLS=1) the page says so and shows
+  // neither the clock form nor the Run buttons; the audit log stays, it is not a demo tool.
+  const toolsOn = demoToolsOn();
   const [clock, verdict, customers] = await Promise.all([
     readDemoClock(),
     verifyAuditChain(db),
@@ -60,6 +64,12 @@ export default async function DemoPage({ params }: PageProps<'/[locale]/demo'>) 
       <PageHeader title={t('demo.title')} intro={t('demo.intro')}>
         <StaffNote>{t('staff.note')}</StaffNote>
       </PageHeader>
+
+      {toolsOn ? null : (
+        <Notice tone="warning" className="mb-8" title={t('demo.toolsOff.title')}>
+          {t('demo.toolsOff.body')}
+        </Notice>
+      )}
 
       <nav aria-label={t('demo.tools.title')} className="mb-8">
         <p className="mb-2 font-medium">{t('demo.tools.title')}</p>
@@ -93,26 +103,28 @@ export default async function DemoPage({ params }: PageProps<'/[locale]/demo'>) 
             {t('demo.clock.movedNote', { date: formatIsoDate(clock.systemToday, locale) })}
           </Notice>
         ) : null}
-        <ClockForm
-          key={clock.today}
-          today={clock.today}
-          overridden={clock.overridden}
-          presets={PRESET_DAYS.map((iso) => ({ iso, label: formatIsoDate(iso, locale) }))}
-          labels={{
-            date: t('demo.clock.date'),
-            dateHint: t('demo.clock.dateHint'),
-            travel: t('demo.clock.travel'),
-            presets: t('demo.clock.presets'),
-            reset: t('demo.clock.reset'),
-            pending: t('demo.clock.pending'),
-            error: t('demo.clock.error'),
-          }}
-        />
+        {toolsOn ? (
+          <ClockForm
+            key={clock.today}
+            today={clock.today}
+            overridden={clock.overridden}
+            presets={PRESET_DAYS.map((iso) => ({ iso, label: formatIsoDate(iso, locale) }))}
+            labels={{
+              date: t('demo.clock.date'),
+              dateHint: t('demo.clock.dateHint'),
+              travel: t('demo.clock.travel'),
+              presets: t('demo.clock.presets'),
+              reset: t('demo.clock.reset'),
+              pending: t('demo.clock.pending'),
+              error: t('demo.clock.error'),
+            }}
+          />
+        ) : null}
       </Card>
 
       <Card as="section" title={t('demo.cards.title')} titleId="demo-cards" className="mt-8">
         <p className="mb-4 text-ink-muted">{t('demo.cards.intro')}</p>
-        <CardList cards={DEMO_CARDS} names={names} locale={locale} t={t} />
+        {toolsOn ? <CardList cards={DEMO_CARDS} names={names} locale={locale} t={t} /> : null}
       </Card>
 
       <Card as="section" title={t('demo.audit.title')} titleId="demo-audit" className="mt-8">

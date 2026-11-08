@@ -81,6 +81,29 @@ export async function listAssetEvents(
   return rows.map(toPassportEvent);
 }
 
+export type Repricing = { onDate: string; secondLifeFinancedCents: number };
+
+/**
+ * The item's current second-life amount: the newest `repriced` entry of its log, written by an
+ * assessment (D86) and by a pass-on (D90), the two ways an item is priced for its next life.
+ * Null when the log has none, or the newest one carries no whole-cent amount (an older build).
+ */
+export async function latestRepricing(
+  db: PrismaClient | TransactionClient,
+  assetId: string
+): Promise<Repricing | null> {
+  const row = await db.assetEvent.findFirst({
+    where: { asset_id: assetId, kind: 'repriced' },
+    orderBy: { id: 'desc' },
+  });
+  if (!row) return null;
+  const details = JSON.parse(row.details_json) as { secondLifeFinancedCents?: unknown };
+  const cents = details.secondLifeFinancedCents;
+  return typeof cents === 'number' && Number.isSafeInteger(cents) && cents >= 0
+    ? { onDate: row.on_date, secondLifeFinancedCents: cents }
+    : null;
+}
+
 export type AssetPassport = {
   asset: Asset;
   passport: Passport;

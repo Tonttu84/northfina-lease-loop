@@ -153,3 +153,4 @@ Server reads in `src/server/audit.ts`: `verifyAuditChain(db)` (all rows in id or
 - **Rows from before the seal**: a database migrated with rows already in it reads as `unsigned_in_chain` until `npm run db:reset`, the same stance as D36's unhashed rows.
 - **Postgres:** the previous-row read needs `SELECT … FOR UPDATE` or an advisory lock, and a trigger could forbid `UPDATE`/`DELETE` on `AuditLog` at the database level.
 - `verifyAuditChain(db)` reads the whole table and checks every signature on every audit-page load; fine for the demo, a checkpoint (verified up to id n with head h) would make it incremental.
+- **What the public sees** (polish review of 2026-11-08, security finding 3): the stored row keeps every detail, so the hash holds; the page and `GET /api/audit-log` hand anyone but the admin a copy with the personal fields masked (`redactAuditDetails`, [security.md](security.md)).

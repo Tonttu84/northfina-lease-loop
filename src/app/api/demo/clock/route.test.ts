@@ -1,6 +1,6 @@
 // POST /api/demo/clock sets the demo clock cookie to a day and clears it with null, through
 // demoClockCookieHeader (the one writer of that cookie), and refuses a day that does not exist.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_CLOCK_COOKIE } from '@/server/demo-clock';
 import { todayIso } from '@/server/today';
 import { POST } from './route';
@@ -38,6 +38,20 @@ describe('POST /api/demo/clock', () => {
   it('refuses a day that does not exist with 400 and sets nothing', async () => {
     const { status, cookies } = await post({ asOf: '2026-02-29' });
     expect(status).toBe(400);
+    expect(cookies).toEqual([]);
+  });
+});
+
+describe('POST /api/demo/clock with the demo tools off (D74)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('answers 404 and sets nothing, as the card runner does', async () => {
+    vi.stubEnv('DEMO_TOOLS', '0');
+    const { status, cookies, body } = await post({ asOf: '2027-01-01' });
+    expect(status).toBe(404);
+    expect(body.error.code).toBe('NOT_FOUND');
     expect(cookies).toEqual([]);
   });
 });

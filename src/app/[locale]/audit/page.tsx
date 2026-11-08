@@ -9,7 +9,8 @@ import { AuditTable, type AuditTableRow } from './audit-table';
 import { formatTimestamp } from '@/i18n/format';
 import { getT } from '@/i18n/get-t';
 import { isLocale } from '@/i18n/locales';
-import { auditDetailLines } from '@/domain/audit';
+import { auditDetailLines, redactAuditEntry } from '@/domain/audit';
+import { ADMIN_ACTOR, readActor } from '@/server/actor';
 import { listAuditLog, verifyAuditChain } from '@/server/audit';
 import { db } from '@/server/db';
 
@@ -30,7 +31,15 @@ export default async function AuditPage({ params }: PageProps<'/[locale]/audit'>
   await connection();
 
   const t = getT(locale);
-  const [rows, verdict] = await Promise.all([listAuditLog(db, LIMIT), verifyAuditChain(db)]);
+  const [stored, verdict, actor] = await Promise.all([
+    listAuditLog(db, LIMIT),
+    verifyAuditChain(db),
+    readActor(db),
+  ]);
+  // The page is public; the personal fields are not (docs/features/security.md): the admin reads
+  // the stored rows, everyone else a copy with them masked. The chain below is verified on the
+  // stored rows either way.
+  const rows = actor === ADMIN_ACTOR ? stored : stored.map(redactAuditEntry);
   const tableRows: AuditTableRow[] = rows.map((row) => ({
     id: row.id,
     createdAt: row.created_at,

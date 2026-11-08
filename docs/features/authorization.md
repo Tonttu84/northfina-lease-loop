@@ -46,7 +46,7 @@ Public, with no `authorize`: the catalogue, the price preview and the stored quo
 ## Decisions
 
 - D73: one pure policy, checked before the action in the route and again at the service's top.
-- D74: the HTTP mapping (401 / 403 `FORBIDDEN`) and the `DEMO_TOOLS` switch on the card runner.
+- D74: the HTTP mapping (401 / 403 `FORBIDDEN`) and the `DEMO_TOOLS` switch on the card runner, the demo clock's route and its cookie ([security.md](security.md)).
 - D85: the second-life page is back office: `read_second_life` is the admin's, because the page shows the whole waiting list (other customers' budgets and needs); its links show for the admin only.
 - Builds on D17 (no login, the "continue as" cookie), D46 (the signing link, the mandate list), D47 (the admin applies on behalf), D57 (another customer's application reads as not found).
 

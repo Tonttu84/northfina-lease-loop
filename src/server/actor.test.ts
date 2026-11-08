@@ -1,6 +1,6 @@
 // The actor (D17): no login, a cookie names who is acting. Pure parts first, then the reader
 // against a real, migrated SQLite database.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadCustomers } from '@/data/load';
 import { createTestDb } from '../../tests/helpers/test-db';
 import {
@@ -62,6 +62,16 @@ describe('the cookie headers', () => {
     expect(clearActorCookieHeader()).toBe(
       `${ACTOR_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`
     );
+  });
+
+  describe('on a production build', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('both headers add Secure, so the cookie travels over https only', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      expect(actorCookieHeader('cust-aino')).toMatch(/; SameSite=Lax; Secure$/);
+      expect(clearActorCookieHeader()).toMatch(/; SameSite=Lax; Secure$/);
+    });
   });
 });
 
