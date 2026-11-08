@@ -1,8 +1,8 @@
-// Every route with an id in its path parses it with its schema before anything is read (the
-// pattern of GET /api/applications/[id], wave 3 finding 10): an id over 100 characters is a 400
-// VALIDATION_ERROR, and one at the bound reaches the route's normal answer (401 for a private
-// route asked anonymously, 404 for a public one that finds nothing). Only `db` and `next/headers`
-// cookies are replaced.
+// The seven id routes this fix bounded parse their params with their schema before anything is
+// read (the pattern of GET /api/applications/[id], wave 3 finding 10; the other id routes already
+// did): an id over 100 characters is a 400 VALIDATION_ERROR, and one at the bound reaches the
+// route's normal answer (401 for a private route asked anonymously, 404 for a public one that
+// finds nothing). Only `db` and `next/headers` cookies are replaced.
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb } from '../../../tests/helpers/test-db';
 import type { PrismaClient } from '@/server/prisma-client';
@@ -99,7 +99,7 @@ describe.each(ROUTES)('$name', (route) => {
 
 describe('the 404 messages name no id', () => {
   it('GET /api/quotes/[id] and GET /api/assets/[id]/passport answer a constant message', async () => {
-    for (const route of [ROUTES[4]!, ROUTES[5]!]) {
+    for (const route of ROUTES.filter((candidate) => candidate.atBound === 404)) {
       const body = (await (await call(route, 'no-such-id')).json()) as {
         error: { message: string };
       };
