@@ -5,7 +5,7 @@
 export type RateLimit = {
   limit: number;
   windowMs: number;
-  /** Over this many clients, the windows that ended are forgotten on the next call. */
+  /** The map never holds more clients than this: the ended windows go first, then the oldest. */
   maxClients?: number;
 };
 
@@ -27,11 +27,18 @@ export function createRateLimiter(rule: RateLimit): RateLimiter {
   const maxClients = rule.maxClients ?? 10_000;
   return {
     take(key, now) {
-      // A scan from many addresses must not fill the memory: ended windows go when it grows.
-      if (windows.size >= maxClients) {
+      // A scan from many addresses must not fill the memory: when the map is full, the ended
+      // windows go, and if none has ended the oldest open one goes instead, so the map never
+      // holds more than `maxClients` and a client rotating its address gains nothing.
+      if (windows.size >= maxClients && !windows.has(key)) {
+        let oldest: [string, number] | null = null;
         for (const [client, window] of windows) {
           if (now - window.startedAt >= rule.windowMs) windows.delete(client);
+          else if (oldest === null || window.startedAt < oldest[1]) {
+            oldest = [client, window.startedAt];
+          }
         }
+        if (windows.size >= maxClients && oldest) windows.delete(oldest[0]);
       }
       const current = windows.get(key);
       if (!current || now - current.startedAt >= rule.windowMs) {

@@ -7,6 +7,7 @@ import {
   handleRoute,
   MAX_BODY_BYTES,
   ok,
+  readBodyText,
   readJsonBody,
   type ApiEnvelope,
 } from './api-response';
@@ -164,7 +165,30 @@ describe('assertBodySize', () => {
     expect(await body(response)).toMatchObject({ error: { code: 'PAYLOAD_TOO_LARGE' } });
   });
 
-  it('reads a body that declares no length (the runtime caps it)', () => {
-    expect(() => assertBodySize({ headers: new Headers() } as unknown as Request)).not.toThrow();
+  it('a body without a declared length (chunked) is refused once read when it is over the cap', async () => {
+    const chunked = (text: string) =>
+      ({ headers: new Headers(), text: async () => text }) as unknown as Request;
+    expect(() => assertBodySize(chunked('{}'))).not.toThrow();
+    await expect(readBodyText(chunked('{}'))).resolves.toBe('{}');
+    await expect(readBodyText(chunked('x'.repeat(MAX_BODY_BYTES + 1)))).rejects.toMatchObject({
+      status: 413,
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+    // Bytes, not characters: a two-byte character counts twice.
+    await expect(readBodyText(chunked('ä'.repeat(MAX_BODY_BYTES / 2 + 1)))).rejects.toMatchObject({
+      status: 413,
+    });
+  });
+
+  it('readJsonBody refuses the chunked over-cap body with the 413 envelope, not INVALID_JSON', async () => {
+    const handler = handleRoute(async (request) => ok(await readJsonBody(request, z.object({}))));
+    const response = await handler(
+      {
+        headers: new Headers(),
+        text: async () => `{"a":"${'x'.repeat(MAX_BODY_BYTES)}"}`,
+      } as unknown as Request,
+      undefined
+    );
+    expect(response.status).toBe(413);
   });
 });

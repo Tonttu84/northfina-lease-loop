@@ -10,7 +10,13 @@ import { API_WRITE_LIMIT, createRateLimiter, type RateLimiter } from '@/server/r
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-/** The client as far as the proxy can tell: the first address of X-Forwarded-For, else one bucket. */
+/**
+ * The client as far as the proxy can tell: the first address of X-Forwarded-For. Next's server
+ * fills that header from the socket when a request carries none, so each address has its own
+ * window; a client that sends the header picks its own bucket, which makes the limit a nuisance
+ * bar against a careless script, not a guarantee (docs/features/security.md). `direct` only when
+ * the header is missing altogether.
+ */
 export function clientKey(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   return forwarded?.split(',')[0]?.trim() || 'direct';

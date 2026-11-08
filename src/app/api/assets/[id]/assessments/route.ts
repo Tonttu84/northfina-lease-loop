@@ -5,7 +5,7 @@
 // first (D73, D74).
 import { isAuthzRefusal, type AuthzRefusalCode } from '@/domain/authz/policy';
 import { readActor } from '@/server/actor';
-import { ApiError, assertBodySize, fail, handleRoute, ok } from '@/server/api-response';
+import { ApiError, fail, handleRoute, ok, readBodyText } from '@/server/api-response';
 import { authorize, forbiddenResponse } from '@/server/authorize';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
@@ -22,8 +22,7 @@ const STATUS_OF: Record<Exclude<AssessRefusal['code'], AuthzRefusalCode>, number
 
 /** The inspection, or {} for no body (the assess button sends none). */
 async function readInspection(request: Request) {
-  assertBodySize(request);
-  const text = await request.text();
+  const text = await readBodyText(request);
   if (text.trim() === '') return {};
   let body: unknown;
   try {

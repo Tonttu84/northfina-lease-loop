@@ -8,7 +8,14 @@ describe('redactAuditDetails', () => {
       decision: 'rejected',
       reasons: [
         { code: 'too_young', params: { birthDate: '2009-03-10', eighteenOn: '2027-03-10' } },
-        { code: 'unaffordable', params: { monthlyNetCents: 10_730, maxRentCents: 9_000 } },
+        {
+          code: 'unaffordable',
+          params: {
+            grossMonthlyRentCents: 13_466,
+            maxRentCents: 9_000,
+            monthlyNetIncomeCents: 30_000,
+          },
+        },
         { code: 'income_implausible', params: { incomeCents: 9_000_000, ceilingCents: 5_000_000 } },
       ],
       signingLinkTo: 'signatory@norvi.example.com',
@@ -18,7 +25,14 @@ describe('redactAuditDetails', () => {
       decision: 'rejected',
       reasons: [
         { code: 'too_young', params: { birthDate: MASKED, eighteenOn: MASKED } },
-        { code: 'unaffordable', params: { monthlyNetCents: 10_730, maxRentCents: MASKED } },
+        {
+          code: 'unaffordable',
+          params: {
+            grossMonthlyRentCents: 13_466,
+            maxRentCents: MASKED,
+            monthlyNetIncomeCents: MASKED,
+          },
+        },
         { code: 'income_implausible', params: { incomeCents: MASKED, ceilingCents: 5_000_000 } },
       ],
       signingLinkTo: MASKED,

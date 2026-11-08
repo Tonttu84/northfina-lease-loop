@@ -42,6 +42,18 @@ describe('createRateLimiter', () => {
     expect(limiter.size()).toBe(1);
   });
 
+  it('never holds more clients than maxClients, even when no window has ended', () => {
+    const limiter = createRateLimiter({ limit: 5, windowMs: 60_000, maxClients: 3 });
+    limiter.take('a', T0);
+    limiter.take('b', T0 + 1);
+    limiter.take('c', T0 + 2);
+    limiter.take('d', T0 + 3); // the oldest open window, a, goes
+    expect(limiter.size()).toBe(3);
+    expect(limiter.take('b', T0 + 4)).toEqual({ ok: true, remaining: 3 }); // b kept its count
+    expect(limiter.take('a', T0 + 5)).toEqual({ ok: true, remaining: 4 }); // a starts over
+    expect(limiter.size()).toBe(3);
+  });
+
   it('the API rule allows a whole demo per minute', () => {
     expect(API_WRITE_LIMIT).toEqual({ limit: 120, windowMs: 60_000 });
   });

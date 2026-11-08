@@ -17,6 +17,7 @@ export const PRIVATE_DETAIL_KEYS: readonly string[] = [
   'businessId',
   'country',
   'email',
+  'signatoryEmail',
   'signingLinkTo',
 ];
 

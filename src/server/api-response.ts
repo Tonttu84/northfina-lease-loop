@@ -82,16 +82,25 @@ export function handleRoute<Context = unknown>(
 /** The most a body may declare (docs/features/security.md): every body of ours is a few hundred bytes. */
 export const MAX_BODY_BYTES = 64 * 1024;
 
+const tooLarge = (maxBytes: number) =>
+  new ApiError(413, 'PAYLOAD_TOO_LARGE', `The request body may be at most ${maxBytes} bytes`);
+
 /** Refuses a body whose declared length is over the cap with 413, before it is read. */
 export function assertBodySize(request: Request, maxBytes = MAX_BODY_BYTES): void {
   const declared = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > maxBytes) {
-    throw new ApiError(
-      413,
-      'PAYLOAD_TOO_LARGE',
-      `The request body may be at most ${maxBytes} bytes`
-    );
-  }
+  if (Number.isFinite(declared) && declared > maxBytes) throw tooLarge(maxBytes);
+}
+
+/**
+ * The body as text, at most `maxBytes`: refused before it is read when the declared length says
+ * so, and once read when it had no declared length (a chunked body) and turned out larger. The
+ * route handlers themselves put no limit on a body.
+ */
+export async function readBodyText(request: Request, maxBytes = MAX_BODY_BYTES): Promise<string> {
+  assertBodySize(request, maxBytes);
+  const text = await request.text();
+  if (new TextEncoder().encode(text).byteLength > maxBytes) throw tooLarge(maxBytes);
+  return text;
 }
 
 /** Reads a JSON body and validates it. Over the cap → 413; bad JSON → 400 INVALID_JSON; wrong shape → 400 VALIDATION_ERROR. */
@@ -99,10 +108,10 @@ export async function readJsonBody<S extends z.ZodType>(
   request: Request,
   schema: S
 ): Promise<z.output<S>> {
-  assertBodySize(request);
+  const text = await readBodyText(request);
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(text);
   } catch {
     throw new ApiError(400, 'INVALID_JSON', 'The request body must be valid JSON');
   }

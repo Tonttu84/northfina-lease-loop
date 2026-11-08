@@ -78,7 +78,8 @@ function operation(route: RouteDefinition) {
         content: jsonContent(jsonSchema(successEnvelope(route.response), 'output')),
       },
       default: {
-        description: 'An error: 400 VALIDATION_ERROR or INVALID_JSON, 404, 409, 500 INTERNAL_ERROR',
+        description:
+          'An error: 400 VALIDATION_ERROR or INVALID_JSON, 404, 409, 413 PAYLOAD_TOO_LARGE, 429 RATE_LIMITED (the proxy), 500 INTERNAL_ERROR',
         content: jsonContent(jsonSchema(failureEnvelope, 'output')),
       },
     },
