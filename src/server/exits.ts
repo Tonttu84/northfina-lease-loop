@@ -182,6 +182,8 @@ export async function exitContract(
   // D77 on a pass-on: the item is relisted as the exit valued it, the customer's word held at
   // the condition it was leased in. The plan's event carries that condition, never the raw report.
   const handedOver = exit.event.type === 'UNIT_PASSED_ON' ? exit.event : null;
+  if (nextQuoteId && !handedOver)
+    throw new Error('A pass-on plan must carry a UNIT_PASSED_ON event');
 
   try {
     const row = await withAudit(
@@ -212,6 +214,7 @@ export async function exitContract(
         if (!ended) throw new LostExitRace();
         await emit(tx, exit.event);
         if (nextQuoteId && nextPricing && input.nextCustomerId && handedOver) {
+          // `handedOver` is set whenever `nextQuoteId` is (checked above); the guard narrows the type.
           await startNextDeal(tx, {
             quoteId: nextQuoteId,
             customerId: input.nextCustomerId,
