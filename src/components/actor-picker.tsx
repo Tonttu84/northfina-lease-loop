@@ -1,6 +1,6 @@
 'use client';
 
-// "Continue as": picks the actor (D17: there is no login). Posts the choice to /api/actor,
+// "Continue as": picks the actor (D17), a demo tool beside the sign-in link (D93). Posts the choice to /api/actor,
 // which sets the cookie, then refreshes so the server components read the new actor.
 // The page passes in the customers, the current actor and the translated labels. The button is
 // disabled until hydration: before it, the browser would send the form as a native GET.

@@ -22,6 +22,26 @@ describe('proxy', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1');
   });
 
+  it('refuses a write a browser sends from another site with 403 CROSS_SITE, before the limit counts it', async () => {
+    const limited = proxyWith(createRateLimiter({ limit: 1, windowMs: 60_000 }), () => T0);
+    const foreign = new NextRequest('http://localhost/api/login/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', {
+      method: 'POST',
+      headers: { 'sec-fetch-site': 'cross-site' },
+    });
+    const refused = limited(foreign);
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ success: false, error: { code: 'CROSS_SITE' } });
+    // Same site, same origin and no header pass; the one allowed write is still available.
+    for (const site of ['same-origin', 'same-site', 'none']) {
+      const own = new NextRequest('http://localhost/api/quotes', {
+        method: 'GET',
+        headers: { 'sec-fetch-site': site },
+      });
+      expect(limited(own).headers.get('x-middleware-next')).toBe('1');
+    }
+    expect(limited(post('/api/quotes')).status).not.toBe(429);
+  });
+
   it('refuses the write over the limit with 429, Retry-After and the API envelope', async () => {
     const limited = proxyWith(createRateLimiter({ limit: 2, windowMs: 60_000 }), () => T0);
     expect(limited(post('/api/quotes')).status).not.toBe(429);

@@ -12,6 +12,7 @@ import { useHydrated } from '@/components/use-hydrated';
 export type LoginFormLabels = {
   email: string;
   emailHint: string;
+  emailMissing: string;
   submit: string;
   pending: string;
   sentTitle: string;
@@ -41,10 +42,16 @@ export function LoginForm({
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<Sent | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const hydrated = useHydrated();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (email.trim() === '') {
+      setFieldError(labels.emailMissing);
+      return;
+    }
+    setFieldError(null);
     setPending(true);
     setFailed(null);
     try {
@@ -103,7 +110,7 @@ export function LoginForm({
           {failed}
         </Notice>
       ) : null}
-      <Field id="login-email" label={labels.email} hint={labels.emailHint}>
+      <Field id="login-email" label={labels.email} hint={labels.emailHint} error={fieldError}>
         {(control) => (
           <input
             type="email"
@@ -111,18 +118,16 @@ export function LoginForm({
             autoComplete="email"
             required
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              if (fieldError) setFieldError(null);
+            }}
             className={inputClasses}
             {...control}
           />
         )}
       </Field>
-      <Button
-        type="submit"
-        pending={pending}
-        pendingLabel={labels.pending}
-        disabled={!hydrated || email.trim() === ''}
-      >
+      <Button type="submit" pending={pending} pendingLabel={labels.pending} disabled={!hydrated}>
         {labels.submit}
       </Button>
     </form>

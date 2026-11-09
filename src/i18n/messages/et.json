@@ -843,7 +843,7 @@
   "login.demo.body": "Toodangus saabuks link e-postiga. Siin näidatakse seda sulle ja demolehe väljuvate kast loetleb kõik ootel lingid.",
   "login.demo.open": "Ava sisselogimislink",
   "login.demo.outbox": "Ava demo väljuvad",
-  "login.demo.none": "Ühelgi kontol pole seda e-posti, seega linki pole.",
+  "login.demo.none": "Linki pole näidata: demos tähendab see, et ühelgi kontol pole seda e-posti.",
   "login.noPassword": "Miks parooli pole? Link tõestab, et e-post on sinu oma, ja kinnitab selle ühtlasi; parool oleks veel üks saladus, mida hoida.",
   "login.link.title": "Sinu sisselogimislink",
   "login.link.intro": "Lingi avamine logib sind sisse ja kinnitab sinu e-posti.",
@@ -863,7 +863,7 @@
   "account.intro": "Kellena oled sisse logitud, sinu e-post ja kas see on kinnitatud.",
   "account.signedOut": "Sa ei ole sisse logitud.",
   "account.toLogin": "Logi sisse",
-  "account.noAccount": "{actor} pole veel kontot. Käivita npm run db:seed, et kontod lisada.",
+  "account.noAccount": "Kasutajal {actor} pole veel kontot: andmebaas on täidetud enne kontode lisamist. Täida see uuesti.",
   "account.backOffice": "Taustatöö",
   "account.card.title": "Sisse logitud kui",
   "account.name": "Nimi",
@@ -871,7 +871,7 @@
   "account.emailStatus": "E-posti olek",
   "account.confirmed": "Kinnitatud",
   "account.unconfirmed": "Kinnitamata",
-  "account.confirmedOn": "Kinnitatud",
+  "account.confirmedOn": "Kinnitamise kuupäev",
   "account.unconfirmedNote": "Sinu e-post pole veel kinnitatud: ava sisselogimislink ühe korra, et see kinnitada.",
   "account.welcome": "Tere tulemast, {name}. Oled sisse logitud ja sinu e-post on kinnitatud.",
   "account.resend": "Saada kinnituslink",
@@ -884,5 +884,6 @@
   "demo.outbox.empty": "Ootel linke pole. Küsi üks sisselogimislehelt.",
   "demo.outbox.row": "Saadetud {sent}, töötab kuni {expires}",
   "demo.outbox.open": "Ava link",
-  "demo.outbox.toLogin": "Mine sisselogimislehele"
+  "demo.outbox.toLogin": "Mine sisselogimislehele",
+  "login.form.emailMissing": "Sisesta kõigepealt oma konto e-posti aadress."
 }

@@ -1,5 +1,5 @@
-// Accounts and the sign-in link (D93, D94). One account per customer and one for the back
-// office, seeded from the data pack. A visitor types an e-mail; the account with that e-mail
+// Accounts and the sign-in link (D93, D94; docs/features/accounts.md). One account per customer
+// and one for the back office, seeded from the data pack. A visitor types an e-mail; the account with that e-mail
 // gets a single-use link that works today and tomorrow; opening it sets the signed session
 // cookie (D92) and confirms the e-mail. No e-mail is sent: while the demo tools are on, the
 // token is also kept in clear (`demo_token`) so the demo page's outbox can show the link.
@@ -188,7 +188,10 @@ export type SignInResult =
 /**
  * Opens the link: marks it used, confirms the account's e-mail if it was not, and names the
  * actor to sign in as. One transaction and one audit row, actor the account's own actor. A
- * link found used or expired changes nothing.
+ * link found used or expired changes nothing. Two opens of one link at once: the mark is the
+ * transaction's first statement and is conditional on the link being unused, so it takes the
+ * write lock before anything is read; the second open finds no row to mark, writes nothing
+ * (the transaction rolls back, no audit row) and answers `used`.
  */
 export async function consumeLoginLink(
   db: PrismaClient,
@@ -199,45 +202,43 @@ export async function consumeLoginLink(
   const before = loginLinkOutcome(daysOf(found), input.today);
   if (before !== 'valid') return { ok: false, reason: before };
   const actor = actorOf(found.account);
-  const confirmedNow = !found.account.email_confirmed;
-  await withAudit(
-    db,
-    {
-      actor,
-      action: 'account.signed_in',
-      entityType: 'account',
-      entityId: found.account.id,
-      details: { via: 'login_link', emailConfirmedNow: confirmedNow },
-    },
-    async (tx) => {
-      // Read again inside the transaction: SQLite serialises writers, so two opens of the same
-      // link cannot both find it unused.
-      const row = await tx.loginToken.findUnique({ where: { id: found.id } });
-      if (!row || loginLinkOutcome(daysOf(row), input.today) !== 'valid') {
-        throw new LinkRaceError();
-      }
-      await tx.loginToken.update({
-        where: { id: row.id },
-        data: parseRow('login_token', loginTokenUsedUpdateSchema, { used_on: input.today }),
-      });
-      if (confirmedNow) {
-        await tx.account.update({
-          where: { id: found.account.id },
-          data: parseRow('account', accountConfirmationUpdateSchema, {
-            email_confirmed: true,
-            confirmed_on: input.today,
-          }),
-        });
-      }
-    }
-  ).catch((error: unknown) => {
-    if (error instanceof LinkRaceError) return 'used';
-    throw error;
+  const usedOn = parseRow('login_token', loginTokenUsedUpdateSchema, { used_on: input.today });
+  const confirmation = parseRow('account', accountConfirmationUpdateSchema, {
+    email_confirmed: true,
+    confirmed_on: input.today,
   });
+  let confirmedNow: boolean;
+  try {
+    confirmedNow = await withAudit(
+      db,
+      {
+        actor,
+        action: 'account.signed_in',
+        entityType: 'account',
+        entityId: found.account.id,
+        details: { via: 'login_link' },
+      },
+      async (tx) => {
+        const marked = await tx.loginToken.updateMany({
+          where: { id: found.id, used_on: null },
+          data: usedOn,
+        });
+        if (marked.count !== 1) throw new LinkRaceError();
+        // The account as it is inside the transaction: another link may have confirmed it.
+        const account = await tx.account.findUniqueOrThrow({ where: { id: found.account.id } });
+        if (account.email_confirmed) return false;
+        await tx.account.update({ where: { id: account.id }, data: confirmation });
+        return true;
+      }
+    );
+  } catch (error) {
+    if (error instanceof LinkRaceError) return { ok: false, reason: 'used' };
+    throw error;
+  }
   return { ok: true, actor, confirmedNow };
 }
 
-/** Two opens of one link in the same instant: the second finds it used inside its transaction. */
+/** Two opens of one link at once: the second finds it already marked inside its transaction. */
 class LinkRaceError extends Error {
   constructor() {
     super('the sign-in link was used by another request');

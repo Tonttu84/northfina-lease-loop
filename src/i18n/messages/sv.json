@@ -843,7 +843,7 @@
   "login.demo.body": "I produktion skulle länken komma med e-post. Här visas den för dig, och demosidans utkorg listar alla väntande länkar.",
   "login.demo.open": "Öppna inloggningslänken",
   "login.demo.outbox": "Öppna demons utkorg",
-  "login.demo.none": "Inget konto har den e-posten, så det finns ingen länk.",
+  "login.demo.none": "Ingen länk att visa: i demon betyder det att inget konto har den e-posten.",
   "login.noPassword": "Varför inget lösenord? Länken bevisar att e-posten är din och bekräftar den samtidigt; ett lösenord vore en hemlighet till att hålla reda på.",
   "login.link.title": "Din inloggningslänk",
   "login.link.intro": "Att öppna länken loggar in dig och bekräftar din e-post.",
@@ -863,7 +863,7 @@
   "account.intro": "Vem du är inloggad som, din e-post och om den är bekräftad.",
   "account.signedOut": "Du är inte inloggad.",
   "account.toLogin": "Logga in",
-  "account.noAccount": "{actor} har inget konto ännu. Kör npm run db:seed för att lägga till kontona.",
+  "account.noAccount": "{actor} har inget konto ännu: databasen fylldes innan kontona fanns. Fyll den igen.",
   "account.backOffice": "Back office",
   "account.card.title": "Inloggad som",
   "account.name": "Namn",
@@ -884,5 +884,6 @@
   "demo.outbox.empty": "Inga väntande länkar. Be om en på inloggningssidan.",
   "demo.outbox.row": "Skickad {sent}, fungerar till {expires}",
   "demo.outbox.open": "Öppna länken",
-  "demo.outbox.toLogin": "Gå till inloggningssidan"
+  "demo.outbox.toLogin": "Gå till inloggningssidan",
+  "login.form.emailMissing": "Skriv först e-postadressen till ditt konto."
 }

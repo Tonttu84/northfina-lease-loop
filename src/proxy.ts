@@ -1,7 +1,9 @@
-// Next.js 16 "proxy" (it was called middleware before Next 16). It runs before routing, for two
-// things: the bare root URL goes to the default language (`/` → `/en`), and the writes on /api
-// are rate-limited per client (docs/features/security.md), a fixed window in this process, which
-// is enough for one instance on one SQLite file. A refusal is the API envelope with 429 and a
+// Next.js 16 "proxy" (it was called middleware before Next 16). It runs before routing, for three
+// things: the bare root URL goes to the default language (`/` → `/en`), a write on /api that a
+// browser sends from another site is refused (docs/features/security.md: a POST without a body,
+// such as opening a sign-in link, needs no preflight, and the answer may set the session cookie),
+// and the writes on /api are rate-limited per client, a fixed window in this process, which is
+// enough for one instance on one SQLite file. A refusal is the API envelope with 429 and a
 // Retry-After, so a client reads it like any other refusal. Picking the language from the
 // Accept-Language header would also go here.
 import { NextResponse, type NextRequest } from 'next/server';
@@ -22,11 +24,30 @@ export function clientKey(request: NextRequest): string {
   return forwarded?.split(',')[0]?.trim() || 'direct';
 }
 
+/**
+ * Whether a write came from another site: browsers set `Sec-Fetch-Site` on every request they
+ * make; `cross-site` is a page on another origin posting here with the visitor's cookies. A
+ * request without the header (a script, an old browser, the tests) is not refused on it.
+ */
+export function isCrossSite(request: NextRequest): boolean {
+  return request.headers.get('sec-fetch-site') === 'cross-site';
+}
+
 export function proxyWith(limiter: RateLimiter, now: () => number = Date.now) {
   return function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     if (pathname === '/') return NextResponse.redirect(new URL(`/${defaultLocale}`, request.url));
     if (pathname.startsWith('/api/') && !SAFE_METHODS.has(request.method)) {
+      if (isCrossSite(request)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: 'CROSS_SITE', message: 'Writes are accepted from this site only' },
+            meta: { timestamp: new Date(now()).toISOString() },
+          },
+          { status: 403 }
+        );
+      }
       const answer = limiter.take(clientKey(request), now());
       if (!answer.ok) {
         return NextResponse.json(

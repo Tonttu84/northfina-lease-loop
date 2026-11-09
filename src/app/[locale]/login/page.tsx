@@ -46,6 +46,7 @@ export default async function LoginPage({ params }: PageProps<'/[locale]/login'>
           labels={{
             email: t('login.form.email'),
             emailHint: t('login.form.emailHint'),
+            emailMissing: t('login.form.emailMissing'),
             submit: t('login.form.submit'),
             pending: t('login.form.pending'),
             sentTitle: t('login.sent.title'),

@@ -7,14 +7,14 @@ import { consumeLoginLink, loginLinkState } from '@/server/accounts';
 import { signInFailure } from '@/server/account-responses';
 import { loginTokenParamsSchema } from '@/server/account-schemas';
 import { actorCookieHeader } from '@/server/actor';
-import { fail, handleRoute, ok } from '@/server/api-response';
+import { handleRoute, ok } from '@/server/api-response';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';
 
 export const GET = handleRoute(async (_request, { params }: RouteContext<'/api/login/[token]'>) => {
   const { token } = loginTokenParamsSchema.parse(await params);
   const state = await loginLinkState(db, token, await todayForRequest());
-  if (!state) return fail(404, 'LOGIN_LINK_NOT_FOUND', 'No sign-in link with that token');
+  if (!state) return signInFailure('not_found');
   return ok(state);
 });
 

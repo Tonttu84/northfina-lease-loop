@@ -179,10 +179,19 @@ describe('consumeLoginLink', () => {
     const rows = await db.auditLog.findMany({ where: { action: 'account.signed_in' } });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ actor: 'cust-aino', entity_type: 'account' });
-    expect(JSON.parse(rows[0]!.details_json ?? '{}')).toEqual({
-      via: 'login_link',
-      emailConfirmedNow: true,
-    });
+    expect(JSON.parse(rows[0]!.details_json ?? '{}')).toEqual({ via: 'login_link' });
+  });
+
+  it('two opens of one link at once: exactly one signs in, one audit row, the other is used', async () => {
+    const { link } = await request(AINO);
+    const results = await Promise.all([
+      consumeLoginLink(db, { token: link!.token, today: TODAY }),
+      consumeLoginLink(db, { token: link!.token, today: TODAY }),
+    ]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(results.filter((result) => !result.ok)).toEqual([{ ok: false, reason: 'used' }]);
+    expect(await db.auditLog.count({ where: { action: 'account.signed_in' } })).toBe(1);
+    expect((await db.account.findUnique({ where: { email: AINO } }))?.confirmed_on).toBe(TODAY);
   });
 
   it('signs in as admin through the back office account', async () => {

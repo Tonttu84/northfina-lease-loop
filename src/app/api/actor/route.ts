@@ -1,5 +1,5 @@
 // POST   /api/actor   body: { "actor": "cust-aino" } or { "actor": "admin" }
-//        Sets the `lease-loop-actor` cookie (D17: no login, the picker says who is acting);
+//        Sets the `lease-loop-actor` cookie (D17: the picker says who is acting);
 //        since D92 the cookie carries a signed, expiring session. A demo tool since D93:
 //        404 while DEMO_TOOLS is off, when the sign-in link is the way in.
 // DELETE /api/actor   Clears it, so the visitor is `anonymous` again: the sign-out, always on.
