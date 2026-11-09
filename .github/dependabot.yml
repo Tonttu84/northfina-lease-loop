@@ -11,6 +11,14 @@ updates:
       npm:
         patterns:
           - '*'
+    ignore:
+      # A TypeScript major waits for typescript-eslint: its peer range (8.72: >=4.8.4 <6.1.0)
+      # made the TypeScript 7 bump fail `npm ci` (PRs 7 and 8). Lift this when it accepts the new major.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # @types/node follows the Node major in .nvmrc, which CI runs on (engines.node is only the floor), not the newest Node.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: chore(deps)
   - package-ecosystem: github-actions
