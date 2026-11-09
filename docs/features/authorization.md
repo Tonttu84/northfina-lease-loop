@@ -28,6 +28,7 @@ The actor × action table, as `src/domain/authz/policy.test.ts` pins it (owner =
 | `pay_invoice`        | not_signed_in | ok         | not_owner  | ok    |
 | `exit_contract`      | not_signed_in | ok         | not_owner  | ok    |
 | `read_leases`        | not_signed_in | ok         | not_owner  | ok    |
+| `read_account`       | not_signed_in | ok         | not_owner  | ok    |
 | `manage_signatories` | not_signed_in | ok         | not_owner  | ok    |
 | `read_signatories`   | not_signed_in | ok         | not_owner  | ok    |
 | `assess_asset`       | not_signed_in | admin_only | admin_only | ok    |

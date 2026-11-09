@@ -24,6 +24,7 @@ export const AUTHZ_ACTIONS = [
   'read_second_life',
   'set_asset_status',
   'run_demo_card',
+  'read_account',
 ] as const;
 export type AuthzAction = (typeof AUTHZ_ACTIONS)[number];
 

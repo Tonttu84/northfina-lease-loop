@@ -88,3 +88,24 @@ export const returnAssessmentRow = () => ({
   match_reasons_json: JSON.stringify([{ code: 'earliest_needed_by', params: {} }]),
   assessment_json: JSON.stringify({ options: [] }),
 });
+
+/** Aino's account, not yet confirmed (D93). */
+export const accountRow = () => ({
+  id: 'account-1',
+  customer_id: 'cust-aino',
+  role: 'customer',
+  email: 'aino.virtanen@example.com',
+  email_confirmed: false,
+  confirmed_on: null,
+});
+
+/** A sign-in link for it on card 1's day, with the demo token (D94). */
+export const loginTokenRow = () => ({
+  id: 'login-1',
+  account_id: 'account-1',
+  token_hash: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+  demo_token: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+  sent_on: '2026-11-05',
+  expires_on: '2026-11-07',
+  used_on: null,
+});
