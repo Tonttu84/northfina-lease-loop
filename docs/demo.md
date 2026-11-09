@@ -44,6 +44,8 @@ Click **Run** on each card, in card order; the page lands where the judges compa
 
 **The money saved is estimated and moves with the clock.** Life 2 of `ebike-008` is from before our records, so it counts only the 45 € inspection we know every relisting pays, and the passport says estimated. It uses today's price list (D80), so 314,80 € on 5 Nov becomes 332,80 € on 6 Nov, when v2 raises e-bikes by 5 %.
 
+If there is time, the login: on `/en/login` type `aino.virtanen@example.com`, open the demo page's outbox, click her link, Sign in: her account page shows the e-mail confirmed and the header My leases. No e-mail leaves the demo; the outbox stands in for her inbox (`docs/features/accounts.md`).
+
 For card 6, if there is time: open the decision page's demo outbox and follow the signing link. Only the holder of the one-time link signs; the demo outbox stands in for the e-mail the named signatory would get.
 
 ## 8:30 to 10:30, the audit chain

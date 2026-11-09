@@ -31,6 +31,8 @@ The landing page opens in English; Finnish, Swedish and Estonian are in the head
 
 The demo tools (the clock and the Run buttons) are on under `npm run dev`. On a production build (`npm run build && npm start`) they are off unless `.env` says `DEMO_TOOLS="1"`; set that for a pitch on a built app. A `.env` created before 9 November 2026 may still say `"1"`, since `npm run db:setup` never rewrites an existing file ([docs/features/security.md](docs/features/security.md)). The actor cookie is signed with a `SESSION_SECRET` that `npm run db:setup`, `npm run dev` and `npm start` add to `.env` when it is missing (D92).
 
+Signing in is by e-mail link, no password: type an account's e-mail on `/en/login` (a customer's address from the data pack, or `backoffice@leaseloop.example`), and the link appears on the demo page's outbox, since no e-mail leaves the demo; opening it signs you in and confirms the e-mail on your account page ([docs/features/accounts.md](docs/features/accounts.md)). "Continue as" stays as a shortcut while the demo tools are on.
+
 | Command                 | What it does                                                   |
 | ----------------------- | -------------------------------------------------------------- |
 | `npm run setup`         | Set up a checkout or worktree: dependencies, database, hooks   |
@@ -119,6 +121,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 - [Demo cards: one button per scenario card](docs/features/demo-cards.md)
 - [Browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)
 - [Authorization: who may do what, checked before the action](docs/features/authorization.md)
+- [Accounts: sign in by e-mail link, the confirmed e-mail, the demo outbox](docs/features/accounts.md)
 - [Security: demo mode, the response headers, the signed session, the public audit log, limits](docs/features/security.md)
 
 ## How we worked

@@ -40,7 +40,9 @@ Worked example, card 6: Norvi's coordinator (`cust-norvi`) applies for one `ebik
 
 HTTP (D74): `not_signed_in` → 401, every other refusal → 403, both `FORBIDDEN` through `fail()` with the reason as details. An unknown record keeps the route's own 404; another customer reading an application gets the same 404 as an unknown id (D57). The application page shows the signing-token link to the admin only (wave 3 review finding 1).
 
-Public, with no `authorize`: the catalogue, the price preview and the stored quotes, the passport, the audit log and its check, the actor picker, the demo clock and the signing link (the token is the signatory's authority). `tests/meta-rules.test.ts` lists them and fails on any other `route.ts` that never calls `authorize(`.
+Public, with no `authorize`: the catalogue, the price preview and the stored quotes, the passport, the audit log and its check, the actor picker (a demo tool since D93), the demo clock, the signing link (the token is the signatory's authority) and the sign-in routes (`POST /api/login`, nobody to authorize yet; `/api/login/[token]`, the token is the visitor's authority, D93). `tests/meta-rules.test.ts` lists them and fails on any other `route.ts` that never calls `authorize(`.
+
+**Since D93:** `read_account` (one's own account, the back office's for the admin), the account page.
 
 **Since D87 and D88:** `withdraw_application` (the owner and the admin) and `sign_contract` refused to the admin with the code `customer_signs`: the customer signs their own lease.
 

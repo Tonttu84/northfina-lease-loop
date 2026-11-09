@@ -1,12 +1,15 @@
 // The top of every page, in two layers:
 // - the staff strip (teal): the demo tools a customer would never see in a real product,
-//   i.e. who you are acting as and the demo page (the audit log is linked from there);
-// - the customer header (paper): the brand, the catalogue, how it works and the language.
+//   i.e. who you are acting as (the picker, only while the demo tools are on, D93) and the demo
+//   page (the audit log is linked from there);
+// - the customer header (paper): the brand, the catalogue, how it works, the leases, sign in or
+//   the account, and the language.
 // A server component; the actor picker, the nav and the language switcher are small clients.
 import Link from 'next/link';
 import type { Translate } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 import { ADMIN_ACTOR, ANONYMOUS_ACTOR } from '@/server/actor';
+import { demoToolsOn } from '@/server/demo-tools';
 import { ActorPicker } from './actor-picker';
 import { LanguageSwitcher } from './language-switcher';
 import { LoopMark } from './loop-mark';
@@ -32,7 +35,13 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
     ...(actor === ANONYMOUS_ACTOR
       ? []
       : [{ href: `/${locale}/leases`, label: t(isAdmin ? 'nav.leasesAdmin' : 'nav.leases') }]),
+    // The sign-in link (D93) or the account page once signed in, by the picker or the link.
+    actor === ANONYMOUS_ACTOR
+      ? { href: `/${locale}/login`, label: t('nav.signIn') }
+      : { href: `/${locale}/account`, label: t('nav.account') },
   ];
+  // D93: the picker is a demo tool; a production build without DEMO_TOOLS=1 signs in by link.
+  const pickerOn = demoToolsOn();
 
   return (
     <>
@@ -57,19 +66,21 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
               </ul>
             </nav>
           </div>
-          <ActorPicker
-            onDark
-            customers={customers}
-            current={actor}
-            labels={{
-              label: t('actor.label'),
-              anonymous: t('actor.anonymous'),
-              admin: t('actor.admin'),
-              submit: t('actor.submit'),
-              clear: t('actor.clear'),
-              error: t('actor.error'),
-            }}
-          />
+          {pickerOn ? (
+            <ActorPicker
+              onDark
+              customers={customers}
+              current={actor}
+              labels={{
+                label: t('actor.label'),
+                anonymous: t('actor.anonymous'),
+                admin: t('actor.admin'),
+                submit: t('actor.submit'),
+                clear: t('actor.clear'),
+                error: t('actor.error'),
+              }}
+            />
+          ) : null}
         </div>
       </div>
 

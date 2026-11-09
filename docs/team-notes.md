@@ -19,7 +19,7 @@ SQLite through Prisma 7, schema in `prisma/schema.prisma`, `snake_case` columns.
 
 ### Who is acting
 
-There is no login (D17). The "continue as" picker (`src/components/actor-picker.tsx`, in the header) posts `{ actor }` (a customer id or `admin`) to `POST /api/actor`, which sets the `lease-loop-actor` cookie (a signed, expiring session since D92, `docs/features/security.md`); `DELETE /api/actor` clears it. Pages and routes call `readActor(db)` from `src/server/actor.ts` once per request and pass the actor to `withAudit`; an unknown or missing cookie reads as `anonymous`.
+Signing in is by e-mail link (D93, `docs/features/accounts.md`): `POST /api/login`, the link from the demo page's outbox, `POST /api/login/[token]` sets the cookie. The "continue as" picker stays as a demo tool (404 while `DEMO_TOOLS` is off); it (`src/components/actor-picker.tsx`, in the header) posts `{ actor }` (a customer id or `admin`) to `POST /api/actor`, which sets the `lease-loop-actor` cookie (a signed, expiring session since D92, `docs/features/security.md`); `DELETE /api/actor` clears it. Pages and routes call `readActor(db)` from `src/server/actor.ts` once per request and pass the actor to `withAudit`; an unknown or missing cookie reads as `anonymous`.
 
 ### API
 
