@@ -16,7 +16,7 @@ updates:
       # made the TypeScript 7 bump fail `npm ci` (PRs 7 and 8). Lift this when it accepts the new major.
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
-      # @types/node follows the Node major in .nvmrc, which CI and the engines field use, not the newest Node.
+      # @types/node follows the Node major in .nvmrc, which CI runs on (engines.node is only the floor), not the newest Node.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
     commit-message:
