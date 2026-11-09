@@ -2,7 +2,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ensureEnvFile, ensureSigningKey, newSigningKey } from './ensure-env.mjs';
+import {
+  ensureEnvFile,
+  ensureSessionSecret,
+  ensureSigningKey,
+  newSessionSecret,
+  newSigningKey,
+} from './ensure-env.mjs';
 
 let root;
 beforeEach(() => {
@@ -53,5 +59,33 @@ describe('ensureSigningKey (D81)', () => {
 
   it('generates a base64 PKCS#8 Ed25519 key by default', () => {
     expect(newSigningKey()).toMatch(/^MC4CAQAwBQYDK2VwBCIEI[A-Za-z0-9+/]{43}$/);
+  });
+});
+
+describe('ensureSessionSecret (D92)', () => {
+  const env = () => readFileSync(path.join(root, '.env'), 'utf8');
+  const fixedSecret = () => 'SECRET123';
+
+  it('fills the empty placeholder and leaves the key alone', () => {
+    writeFileSync(path.join(root, '.env'), 'AUDIT_SIGNING_KEY="mine"\nSESSION_SECRET=""\n');
+    expect(ensureSessionSecret(root, fixedSecret)).toBe('added');
+    expect(env()).toBe('AUDIT_SIGNING_KEY="mine"\nSESSION_SECRET="SECRET123"\n');
+  });
+
+  it('appends the line to an older .env without it', () => {
+    writeFileSync(path.join(root, '.env'), 'AUDIT_SIGNING_KEY="mine"\n');
+    expect(ensureSessionSecret(root, fixedSecret)).toBe('added');
+    expect(env()).toBe('AUDIT_SIGNING_KEY="mine"\nSESSION_SECRET="SECRET123"\n');
+  });
+
+  it('never replaces a secret that is there', () => {
+    writeFileSync(path.join(root, '.env'), 'SESSION_SECRET="keep"\n');
+    expect(ensureSessionSecret(root, fixedSecret)).toBe('exists');
+    expect(env()).toBe('SESSION_SECRET="keep"\n');
+  });
+
+  it('generates 32 random bytes as base64url by default, different each time', () => {
+    expect(newSessionSecret()).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(newSessionSecret()).not.toBe(newSessionSecret());
   });
 });

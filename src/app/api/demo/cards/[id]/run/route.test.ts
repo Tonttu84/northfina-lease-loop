@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { seedPack } from '../../../../../../../tests/helpers/invoice-fixture';
 import { createTestDb } from '../../../../../../../tests/helpers/test-db';
 import { ACTOR_COOKIE } from '@/server/actor';
+import { sessionSecret, verifySession } from '@/server/session';
 import { DEMO_CLOCK_COOKIE } from '@/server/demo-clock';
 import type { PrismaClient } from '@/server/prisma-client';
 
@@ -67,8 +68,15 @@ describe('POST /api/demo/cards/[id]/run', () => {
     });
     expect(cookies).toEqual([
       expect.stringMatching(new RegExp(`^${DEMO_CLOCK_COOKIE}=2026-11-05;`)),
-      expect.stringMatching(new RegExp(`^${ACTOR_COOKIE}=cust-mikko;`)),
+      expect.stringMatching(
+        new RegExp(`^${ACTOR_COOKIE}=[^;]+; Path=/; Max-Age=2592000; HttpOnly`)
+      ),
     ]);
+    // The actor cookie is a signed session (D92) that names the card's customer.
+    const signed = decodeURIComponent(cookies[1]!.split(';')[0]!.slice(ACTOR_COOKIE.length + 1));
+    expect(verifySession(signed, sessionSecret(), Math.floor(Date.now() / 1000))?.actor).toBe(
+      'cust-mikko'
+    );
   });
 
   it('answers a second click with 409 CARD_ALREADY_RUN and the same page', async () => {

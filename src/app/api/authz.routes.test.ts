@@ -9,7 +9,7 @@ import { resetDb } from '../../../tests/helpers/reset-db';
 import { createTestDb } from '../../../tests/helpers/test-db';
 import { loadCustomers } from '@/data/load';
 import { answersFromCustomer } from '@/domain/question-flow/answers';
-import { ACTOR_COOKIE } from '@/server/actor';
+import { ACTOR_COOKIE, sessionCookieValue } from '@/server/actor';
 import { DEMO_CLOCK_COOKIE } from '@/server/demo-clock';
 import { listInvoices } from '@/server/invoices';
 import type { PrismaClient } from '@/server/prisma-client';
@@ -63,6 +63,8 @@ type Records = {
   signatoryId: string;
 };
 let records: Records;
+/** The actor `actAs` last set, so a call can tell whether it is the admin acting on behalf of a customer. */
+let currentActor: string | undefined;
 
 beforeEach(async () => {
   const db = holder.db;
@@ -115,7 +117,7 @@ const ROUTES: WriteRoute[] = [
           quoteId: records.quoteId,
           customerId: 'cust-aino',
           answers: await ainoAnswers(),
-          ...(holder.cookies.get(ACTOR_COOKIE) === 'admin' ? { onBehalfOf: 'cust-aino' } : {}),
+          ...(currentActor === 'admin' ? { onBehalfOf: 'cust-aino' } : {}),
         }),
         undefined
       ),
@@ -191,8 +193,9 @@ const ROUTES: WriteRoute[] = [
 ];
 
 const actAs = (actor: string | undefined) => {
+  currentActor = actor;
   if (actor === undefined) holder.cookies.delete(ACTOR_COOKIE);
-  else holder.cookies.set(ACTOR_COOKIE, actor);
+  else holder.cookies.set(ACTOR_COOKIE, sessionCookieValue(actor));
 };
 
 async function refusedWithoutWrites(route: WriteRoute, actor: string | undefined) {
