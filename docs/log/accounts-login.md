@@ -10,3 +10,7 @@ Branch `feat/accounts-login` from `feat/signed-session` (PR 13), worktree `.clau
 - 10:33 to 10:40 the pages (sign in, the link, the account), the demo outbox, the header (Sign in / Account, the picker only while the demo tools are on), 62 message keys in four languages; typecheck and lint green.
 - 10:41 to 10:46 `accounts.test.ts`, the login route tests, the actor route's demo-off case, `reset-db` with the two tables, `e2e/09-login-outbox.spec.ts`, `npm run openapi`: 212 tests green on the first run.
 - 10:47 this page, D93 and D94, the authorization, security and demo pages, the feature list, STATUS, the README, this log.
+- 10:33 to 10:37 checked in the browser on the worktree's dev server (port 3108): Aino asks for a link, the outbox lists it, the link page shows `a•••@example.com`, Sign in lands on the account page (Welcome, Confirmed, 5 November 2026, the header with My leases and Account), the used link answers 409 and the page says so, the back office link in the outbox, sign out puts Sign in back; no sideways scroll at 375 px on the account, sign-in and demo pages; the Finnish sign-in page.
+- 10:37 `npm run check:all`: the reset helper's test counts every model, the two new tables added to it and to the fixture; otherwise green.
+- 10:40 to 10:44 the third review of PR 13 fixed on its branch (`2b0cc05`), this branch rebased onto it.
+- 10:45 `npm run check:all` green: 170 files, 2 003 tests, coverage 96 % lines, build. Push, PR, a fresh review agent (rule 13).
