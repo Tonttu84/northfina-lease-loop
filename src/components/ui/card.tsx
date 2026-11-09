@@ -32,7 +32,7 @@ export function Card({
       {...rest}
     >
       {title ? (
-        <h2 id={titleId} className="mb-4 text-xl">
+        <h2 id={titleId} className={cx('mb-4 text-xl', !padded && 'px-4 pt-4 sm:px-6 sm:pt-6')}>
           {title}
         </h2>
       ) : null}
