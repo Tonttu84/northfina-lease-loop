@@ -18,7 +18,7 @@ test('anonymous and a customer get a notice and no data; the API answers 403', a
 
   await actAs('cust-aino');
   await page.reload();
-  await expect(page.getByText(/Only an admin can see the second-life assessment/)).toBeVisible();
+  await expect(page.getByText(/Admin access only/)).toBeVisible();
   await expect(page.locator('#sl-options')).toHaveCount(0);
   await expect(page.getByText('wait-02')).toHaveCount(0);
 
@@ -36,17 +36,17 @@ test('the admin sees the options, wait-02 ranked first, and assesses the item', 
   await actAs('admin');
   await page.goto(PAGE);
 
-  await expect(page.getByText(/^Preview on 6 November 2026/)).toBeVisible();
-  await expect(page.locator('#sl-options')).toHaveText('Ways to relist it');
-  const options = page.getByRole('region', { name: 'Ways to relist it' });
+  await expect(page.getByText(/^Preview as of 6 November 2026/)).toBeVisible();
+  await expect(page.locator('#sl-options')).toHaveText('Relisting options');
+  const options = page.getByRole('region', { name: 'Relisting options' });
   await expect(options.getByRole('row')).toHaveCount(4); // the header, then fair, good, like new
 
-  const waiting = page.getByRole('region', { name: 'The waiting list' });
+  const waiting = page.getByRole('region', { name: 'Waiting list' });
   const first = waiting.getByRole('row').nth(1);
   await expect(first.getByRole('cell').first()).toHaveText(/^1\s+Winner$/);
   await expect(first.getByRole('rowheader')).toHaveText('wait-02');
   await expect(waiting.getByRole('row').nth(2).getByRole('rowheader')).toHaveText('wait-13');
-  await expect(page.getByText(/^Relist it fair for wait-02/i)).toBeVisible();
+  await expect(page.getByText(/^Relist as fair for wait-02/i)).toBeVisible();
 
   await page.getByRole('button', { name: 'Assess and relist' }).click();
   await expect(page.getByText(/^Assessed on 6 November 2026/)).toBeVisible();
