@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { resetDb } from '../../../../tests/helpers/reset-db';
 import { createTestDb } from '../../../../tests/helpers/test-db';
 import { MASKED } from '@/domain/audit';
-import { ACTOR_COOKIE } from '@/server/actor';
+import { ACTOR_COOKIE, sessionCookieValue } from '@/server/actor';
 import { withAudit, type AuditLogEntry } from '@/server/audit';
 import type { PrismaClient } from '@/server/prisma-client';
 
@@ -80,7 +80,7 @@ describe('GET /api/audit-log', () => {
   });
 
   it('shows the admin the stored row', async () => {
-    holder.cookies = new Map([[ACTOR_COOKIE, 'admin']]);
+    holder.cookies = new Map([[ACTOR_COOKIE, sessionCookieValue('admin')]]);
     const [row] = await list();
     expect(row).toMatchObject({
       actor: 'signatory:signatory@norvi.example.com',

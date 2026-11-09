@@ -1,0 +1,19 @@
+# Signed session cookie (D92): time log
+
+Branch `feat/signed-session` from `origin/main` at `f6dc497`, worktree `.claude/worktrees/accounts`. Real clock (Helsinki), 2026-11-09. The first of two slices towards accounts and a login: the cookie first, so that what a login hands out cannot be written by hand.
+
+- 09:51 worktree created, `npm run setup` (node_modules copied, migrations, seed, hooks: 1 min 37 s).
+- 09:54 read the actor module, its tests, the four route tests that set the cookie by hand, `ensure-env.mjs`, `vitest.config.ts`, the e2e environment and CI (`db:setup` runs `ensure-env`, so CI gets a secret without a change).
+- 09:55 to 09:58 `src/server/session.ts` and its tests; `actor.ts` signs and verifies, `resolveKnownActor` for the picker's plain id; the actor route; `.env.example`, `vitest.config.ts`; `ensure-env.mjs` with `ensureEnvValue`, `ensureSessionSecret` and tests; the route tests sign their cookies, the card runner's test decodes its cookie.
+- 09:58 the seven touched test files: 131 tests green.
+- 09:59 to 10:00 docs: D92, the security page (the rule, the decisions, the functions, the files, the tests, three open questions), the feature list lines, this log.
+- 10:00 `npm run check:all` stopped at Prettier (six files), then at typecheck: the copied `node_modules` lacked Playwright (the last merge added it); `npm install --prefer-online` with a fresh cache put it in. One more test set the actor cookie as a bare id (`scenarios/returned-through-exit.test.ts`): signed.
+- 10:06 `npm run check:all` green: 165 files, 1 934 tests, coverage 96 % lines, build.
+- 10:07 commit `bdc523e`, push, PR 13; a fresh review agent on the PR (rule 13).
+- 10:14 the review: approve with fixes, nine findings, none high. 10:14 to 10:20 the fixes: the stale `catalogue.md` and `team-notes.md` lines (1); `prestart` runs `ensure-env.mjs` and the docs say what a bare `next start` on an old `.env` does (2); the `resolveActor` comment (3); the signature part held to 43 base64url characters before decoding, the dead try/catch gone, a test with a standard-base64 signature and a padded actor part (4); `src/app/api/actor/route.test.ts` (5); this log in clock order and closed (6); `.env.example` listed once (7); the polish review the docs link to committed (8); a 32-character floor on the secret (9); `check:all` green (1 941 tests), commit `f068de5` at 10:20, pushed, a fresh agent on the fixed head.
+- 10:27 the second review: approve with fixes; all nine addressed; one medium (a short secret typed by hand is kept by `ensure-env` and refused by the app), three low (the browser tests' `npx next start` ran no `prestart`; this log's closing row written ahead of the clock; `prestart` would write a `.env` on a host that provides its secrets in the environment), nits (the new tests unnamed on the security page, a signature's four base64url spellings). 10:31 the fixes: `ensureEnvValue` returns `short` and `provided`, the script warns, the route's error names the floor; `ensure-env.mjs` first in the Playwright server command; the signature compared as its 43-character spelling; the security page; this row. Commit `534f31b` at 10:33, pushed, a third fresh agent on it.
+- 10:38 the third review: approve with fixes; every finding addressed; one low (with both secrets in the environment the script still created `.env`), two nits (a short secret from the environment went unreported; the route's advice did not fit a short line), the PR body and the Reviewed line. 10:40 the fixes: `allProvided` skips `.env` altogether, a short environment value reports `short`, the route's message, the security page's two sentences and its tests line, this row; then the PR body and the merge.
+
+## Left undone
+
+- A revocation list for one session (open question on the security page); the accounts slice follows on `feat/accounts-login`.

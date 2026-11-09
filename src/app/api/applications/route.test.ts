@@ -7,7 +7,7 @@ import { createTestDb } from '../../../../tests/helpers/test-db';
 import { loadAssets, loadCustomers } from '@/data/load';
 import type { Customer } from '@/data/schemas';
 import { answersFromCustomer } from '@/domain/question-flow/answers';
-import { ACTOR_COOKIE } from '@/server/actor';
+import { ACTOR_COOKIE, sessionCookieValue } from '@/server/actor';
 import { seedAssets } from '@/server/assets';
 import { seedCustomers } from '@/server/customers';
 import { DEMO_CLOCK_COOKIE } from '@/server/demo-clock';
@@ -57,7 +57,7 @@ beforeEach(async () => {
 
 const actAs = (actor: string | undefined) => {
   if (actor === undefined) holder.cookies.delete(ACTOR_COOKIE);
-  else holder.cookies.set(ACTOR_COOKIE, actor);
+  else holder.cookies.set(ACTOR_COOKIE, sessionCookieValue(actor));
 };
 const answersOf = (id: string) => answersFromCustomer(customers.find((c) => c.id === id)!);
 

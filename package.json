@@ -16,6 +16,7 @@
     "predev": "node scripts/ensure-env.mjs",
     "dev": "next dev",
     "build": "next build",
+    "prestart": "node scripts/ensure-env.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",

@@ -6,6 +6,7 @@
 // the "Assess and relist" button does. Every exit mode, each category, and a second return that
 // leads to a third life. The report did not reproduce on a migrated database: these pin the path.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sessionCookieValue } from '@/server/actor';
 import { payRents, signedContract } from '../../../tests/helpers/journey';
 import { seedPack } from '../../../tests/helpers/invoice-fixture';
 import { resetDb } from '../../../tests/helpers/reset-db';
@@ -28,7 +29,7 @@ vi.mock('next/headers', () => ({
   cookies: async () => ({
     get: (name: string) =>
       name === 'lease-loop-actor'
-        ? { value: holder.actor }
+        ? { value: sessionCookieValue(holder.actor) }
         : name === 'lease-loop-as-of'
           ? { value: holder.today }
           : undefined,
