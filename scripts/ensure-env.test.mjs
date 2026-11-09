@@ -4,11 +4,15 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   ensureEnvFile,
-  ensureSessionSecret,
-  ensureSigningKey,
+  ensureSessionSecret as ensureSessionSecretWithEnv,
+  ensureSigningKey as ensureSigningKeyWithEnv,
   newSessionSecret,
   newSigningKey,
 } from './ensure-env.mjs';
+
+// The process carries AUDIT_SIGNING_KEY and SESSION_SECRET under Vitest (vitest.config.ts);
+// these tests look at the file, so they pass an empty environment unless they test that case.
+const ensureSigningKey = (dir, make, env = {}) => ensureSigningKeyWithEnv(dir, make, env);
 
 let root;
 beforeEach(() => {
@@ -65,6 +69,8 @@ describe('ensureSigningKey (D81)', () => {
 describe('ensureSessionSecret (D92)', () => {
   const env = () => readFileSync(path.join(root, '.env'), 'utf8');
   const fixedSecret = () => 'SECRET123';
+  // Vitest gives the process a SESSION_SECRET (vitest.config.ts); these tests look at the file.
+  const ensureSessionSecret = (dir, make) => ensureSessionSecretWithEnv(dir, make, {});
 
   it('fills the empty placeholder and leaves the key alone', () => {
     writeFileSync(path.join(root, '.env'), 'AUDIT_SIGNING_KEY="mine"\nSESSION_SECRET=""\n');
@@ -79,13 +85,31 @@ describe('ensureSessionSecret (D92)', () => {
   });
 
   it('never replaces a secret that is there', () => {
-    writeFileSync(path.join(root, '.env'), 'SESSION_SECRET="keep"\n');
+    const mine = 'm'.repeat(43);
+    writeFileSync(path.join(root, '.env'), `SESSION_SECRET="${mine}"\n`);
     expect(ensureSessionSecret(root, fixedSecret)).toBe('exists');
-    expect(env()).toBe('SESSION_SECRET="keep"\n');
+    expect(env()).toBe(`SESSION_SECRET="${mine}"\n`);
   });
 
   it('generates 32 random bytes as base64url by default, different each time', () => {
     expect(newSessionSecret()).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(newSessionSecret()).not.toBe(newSessionSecret());
+  });
+
+  it('keeps a short secret but says so, since the app will treat it as missing', () => {
+    writeFileSync(path.join(root, '.env'), 'SESSION_SECRET="keep"\n');
+    expect(ensureSessionSecret(root, fixedSecret)).toBe('short');
+    expect(env()).toBe('SESSION_SECRET="keep"\n');
+    writeFileSync(path.join(root, '.env'), `SESSION_SECRET="${'x'.repeat(32)}"\n`);
+    expect(ensureSessionSecret(root, fixedSecret)).toBe('exists');
+  });
+
+  it('writes nothing when the process environment provides the variable', () => {
+    writeFileSync(path.join(root, '.env'), 'DATABASE_URL="x"\n');
+    expect(ensureSessionSecretWithEnv(root, fixedSecret, { SESSION_SECRET: 'y'.repeat(40) })).toBe(
+      'provided'
+    );
+    expect(ensureSigningKey(root, fixedSecret, { AUDIT_SIGNING_KEY: 'k' })).toBe('provided');
+    expect(env()).toBe('DATABASE_URL="x"\n');
   });
 });

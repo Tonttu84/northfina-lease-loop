@@ -32,18 +32,23 @@ export function newSessionSecret() {
 
 /**
  * Fills an empty `NAME=""` line of `root/.env`, or appends one, with `make()`. A value already
- * there is kept.
+ * there is kept (`exists`; `short` when it is under `minLength`, so the caller can warn); a
+ * value the process environment already provides is not written at all (`provided`): a
+ * deployment that sets its secrets in the environment keeps them out of the file.
  * @param {string} root folder that holds .env
  * @param {string} name the variable
  * @param {() => string} make
- * @returns {'added' | 'exists'}
+ * @param {{ minLength?: number, env?: Record<string, string | undefined> }} [options]
+ * @returns {'added' | 'exists' | 'short' | 'provided'}
  */
-export function ensureEnvValue(root, name, make) {
+export function ensureEnvValue(root, name, make, { minLength = 1, env = process.env } = {}) {
+  if ((env[name] ?? '').trim() !== '') return 'provided';
   const target = join(root, '.env');
   const text = readFileSync(target, 'utf8');
   const linePattern = new RegExp(`^${name}=(.*)$`, 'm');
   const match = linePattern.exec(text);
-  if (match && match[1].replace(/["'\s]/g, '') !== '') return 'exists';
+  const present = match ? match[1].replace(/["'\s]/g, '') : '';
+  if (present !== '') return present.length >= minLength ? 'exists' : 'short';
   const line = `${name}="${make()}"`;
   const next = match
     ? text.replace(linePattern, line)
@@ -52,25 +57,34 @@ export function ensureEnvValue(root, name, make) {
   return 'added';
 }
 
+/** The least a session secret may be; `src/server/session.ts` treats a shorter one as none. */
+export const SESSION_SECRET_MIN_LENGTH = 32;
+
 /**
  * The audit key (D81). A key already there is kept: a new key would make every signed row read
  * as forged.
  * @param {string} root folder that holds .env
  * @param {() => string} [makeKey]
- * @returns {'added' | 'exists'}
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {'added' | 'exists' | 'short' | 'provided'}
  */
-export function ensureSigningKey(root, makeKey = newSigningKey) {
-  return ensureEnvValue(root, 'AUDIT_SIGNING_KEY', makeKey);
+export function ensureSigningKey(root, makeKey = newSigningKey, env = process.env) {
+  return ensureEnvValue(root, 'AUDIT_SIGNING_KEY', makeKey, { env });
 }
 
 /**
- * The session secret (D92). A secret already there is kept: a new one signs everyone out.
+ * The session secret (D92). A secret already there is kept, even a short one, since a new one
+ * signs everyone out; the caller warns about a short one, which the app treats as none.
  * @param {string} root folder that holds .env
  * @param {() => string} [makeSecret]
- * @returns {'added' | 'exists'}
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {'added' | 'exists' | 'short' | 'provided'}
  */
-export function ensureSessionSecret(root, makeSecret = newSessionSecret) {
-  return ensureEnvValue(root, 'SESSION_SECRET', makeSecret);
+export function ensureSessionSecret(root, makeSecret = newSessionSecret, env = process.env) {
+  return ensureEnvValue(root, 'SESSION_SECRET', makeSecret, {
+    minLength: SESSION_SECRET_MIN_LENGTH,
+    env,
+  });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
@@ -79,7 +93,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   if (ensureSigningKey(process.cwd()) === 'added') {
     console.log('🔑 Added a new AUDIT_SIGNING_KEY to .env (never commit it)');
   }
-  if (ensureSessionSecret(process.cwd()) === 'added') {
-    console.log('🔑 Added a new SESSION_SECRET to .env (never commit it)');
+  const secret = ensureSessionSecret(process.cwd());
+  if (secret === 'added') console.log('🔑 Added a new SESSION_SECRET to .env (never commit it)');
+  if (secret === 'short') {
+    console.warn(
+      `⚠️  SESSION_SECRET in .env is shorter than ${SESSION_SECRET_MIN_LENGTH} characters: the app treats it as missing. Empty the line and run this again.`
+    );
   }
 }

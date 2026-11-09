@@ -35,6 +35,9 @@ export default defineConfig({
     // The database is built before the server opens it: Playwright starts the web server before
     // globalSetup runs, so the preparation is the first part of the server command.
     command: [
+      // The session secret and the audit key into .env when missing (D92): `npx next start`
+      // runs no `prestart`.
+      'node scripts/ensure-env.mjs',
       'node e2e/prepare-db.mjs',
       ...(skipBuild ? [] : ['npm run build']),
       `npx next start -p ${PORT}`,

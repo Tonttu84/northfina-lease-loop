@@ -38,7 +38,9 @@ export function actorFromCookieValue(
 function requireSecret(): string {
   const secret = sessionSecret();
   if (secret === null) {
-    throw new Error('SESSION_SECRET is not set; run `npm run db:setup` to generate one into .env');
+    throw new Error(
+      'SESSION_SECRET is missing or shorter than 32 characters; run `npm run db:setup` to generate one into .env'
+    );
   }
   return secret;
 }

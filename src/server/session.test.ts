@@ -90,6 +90,17 @@ describe('signSession and verifySession', () => {
     expect(verifySession(`${padded}.${expires}.${sig}`, SECRET, NOW)).toBeNull();
   });
 
+  it('refuses another spelling of the same signature bytes (the last character’s low bits)', () => {
+    const value = signSession({ actor: 'admin', expiresAt: NOW + 60 }, SECRET);
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    const last = value.slice(-1);
+    const twin = alphabet[alphabet.indexOf(last) ^ 1]!; // same high bits, so the same 32 bytes
+    expect(Buffer.from(value.split('.')[2]!.slice(0, -1) + twin, 'base64url')).toEqual(
+      Buffer.from(value.split('.')[2]!, 'base64url')
+    );
+    expect(verifySession(value.slice(0, -1) + twin, SECRET, NOW)).toBeNull();
+  });
+
   it('verifies nothing without a secret or without a value', () => {
     const value = signSession({ actor: 'admin', expiresAt: NOW + 60 }, SECRET);
     expect(verifySession(value, null, NOW)).toBeNull();

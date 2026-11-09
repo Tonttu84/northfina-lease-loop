@@ -65,9 +65,10 @@ export function verifySession(
   // Both base64url parts are held to the alphabet first: Node's decoder also takes standard
   // base64 (`+`, `/`, `=`) for the same bytes, and we never wrote those.
   if (!SIGNATURE_PART.test(signaturePart) || !/^[A-Za-z0-9_-]*$/.test(actorPart)) return null;
-  const expected = signature(`${actorPart}.${expiresPart}`, secret);
-  const given = Buffer.from(signaturePart, 'base64url');
-  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
+  // Compared as the 43-character spelling we write, not as bytes: base64url has four spellings
+  // of the same 32 bytes (the last character's two low bits), and only ours may verify.
+  const expected = signature(`${actorPart}.${expiresPart}`, secret).toString('base64url');
+  if (!timingSafeEqual(Buffer.from(signaturePart), Buffer.from(expected))) return null;
   const actor = Buffer.from(actorPart, 'base64url').toString('utf8');
   return actor === '' ? null : { actor, expiresAt };
 }
