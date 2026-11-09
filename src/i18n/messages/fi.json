@@ -832,6 +832,7 @@
   "login.form.title": "Sähköpostisi",
   "login.form.email": "Sähköposti",
   "login.form.emailHint": "Tilisi osoite. Demossa: asiakkaan osoite datapaketista tai backoffice@leaseloop.example taustatoiminnoille.",
+  "login.form.emailMissing": "Kirjoita ensin tilisi sähköpostiosoite.",
   "login.form.submit": "Lähetä kirjautumislinkki",
   "login.form.pending": "Lähetetään…",
   "login.form.error": "Linkkiä ei voitu lähettää. Yritä uudelleen.",
@@ -884,6 +885,5 @@
   "demo.outbox.empty": "Ei avoimia linkkejä. Pyydä sellainen kirjautumissivulta.",
   "demo.outbox.row": "Lähetetty {sent}, toimii {expires} asti",
   "demo.outbox.open": "Avaa linkki",
-  "demo.outbox.toLogin": "Siirry kirjautumissivulle",
-  "login.form.emailMissing": "Kirjoita ensin tilisi sähköpostiosoite."
+  "demo.outbox.toLogin": "Siirry kirjautumissivulle"
 }

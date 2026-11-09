@@ -832,6 +832,7 @@
   "login.form.title": "Your e-mail",
   "login.form.email": "E-mail",
   "login.form.emailHint": "The address on your account. In the demo: a customer's address from the data pack, or backoffice@leaseloop.example for the back office.",
+  "login.form.emailMissing": "Type the e-mail of your account first.",
   "login.form.submit": "Send me a sign-in link",
   "login.form.pending": "Sending…",
   "login.form.error": "Could not send the link. Try again.",
@@ -884,6 +885,5 @@
   "demo.outbox.empty": "No pending links. Ask for one on the sign-in page.",
   "demo.outbox.row": "Sent {sent}, works until {expires}",
   "demo.outbox.open": "Open the link",
-  "demo.outbox.toLogin": "Go to the sign-in page",
-  "login.form.emailMissing": "Type the e-mail of your account first."
+  "demo.outbox.toLogin": "Go to the sign-in page"
 }

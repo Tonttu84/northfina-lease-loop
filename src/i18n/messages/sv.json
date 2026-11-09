@@ -832,6 +832,7 @@
   "login.form.title": "Din e-post",
   "login.form.email": "E-post",
   "login.form.emailHint": "Adressen på ditt konto. I demon: en kunds adress ur datapaketet, eller backoffice@leaseloop.example för back office.",
+  "login.form.emailMissing": "Skriv först e-postadressen till ditt konto.",
   "login.form.submit": "Skicka en inloggningslänk",
   "login.form.pending": "Skickar…",
   "login.form.error": "Länken kunde inte skickas. Försök igen.",
@@ -884,6 +885,5 @@
   "demo.outbox.empty": "Inga väntande länkar. Be om en på inloggningssidan.",
   "demo.outbox.row": "Skickad {sent}, fungerar till {expires}",
   "demo.outbox.open": "Öppna länken",
-  "demo.outbox.toLogin": "Gå till inloggningssidan",
-  "login.form.emailMissing": "Skriv först e-postadressen till ditt konto."
+  "demo.outbox.toLogin": "Gå till inloggningssidan"
 }

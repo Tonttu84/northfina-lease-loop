@@ -189,9 +189,10 @@ export type SignInResult =
  * Opens the link: marks it used, confirms the account's e-mail if it was not, and names the
  * actor to sign in as. One transaction and one audit row, actor the account's own actor. A
  * link found used or expired changes nothing. Two opens of one link at once: the mark is the
- * transaction's first statement and is conditional on the link being unused, so it takes the
- * write lock before anything is read; the second open finds no row to mark, writes nothing
- * (the transaction rolls back, no audit row) and answers `used`.
+ * transaction's first statement and is conditional on the link being unused; the transactions
+ * run one after the other (the SQLite adapter serialises them in one process, SQLite's write
+ * lock across processes), so the second open finds no row to mark, writes nothing (the
+ * transaction rolls back, no audit row) and answers `used`.
  */
 export async function consumeLoginLink(
   db: PrismaClient,

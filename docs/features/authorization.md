@@ -51,7 +51,7 @@ Public, with no `authorize`: the catalogue, the price preview and the stored quo
 - D73: one pure policy, checked before the action in the route and again at the service's top.
 - D74: the HTTP mapping (401 / 403 `FORBIDDEN`) and the `DEMO_TOOLS` switch on the card runner, the demo clock's route and its cookie ([security.md](security.md)).
 - D85: the second-life page is back office: `read_second_life` is the admin's, because the page shows the whole waiting list (other customers' budgets and needs); its links show for the admin only.
-- Builds on D17 (no login, the "continue as" cookie), D46 (the signing link, the mandate list), D47 (the admin applies on behalf), D57 (another customer's application reads as not found).
+- Builds on D17 (the actor cookie, set by the "continue as" picker while the demo tools are on or by the sign-in link, D93), D46 (the signing link, the mandate list), D47 (the admin applies on behalf), D57 (another customer's application reads as not found).
 
 ## Pure functions
 
@@ -82,4 +82,4 @@ The server side, not pure: `authorize(db, actor, action, ref)` with `ref` one of
 
 - Follow-up for the coordinator after `feat/user-portal` merges: add `authorize` (`read_leases`, `read_contract`) to `src/app/[locale]/leases/*` and `src/app/[locale]/customers/[id]/page.tsx`, owned by the portal session this morning.
 - `decideByToken` keeps its own `signingCheck` (it also brings a waiting entry into force on its first opening, which `canSign` does not); the policy's mandate path mirrors it rather than replacing it.
-- With no login (D17) anyone can still pick "Admin" in the picker; the rule is ready for a real sign-in that sets the actor.
+- While the demo tools are on (D74) anyone can still pick "Admin" in the picker, by design; with them off only the back office account's sign-in link sets that actor (D93).
