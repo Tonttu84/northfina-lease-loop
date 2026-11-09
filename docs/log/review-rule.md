@@ -3,10 +3,10 @@
 Branch `chore/review-rule`. The coordinating session (Claude Fable), on Johannes's instruction
 after the second-life texts port (PR 9). Real clock (Helsinki), 9 Nov 2026.
 
-| Time (Helsinki) | Step                                                                                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 07:55           | Rule 13 in `AGENTS.md`: a reviewer who did not write the change, a fresh agent session when no teammate is at hand, the verdict in the PR body; rule 12 "Done means" extended. |
-| 07:58           | PR opened, a fresh review session on it, CI.                                                                                                                                   |
+| Time (Helsinki) | Step                                                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 07:55           | Rule 13 in `AGENTS.md`: a reviewer who did not write the change, a fresh agent session when no teammate is at hand, the verdict posted as a review on the pull request and in the PR body; rule 12 "Done means" extended. |
+| 07:58           | PR opened, a fresh review session on it, CI.                                                                                                                                                                              |
 
 **Chosen:** a rule in `AGENTS.md`, where the other working rules live and where every agent session
 reads first, over a line in `docs/team-notes.md` (which describes how the hackathon was run, not
