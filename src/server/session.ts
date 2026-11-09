@@ -16,13 +16,22 @@ export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 const ENV_NAME = 'SESSION_SECRET';
 
-/** The secret from the environment, or null when it is empty or missing (then nothing verifies). */
+/** The least a secret may be: 32 characters, what `ensure-env.mjs` generates has 43. */
+export const SESSION_SECRET_MIN_LENGTH = 32;
+
+/**
+ * The secret from the environment, or null when it is missing, empty or shorter than
+ * `SESSION_SECRET_MIN_LENGTH` (then nothing verifies and nothing can be signed).
+ */
 export function sessionSecret(
   env: Record<string, string | undefined> = process.env
 ): string | null {
-  const value = env[ENV_NAME]?.trim();
-  return value ? value : null;
+  const value = env[ENV_NAME]?.trim() ?? '';
+  return value.length >= SESSION_SECRET_MIN_LENGTH ? value : null;
 }
+
+/** 32 bytes of HMAC-SHA256 as base64url: exactly 43 characters of that alphabet. */
+const SIGNATURE_PART = /^[A-Za-z0-9_-]{43}$/;
 
 function signature(payload: string, secret: string): Buffer {
   return createHmac('sha256', secret).update(payload).digest();
@@ -53,16 +62,12 @@ export function verifySession(
   if (!/^\d{1,12}$/.test(expiresPart)) return null;
   const expiresAt = Number(expiresPart);
   if (expiresAt <= nowSeconds) return null;
+  // Both base64url parts are held to the alphabet first: Node's decoder also takes standard
+  // base64 (`+`, `/`, `=`) for the same bytes, and we never wrote those.
+  if (!SIGNATURE_PART.test(signaturePart) || !/^[A-Za-z0-9_-]*$/.test(actorPart)) return null;
   const expected = signature(`${actorPart}.${expiresPart}`, secret);
-  let given: Buffer;
-  try {
-    given = Buffer.from(signaturePart, 'base64url');
-  } catch {
-    return null;
-  }
+  const given = Buffer.from(signaturePart, 'base64url');
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
-  // base64url is strict about its alphabet; anything else was not written by us.
-  if (!/^[A-Za-z0-9_-]*$/.test(actorPart)) return null;
   const actor = Buffer.from(actorPart, 'base64url').toString('utf8');
   return actor === '' ? null : { actor, expiresAt };
 }

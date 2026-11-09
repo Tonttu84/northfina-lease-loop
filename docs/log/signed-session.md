@@ -6,7 +6,12 @@ Branch `feat/signed-session` from `origin/main` at `f6dc497`, worktree `.claude/
 - 09:54 read the actor module, its tests, the four route tests that set the cookie by hand, `ensure-env.mjs`, `vitest.config.ts`, the e2e environment and CI (`db:setup` runs `ensure-env`, so CI gets a secret without a change).
 - 09:55 to 09:58 `src/server/session.ts` and its tests; `actor.ts` signs and verifies, `resolveKnownActor` for the picker's plain id; the actor route; `.env.example`, `vitest.config.ts`; `ensure-env.mjs` with `ensureEnvValue`, `ensureSessionSecret` and tests; the route tests sign their cookies, the card runner's test decodes its cookie.
 - 09:58 the seven touched test files: 131 tests green.
-- 09:59 to 10:03 docs: D92, the security page (the rule, the decisions, the functions, the files, the tests, three open questions), the feature list lines, this log.
+- 09:59 to 10:00 docs: D92, the security page (the rule, the decisions, the functions, the files, the tests, three open questions), the feature list lines, this log.
 - 10:00 `npm run check:all` stopped at Prettier (six files), then at typecheck: the copied `node_modules` lacked Playwright (the last merge added it); `npm install --prefer-online` with a fresh cache put it in. One more test set the actor cookie as a bare id (`scenarios/returned-through-exit.test.ts`): signed.
 - 10:06 `npm run check:all` green: 165 files, 1 934 tests, coverage 96 % lines, build.
-- 10:07 commits, push, PR; a fresh review agent on the PR (rule 13).
+- 10:07 commit `bdc523e`, push, PR 13; a fresh review agent on the PR (rule 13).
+- 10:14 the review: approve with fixes, nine findings, none high. 10:20 to 10:30 the fixes: the stale `catalogue.md` and `team-notes.md` lines (1); `prestart` runs `ensure-env.mjs` and the docs say what a bare `next start` on an old `.env` does (2); the `resolveActor` comment (3); the signature part held to 43 base64url characters before decoding, the dead try/catch gone, a test with a standard-base64 signature and a padded actor part (4); `src/app/api/actor/route.test.ts` (5); this log in clock order and closed (6); `.env.example` listed once (7); the polish review the docs link to committed (8); a 32-character floor on the secret (9). Then `check:all`, push, the fixed head re-reviewed.
+
+## Left undone
+
+- A revocation list for one session (open question on the security page); the accounts slice (D93, D94) follows on `feat/accounts-login`.

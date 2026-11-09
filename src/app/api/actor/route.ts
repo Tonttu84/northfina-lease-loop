@@ -14,7 +14,8 @@ import { actorBodySchema } from '@/server/routes';
 
 export const POST = handleRoute(async (request) => {
   const { actor } = await readJsonBody(request, actorBodySchema);
-  if ((await resolveKnownActor(db, actor)) !== actor) {
+  // `anonymous` is what nobody reads as, never a choice: the picker clears the cookie instead.
+  if (actor === ANONYMOUS_ACTOR || (await resolveKnownActor(db, actor)) !== actor) {
     return fail(404, 'UNKNOWN_ACTOR', 'No customer with that id');
   }
   return ok({ actor }, { headers: { 'Set-Cookie': actorCookieHeader(actor) } });

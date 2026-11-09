@@ -59,9 +59,9 @@ export function clearActorCookieHeader(): string {
 }
 
 /**
- * Checks a cookie value against the secret, the clock and the customers in the database.
- * `candidate` is a plain actor (the picker's choice, before it is signed) or a signed session;
- * the picker's route passes the plain id and compares.
+ * The actor a cookie value names: the signed session is verified against the secret and the
+ * clock first (a plain id, the cookie before D92, is nobody), then its actor is checked against
+ * the customers in the database. The picker's route checks its plain id with `resolveKnownActor`.
  */
 export async function resolveActor(
   db: PrismaClient,

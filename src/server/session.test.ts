@@ -1,8 +1,10 @@
 // The signed session (D92): what a cookie value must carry to name an actor.
 import { describe, expect, it } from 'vitest';
+import { createHmac } from 'node:crypto';
 import {
   newSession,
   SESSION_MAX_AGE_SECONDS,
+  SESSION_SECRET_MIN_LENGTH,
   sessionSecret,
   signSession,
   verifySession,
@@ -75,6 +77,19 @@ describe('signSession and verifySession', () => {
     expect(verifySession(value.slice(0, -1), SECRET, NOW)).toBeNull();
   });
 
+  it('refuses the same signature written in standard base64 (+ / =) or over a padded actor', () => {
+    const expires = NOW + 60;
+    const actorUrl = Buffer.from('admin').toString('base64url'); // YWRtaW4
+    const hmac = (payload: string) => createHmac('sha256', SECRET).update(payload).digest();
+    // The right bytes, the wrong alphabet: Node would decode them to the same signature.
+    const standard = hmac(`${actorUrl}.${expires}`).toString('base64');
+    expect(verifySession(`${actorUrl}.${expires}.${standard}`, SECRET, NOW)).toBeNull();
+    // A correctly signed payload whose actor part is padded standard base64 (YWRtaW4=).
+    const padded = 'YWRtaW4=';
+    const sig = hmac(`${padded}.${expires}`).toString('base64url');
+    expect(verifySession(`${padded}.${expires}.${sig}`, SECRET, NOW)).toBeNull();
+  });
+
   it('verifies nothing without a secret or without a value', () => {
     const value = signSession({ actor: 'admin', expiresAt: NOW + 60 }, SECRET);
     expect(verifySession(value, null, NOW)).toBeNull();
@@ -108,10 +123,18 @@ describe('newSession', () => {
 });
 
 describe('sessionSecret', () => {
-  it('reads SESSION_SECRET and treats empty or blank as missing', () => {
-    expect(sessionSecret({ SESSION_SECRET: 'abc' })).toBe('abc');
+  it('reads SESSION_SECRET and treats empty, blank or missing as none', () => {
+    expect(sessionSecret({ SESSION_SECRET: SECRET })).toBe(SECRET);
     expect(sessionSecret({ SESSION_SECRET: '' })).toBeNull();
     expect(sessionSecret({ SESSION_SECRET: '   ' })).toBeNull();
     expect(sessionSecret({})).toBeNull();
+  });
+
+  it('treats a secret shorter than 32 characters as none', () => {
+    expect(SESSION_SECRET_MIN_LENGTH).toBe(32);
+    expect(sessionSecret({ SESSION_SECRET: 'abc' })).toBeNull();
+    expect(sessionSecret({ SESSION_SECRET: 'x'.repeat(31) })).toBeNull();
+    expect(sessionSecret({ SESSION_SECRET: 'x'.repeat(32) })).toBe('x'.repeat(32));
+    expect(sessionSecret({ SESSION_SECRET: ` ${'x'.repeat(32)} ` })).toBe('x'.repeat(32));
   });
 });
