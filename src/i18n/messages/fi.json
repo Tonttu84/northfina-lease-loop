@@ -750,7 +750,7 @@
   "secondLife.match.rank": "Sija",
   "secondLife.match.otherCategories": "{count} hakijaa odottaa muuta tuoteryhmää.",
   "secondLife.verdict.candidate": "Sopii kunnossa {condition}: {rent}/kk, yhteensä {total}",
-  "secondLife.verdict.over_budget": "Ylittää budjetin {short}: {rent}/kk kunnossa {condition}",
+  "secondLife.verdict.over_budget": "Ylittää budjetin {short} verran: {rent}/kk kunnossa {condition}",
   "secondLife.verdict.term_not_offered": "{months} kk:n sopimusta ei tarjota tälle tuotteelle",
   "secondLife.verdict.condition_unreachable": "Kuntoa {condition} ei saavuteta kunnostuksella",
   "secondLife.verdict.rent_not_priced": "Vuokraa ei saatavilla {months} kk:lle",

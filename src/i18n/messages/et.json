@@ -752,7 +752,7 @@
   "secondLife.verdict.candidate": "Sobib seisukorras {condition}: {rent}/kuu, kokku {total}",
   "secondLife.verdict.over_budget": "Ületab eelarvet {short} võrra: {rent}/kuu seisukorras {condition}",
   "secondLife.verdict.term_not_offered": "{months}-kuulist lepingut sellele esemele ei pakuta",
-  "secondLife.verdict.condition_unreachable": "Seisukorda {condition} ei saavuta korrastamisega",
+  "secondLife.verdict.condition_unreachable": "Seisukorda {condition} ei saavutata korrastamisega",
   "secondLife.verdict.rent_not_priced": "{months} kuu üür pole saadaval",
   "secondLife.rankStep.winner": "Võitja",
   "secondLife.rankStep.no_refurbishment": "vajab lisakorrastust",
