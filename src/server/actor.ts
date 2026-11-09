@@ -1,7 +1,8 @@
-// Who is acting (docs/decisions.md D17). There is no login: the "continue as" picker sets a
-// cookie with a customer id or `admin`, and every withAudit entry names that actor. Since D92
-// the cookie carries a signed, expiring session (`session.ts`): a value nobody signed, one past
-// its expiry or one that names nobody we know reads as `anonymous`.
+// Who is acting (docs/decisions.md D17): a cookie names a customer id or `admin`, and every
+// withAudit entry names that actor. The "continue as" picker sets it while the demo tools are
+// on; the sign-in link sets it always (D93, `accounts.ts`). Since D92 the cookie carries a
+// signed, expiring session (`session.ts`): a value nobody signed, one past its expiry or one
+// that names nobody we know reads as `anonymous`.
 import { cookies } from 'next/headers';
 import { secureFlag } from './cookie-flags';
 import { listCustomers } from './customers';

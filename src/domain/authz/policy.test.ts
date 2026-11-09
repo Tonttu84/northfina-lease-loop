@@ -47,6 +47,8 @@ const TABLE: Record<
   pay_invoice: { anonymous: 'not_signed_in', owner: 'ok', other: 'not_owner', admin: 'ok' },
   exit_contract: { anonymous: 'not_signed_in', owner: 'ok', other: 'not_owner', admin: 'ok' },
   read_leases: { anonymous: 'not_signed_in', owner: 'ok', other: 'not_owner', admin: 'ok' },
+  // The account page (D93): one's own account; the admin reads the back office account.
+  read_account: { anonymous: 'not_signed_in', owner: 'ok', other: 'not_owner', admin: 'ok' },
   manage_signatories: {
     anonymous: 'not_signed_in',
     owner: 'ok',

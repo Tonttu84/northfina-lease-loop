@@ -1,5 +1,5 @@
-// The actor (D17): no login, a cookie names who is acting; the cookie is a signed, expiring
-// session (D92). Pure parts first, then the reader against a real, migrated SQLite database.
+// The actor (D17): a cookie names who is acting, set by the picker or the sign-in link (D93);
+// the cookie is a signed, expiring session (D92). Pure parts first, then the reader against a real, migrated SQLite database.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadCustomers } from '@/data/load';
 import { createTestDb } from '../../tests/helpers/test-db';

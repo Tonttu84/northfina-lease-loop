@@ -15,6 +15,7 @@ import {
   customerSchema,
   usageUnitSchema,
 } from '@/data/schemas';
+import { accountRoleSchema, accountRowSchema, loginTokenRowSchema } from '@/domain/rows/account';
 import { applicationRowSchema } from '@/domain/rows/application';
 import { contractRowSchema } from '@/domain/rows/contract';
 import { invoiceRowSchema } from '@/domain/rows/invoice';
@@ -28,9 +29,11 @@ import {
   invoiceStatusSchema,
 } from '@/domain/statuses';
 import {
+  accountRow,
   applicationRow,
   contractRow,
   invoiceRow,
+  loginTokenRow,
   quoteRow,
   returnAssessmentRow,
 } from './helpers/row-examples';
@@ -70,11 +73,14 @@ const GUARDED: Record<string, { schema: z.ZodObject; example: () => Record<strin
   Invoice: { schema: invoiceRowSchema, example: invoiceRow },
   Application: { schema: applicationRowSchema, example: applicationRow },
   ReturnAssessment: { schema: returnAssessmentRowSchema, example: returnAssessmentRow },
+  Account: { schema: accountRowSchema, example: accountRow },
+  LoginToken: { schema: loginTokenRowSchema, example: loginTokenRow },
 };
 
 /** The Zod enum of every column whose comment lists its values. */
 const ENUM_OF: Record<string, z.ZodEnum> = {
   'Customer.type': z.enum(customerSchema.options.map((option) => option.shape.type.value)),
+  'Account.role': accountRoleSchema,
   'Asset.category': assetCategorySchema,
   'Asset.condition': assetConditionSchema,
   'Asset.usage_unit': usageUnitSchema,

@@ -69,6 +69,39 @@ model Customer {
   applications Application[]
   contracts    Contract[]
   signatories  CompanySignatory[]
+  account      Account?
+}
+
+// A sign-in account (D93): one per customer and one for the back office (`customer_id` null,
+// role admin). The e-mail is confirmed by opening a sign-in link (D94); nothing is sent.
+model Account {
+  id              String   @id @default(cuid())
+  customer_id     String?  @unique
+  role            String // customer | admin
+  email           String   @unique // stored trimmed and lower case
+  email_confirmed Boolean  @default(false)
+  confirmed_on    String? // the day the first link was opened
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  customer     Customer?    @relation(fields: [customer_id], references: [id])
+  login_tokens LoginToken[]
+}
+
+// A sign-in link (D94): the SHA-256 of the token, never the token itself. `demo_token` holds
+// the token only while the demo tools are on, so the demo page's outbox can show the link.
+model LoginToken {
+  id         String  @id @default(cuid())
+  account_id String
+  token_hash String  @unique
+  demo_token String?
+  sent_on    String
+  expires_on String
+  used_on    String?
+
+  account Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@index([account_id])
 }
 
 // A priced offer for an asset on a date, frozen so a later price list does not change it.

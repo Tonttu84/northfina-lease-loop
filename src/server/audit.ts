@@ -25,7 +25,7 @@ import { auditSigner, SIGNING_KEY_ENV } from './audit-signing';
 import { parseRow } from './row-rules';
 
 export type AuditEntry = {
-  /** Who did it (a user id or name; there is no login in the starter). */
+  /** Who did it: a customer id, `admin`, `anonymous`, or `signatory:<email>` (D17, D93). */
   actor: string;
   /** What happened, as `<entity>.<verb>`, e.g. `asset.status_changed`. */
   action: string;

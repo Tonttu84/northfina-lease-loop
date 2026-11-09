@@ -71,7 +71,7 @@ export async function authorize(
 /** D74: `not_signed_in` is 401, every other refusal 403; the code is always `FORBIDDEN`. */
 export function forbiddenResponse(reason: AuthzRefusal): Response {
   return reason.code === 'not_signed_in'
-    ? fail(401, 'FORBIDDEN', 'Sign in (continue as) first', reason)
+    ? fail(401, 'FORBIDDEN', 'Sign in first', reason)
     : fail(403, 'FORBIDDEN', 'You may not do this', reason);
 }
 

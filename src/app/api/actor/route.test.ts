@@ -1,7 +1,7 @@
 // POST and DELETE /api/actor, the "continue as" picker (D17), against a real, migrated SQLite
 // database: a known id is checked against the customers and comes back as a signed session
 // cookie (D92); an unknown id is 404; DELETE clears the cookie.
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadCustomers } from '@/data/load';
 import { createTestDb } from '../../../../tests/helpers/test-db';
 import { ACTOR_COOKIE } from '@/server/actor';
@@ -79,6 +79,18 @@ describe('POST /api/actor', () => {
   it('refuses anonymous as a choice and a body without an actor', async () => {
     expect((await post({ actor: 'anonymous' })).status).toBe(404);
     expect((await post({})).status).toBe(400);
+  });
+
+  describe('with the demo tools off (D93)', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('answers 404 and sets no cookie: the sign-in link is the way in', async () => {
+      vi.stubEnv('DEMO_TOOLS', '0');
+      const { status, cookies, body } = await post({ actor: 'admin' });
+      expect(status).toBe(404);
+      expect(body.error.code).toBe('NOT_FOUND');
+      expect(cookies).toEqual([]);
+    });
   });
 });
 

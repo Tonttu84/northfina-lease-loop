@@ -21,6 +21,8 @@ afterAll(async () => {
 });
 
 const countAll = async () => ({
+  loginToken: await db.loginToken.count(),
+  account: await db.account.count(),
   signatureRequest: await db.signatureRequest.count(),
   companySignatory: await db.companySignatory.count(),
   returnAssessment: await db.returnAssessment.count(),
@@ -60,8 +62,21 @@ describe('resetDb', () => {
           details: {},
         })
     );
+    // An account with a sign-in link (D93): the link points at the account, the account at Aino.
+    const account = await db.account.create({
+      data: { customer_id: 'cust-aino', role: 'customer', email: 'aino.virtanen@example.com' },
+    });
+    await db.loginToken.create({
+      data: {
+        account_id: account.id,
+        token_hash: 'a'.repeat(64),
+        sent_on: '2026-11-05',
+        expires_on: '2026-11-07',
+      },
+    });
     const before = await countAll();
     expect(before.contract).toBe(2);
+    expect(before.loginToken).toBe(1);
     expect(before.auditLog).toBeGreaterThan(0);
 
     await resetDb(db);

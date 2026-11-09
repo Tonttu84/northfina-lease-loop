@@ -19,6 +19,13 @@ import {
   invoiceKindSchema,
   invoiceStatusSchema,
 } from '@/domain/statuses';
+import {
+  loginBodySchema,
+  loginLinkStateSchema,
+  loginRequestedSchema,
+  loginTokenParamsSchema,
+  signedInSchema,
+} from './account-schemas';
 import { auditChainVerdictSchema } from './audit-schemas';
 import { demoCardParamsSchema, demoCardRunSchema } from './demo-cards-schemas';
 import {
@@ -231,7 +238,8 @@ export const ROUTES: readonly RouteDefinition[] = [
   {
     method: 'POST',
     path: '/api/actor',
-    summary: 'Act as a customer or admin: sets the actor cookie (no login, D17)',
+    summary:
+      'The "continue as" picker: act as a customer or admin, sets the signed actor cookie (D17, D92); a demo tool, 404 while DEMO_TOOLS is off (D93)',
     tag: 'actor',
     body: actorBodySchema,
     response: actorResponseSchema,
@@ -239,9 +247,37 @@ export const ROUTES: readonly RouteDefinition[] = [
   {
     method: 'DELETE',
     path: '/api/actor',
-    summary: 'Stop acting: clears the actor cookie, so the visitor is anonymous',
+    summary: 'Sign out: clears the actor cookie, so the visitor is anonymous',
     tag: 'actor',
     response: actorResponseSchema,
+  },
+  {
+    method: 'POST',
+    path: '/api/login',
+    summary:
+      'Ask for a sign-in link for an e-mail (D93); 202 and the same answer whether or not an account has it; the link itself only while DEMO_TOOLS is on (D94)',
+    tag: 'login',
+    body: loginBodySchema,
+    response: loginRequestedSchema,
+    status: 202,
+  },
+  {
+    method: 'GET',
+    path: '/api/login/[token]',
+    summary:
+      "A sign-in link's state on the request's day: valid, used or expired, and whose it is, masked",
+    tag: 'login',
+    params: loginTokenParamsSchema,
+    response: loginLinkStateSchema,
+  },
+  {
+    method: 'POST',
+    path: '/api/login/[token]',
+    summary:
+      "Open the sign-in link: sets the signed actor cookie as the account's actor and confirms its e-mail (D93); 404 unknown, 409 LOGIN_LINK_USED, 410 LOGIN_LINK_EXPIRED",
+    tag: 'login',
+    params: loginTokenParamsSchema,
+    response: signedInSchema,
   },
   {
     method: 'GET',

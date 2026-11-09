@@ -28,6 +28,7 @@ The actor × action table, as `src/domain/authz/policy.test.ts` pins it (owner =
 | `pay_invoice`        | not_signed_in | ok         | not_owner  | ok    |
 | `exit_contract`      | not_signed_in | ok         | not_owner  | ok    |
 | `read_leases`        | not_signed_in | ok         | not_owner  | ok    |
+| `read_account`       | not_signed_in | ok         | not_owner  | ok    |
 | `manage_signatories` | not_signed_in | ok         | not_owner  | ok    |
 | `read_signatories`   | not_signed_in | ok         | not_owner  | ok    |
 | `assess_asset`       | not_signed_in | admin_only | admin_only | ok    |
@@ -39,7 +40,9 @@ Worked example, card 6: Norvi's coordinator (`cust-norvi`) applies for one `ebik
 
 HTTP (D74): `not_signed_in` → 401, every other refusal → 403, both `FORBIDDEN` through `fail()` with the reason as details. An unknown record keeps the route's own 404; another customer reading an application gets the same 404 as an unknown id (D57). The application page shows the signing-token link to the admin only (wave 3 review finding 1).
 
-Public, with no `authorize`: the catalogue, the price preview and the stored quotes, the passport, the audit log and its check, the actor picker, the demo clock and the signing link (the token is the signatory's authority). `tests/meta-rules.test.ts` lists them and fails on any other `route.ts` that never calls `authorize(`.
+Public, with no `authorize`: the catalogue, the price preview and the stored quotes, the passport, the audit log and its check, the actor picker (a demo tool since D93), the demo clock, the signing link (the token is the signatory's authority) and the sign-in routes (`POST /api/login`, nobody to authorize yet; `/api/login/[token]`, the token is the visitor's authority, D93). `tests/meta-rules.test.ts` lists them and fails on any other `route.ts` that never calls `authorize(`.
+
+**Since D93:** `read_account` (one's own account, the back office's for the admin), the account page.
 
 **Since D87 and D88:** `withdraw_application` (the owner and the admin) and `sign_contract` refused to the admin with the code `customer_signs`: the customer signs their own lease.
 
@@ -48,7 +51,7 @@ Public, with no `authorize`: the catalogue, the price preview and the stored quo
 - D73: one pure policy, checked before the action in the route and again at the service's top.
 - D74: the HTTP mapping (401 / 403 `FORBIDDEN`) and the `DEMO_TOOLS` switch on the card runner, the demo clock's route and its cookie ([security.md](security.md)).
 - D85: the second-life page is back office: `read_second_life` is the admin's, because the page shows the whole waiting list (other customers' budgets and needs); its links show for the admin only.
-- Builds on D17 (no login, the "continue as" cookie), D46 (the signing link, the mandate list), D47 (the admin applies on behalf), D57 (another customer's application reads as not found).
+- Builds on D17 (the actor cookie, set by the "continue as" picker while the demo tools are on or by the sign-in link, D93), D46 (the signing link, the mandate list), D47 (the admin applies on behalf), D57 (another customer's application reads as not found).
 
 ## Pure functions
 
@@ -79,4 +82,4 @@ The server side, not pure: `authorize(db, actor, action, ref)` with `ref` one of
 
 - Follow-up for the coordinator after `feat/user-portal` merges: add `authorize` (`read_leases`, `read_contract`) to `src/app/[locale]/leases/*` and `src/app/[locale]/customers/[id]/page.tsx`, owned by the portal session this morning.
 - `decideByToken` keeps its own `signingCheck` (it also brings a waiting entry into force on its first opening, which `canSign` does not); the policy's mandate path mirrors it rather than replacing it.
-- With no login (D17) anyone can still pick "Admin" in the picker; the rule is ready for a real sign-in that sets the actor.
+- While the demo tools are on (D74) anyone can still pick "Admin" in the picker, by design; with them off only the back office account's sign-in link sets that actor (D93).

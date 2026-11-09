@@ -22,6 +22,31 @@ describe('proxy', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1');
   });
 
+  it('refuses a write a browser sends from another site with 403 CROSS_SITE, before the limit counts it', async () => {
+    const limited = proxyWith(createRateLimiter({ limit: 1, windowMs: 60_000 }), () => T0);
+    const foreign = new NextRequest('http://localhost/api/login/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', {
+      method: 'POST',
+      headers: { 'sec-fetch-site': 'cross-site' },
+    });
+    const refused = limited(foreign);
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ success: false, error: { code: 'CROSS_SITE' } });
+    // A write from this site, the same site or a typed address passes and counts; the refused
+    // one did not count, so the one allowed write is still available after them.
+    const roomy = proxyWith(createRateLimiter({ limit: 4, windowMs: 60_000 }), () => T0);
+    expect(roomy(foreign).status).toBe(403);
+    for (const site of ['same-origin', 'same-site', 'none']) {
+      const own = new NextRequest('http://localhost/api/quotes', {
+        method: 'POST',
+        headers: { 'sec-fetch-site': site },
+      });
+      expect(own.headers.get('sec-fetch-site')).toBe(site);
+      expect(roomy(own).headers.get('x-middleware-next')).toBe('1');
+    }
+    expect(roomy(post('/api/quotes')).headers.get('x-middleware-next')).toBe('1');
+    expect(roomy(post('/api/quotes')).status).toBe(429);
+  });
+
   it('refuses the write over the limit with 429, Retry-After and the API envelope', async () => {
     const limited = proxyWith(createRateLimiter({ limit: 2, windowMs: 60_000 }), () => T0);
     expect(limited(post('/api/quotes')).status).not.toBe(429);
