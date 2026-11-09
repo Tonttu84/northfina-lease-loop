@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  allProvided,
   ensureEnvFile,
   ensureSessionSecret as ensureSessionSecretWithEnv,
   ensureSigningKey as ensureSigningKeyWithEnv,
@@ -111,5 +112,18 @@ describe('ensureSessionSecret (D92)', () => {
     );
     expect(ensureSigningKey(root, fixedSecret, { AUDIT_SIGNING_KEY: 'k' })).toBe('provided');
     expect(env()).toBe('DATABASE_URL="x"\n');
+  });
+
+  it('reports a short secret the environment provides, and writes nothing', () => {
+    writeFileSync(path.join(root, '.env'), 'DATABASE_URL="x"\n');
+    expect(ensureSessionSecretWithEnv(root, fixedSecret, { SESSION_SECRET: 'tiny' })).toBe('short');
+    expect(env()).toBe('DATABASE_URL="x"\n');
+  });
+
+  it('allProvided is true only with both secrets in the environment', () => {
+    expect(allProvided({ AUDIT_SIGNING_KEY: 'k', SESSION_SECRET: 's' })).toBe(true);
+    expect(allProvided({ AUDIT_SIGNING_KEY: 'k' })).toBe(false);
+    expect(allProvided({ AUDIT_SIGNING_KEY: 'k', SESSION_SECRET: ' ' })).toBe(false);
+    expect(allProvided({})).toBe(false);
   });
 });

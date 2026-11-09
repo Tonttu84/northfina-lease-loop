@@ -39,7 +39,7 @@ function requireSecret(): string {
   const secret = sessionSecret();
   if (secret === null) {
     throw new Error(
-      'SESSION_SECRET is missing or shorter than 32 characters; run `npm run db:setup` to generate one into .env'
+      'SESSION_SECRET is missing or shorter than 32 characters; empty a short line in .env, then run `npm run db:setup` to generate one'
     );
   }
   return secret;

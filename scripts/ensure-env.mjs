@@ -33,8 +33,9 @@ export function newSessionSecret() {
 /**
  * Fills an empty `NAME=""` line of `root/.env`, or appends one, with `make()`. A value already
  * there is kept (`exists`; `short` when it is under `minLength`, so the caller can warn); a
- * value the process environment already provides is not written at all (`provided`): a
- * deployment that sets its secrets in the environment keeps them out of the file.
+ * value the process environment already provides is not written at all (`provided`, or `short`
+ * when it is under `minLength`): a deployment that sets its secrets in the environment keeps
+ * them out of the file.
  * @param {string} root folder that holds .env
  * @param {string} name the variable
  * @param {() => string} make
@@ -42,7 +43,8 @@ export function newSessionSecret() {
  * @returns {'added' | 'exists' | 'short' | 'provided'}
  */
 export function ensureEnvValue(root, name, make, { minLength = 1, env = process.env } = {}) {
-  if ((env[name] ?? '').trim() !== '') return 'provided';
+  const fromEnv = (env[name] ?? '').trim();
+  if (fromEnv !== '') return fromEnv.length >= minLength ? 'provided' : 'short';
   const target = join(root, '.env');
   const text = readFileSync(target, 'utf8');
   const linePattern = new RegExp(`^${name}=(.*)$`, 'm');
@@ -87,9 +89,21 @@ export function ensureSessionSecret(root, makeSecret = newSessionSecret, env = p
   });
 }
 
+/** Whether the process environment provides every value this script would otherwise write. */
+export function allProvided(env = process.env) {
+  return ['AUDIT_SIGNING_KEY', 'SESSION_SECRET'].every((name) => (env[name] ?? '').trim() !== '');
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const result = ensureEnvFile(process.cwd());
-  console.log(result === 'created' ? '📝 Created .env from .env.example' : '✔ .env already exists');
+  // A host that provides both secrets in the environment needs no .env at all (D92).
+  const result = allProvided() ? 'provided' : ensureEnvFile(process.cwd());
+  console.log(
+    result === 'created'
+      ? '📝 Created .env from .env.example'
+      : result === 'provided'
+        ? '✔ AUDIT_SIGNING_KEY and SESSION_SECRET come from the environment; .env not touched'
+        : '✔ .env already exists'
+  );
   if (ensureSigningKey(process.cwd()) === 'added') {
     console.log('🔑 Added a new AUDIT_SIGNING_KEY to .env (never commit it)');
   }
@@ -97,7 +111,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   if (secret === 'added') console.log('🔑 Added a new SESSION_SECRET to .env (never commit it)');
   if (secret === 'short') {
     console.warn(
-      `⚠️  SESSION_SECRET in .env is shorter than ${SESSION_SECRET_MIN_LENGTH} characters: the app treats it as missing. Empty the line and run this again.`
+      `⚠️  SESSION_SECRET is shorter than ${SESSION_SECRET_MIN_LENGTH} characters: the app treats it as missing. Empty the line in .env (or the variable) and run this again.`
     );
   }
 }
