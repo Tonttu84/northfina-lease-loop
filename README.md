@@ -123,7 +123,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 
 ## How we worked
 
-Three people and Claude Code as a pair programmer, over two days. The rules we set ourselves on top of the organiser's (test first, contract first, one owner per table, integer cents, codes instead of sentences, one branch and one squash-merged pull request per task) are in [AGENTS.md](AGENTS.md); how the waves of parallel agent sessions were run, and how the app is put together (database, actor, API, events, pages, each slice): [docs/team-notes.md](docs/team-notes.md).
+Three people and Claude Code as a pair programmer, over two days. The rules we set ourselves on top of the organiser's (test first, contract first, one owner per table, integer cents, codes instead of sentences, one branch and one squash-merged pull request per task, reviewed by someone who did not write it) are in [AGENTS.md](AGENTS.md); how the waves of parallel agent sessions were run, and how the app is put together (database, actor, API, events, pages, each slice): [docs/team-notes.md](docs/team-notes.md).
 Every decision with its reason and what was chosen against: [docs/decisions.md](docs/decisions.md); the mentor questions (all answered): [docs/mentor-questions.md](docs/mentor-questions.md).
 The text of our submission, with how we used the AI tools from our side: [docs/submission.md](docs/submission.md); one time log per task: [docs/log/](docs/log/); the reviews after every wave and after the hackathon: [docs/reviews/](docs/reviews/).
 
