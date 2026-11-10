@@ -82,7 +82,7 @@ Order: any failed rule → `rejected`, with **every** failure listed; else PEP �
 
 At 36 and 48 months the age is the only reason; at 24 both reasons are listed. On 2027-03-10 the age rule passes, on 2027-03-09 it does not. Someone born on 29 February turns 18 on 1 March in a year without one.
 
-**Card 6**: Norvi answers can-sign **no**: `awaiting_signatory` with `signatory_needed { signatoryEmail }`, and in the same transaction a signing link goes to `signatory@norvi.example.com` (D46, [signatories.md](signatories.md)). The signatory signs (approved) or declines (rejected) through that link only (D39); on the decision page everyone, Norvi's own account and the admin included, gets 403 `NOT_SIGNATORY` and nothing is written. The page shows the demo outbox with the link instead of a sign form.
+**Card 6**: Norvi answers can-sign **no**: `awaiting_signatory` with `signatory_needed { signatoryEmail }`, and in the same transaction a signing link goes to `signatory@norvi.example.com` (D46, [signatories.md](signatories.md)). The signatory signs (approved) or declines (rejected) through that link only (D39); on the decision page everyone, Norvi's own account and the admin included, gets 403 `FORBIDDEN` with `signatory_required` (D73, D74), or 401 when nobody is signed in, and nothing is written. The page shows the admin the demo outbox with the link instead of a sign form.
 
 **Card 7**: Haapala's owner is a PEP: `manual_review` with `pep`, never approved by a rule. An admin decides on the decision page; the decision and the reviewer are kept as a `reviewed` reason. A PEP case that also needs a signatory goes to `awaiting_signatory` once the admin approves.
 
@@ -200,7 +200,7 @@ whoDecides(decision): 'admin' | 'signing_link' | 'final'; // manual_review, awai
 
 // src/server/applications.ts
 createApplication(db, { quoteId, customerId, answers, today, actor, onBehalfOf? }); // not_applicant unless actor = customerId, or admin with onBehalfOf = customerId (D40, D47); makes the signing link on awaiting_signatory // → { ok, application } | { ok: false, reason }
-decideApplication(db, { id, decision, reviewedBy, today, actor }); // the admin's review; awaiting_signatory → not_signatory for everyone (D39)
+decideApplication(db, { id, decision, reviewedBy, today, actor }); // the admin's review; awaiting_signatory → signatory_required for everyone (D39, D73)
 recordSignatoryDecision(tx, { id, decision, by, today }); // inside decideByToken (signatories.md)
 getApplication(db, id): Promise<ApplicationView | null>;
 // createApplication also refuses { reason: 'quote_in_use', applicationId } (D56)
@@ -232,7 +232,7 @@ getApplication(db, id): Promise<ApplicationView | null>;
 | Birth date range 1906-11-05 to 2026-11-05; 2030 and 1800 refused                                                                                          | `answers.test.ts` "birthDateRange", "answerProblem"; `applications.test.ts` "a birth date in the future …"                                     |
 | Mikko answering "company" → `manual_review`, not approved                                                                                                 | `record-check.test.ts`, `eligibility.test.ts` "answers that differ …"; `applications.test.ts` "card 5 Mikko answering …"                       |
 | Mikko cannot apply in Aino's name; nor the admin or anonymous                                                                                             | `applications.test.ts` "card 5 Mikko cannot apply in Aino's name …"                                                                            |
-| Only the signing link signs; the company account and the admin get NOT_SIGNATORY; not oneself                                                             | `signatory.test.ts`; `applications.test.ts` "card 6 cannot be signed by …", "cannot name themself …"                                           |
+| Only the signing link signs; the company account and the admin get `signatory_required`; not oneself                                                      | `signatory.test.ts`; `applications.test.ts` "card 6 cannot be signed by …", "cannot name themself …"                                           |
 | Two decisions at the same instant: one wins, the other writes nothing                                                                                     | `applications.test.ts` "two decisions at the same instant …"                                                                                   |
 | Cards 5, 6, 7 and every customer × category on the data pack (scenario harness)                                                                           | `src/domain/scenarios/card-05-too-young.test.ts`, `card-06-who-can-sign.test.ts`, `card-07-big-ticket.test.ts`, `customers.test.ts`            |
 | Birth dates at the edges: today, tomorrow, 1906-11-05 and the day before, 29 Feb → 1 Mar, the start day vs the quote day, one day off the record          | `src/domain/scenarios/answers-hardening.test.ts` "birth dates"                                                                                 |
