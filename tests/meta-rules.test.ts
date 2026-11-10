@@ -6,6 +6,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { ROUTES, routeKey } from '@/server/routes';
 import { findOversizedFiles, MAX_LINES } from '../scripts/check-file-size.mjs';
 import { checkProject } from '../scripts/check-no-ai.mjs';
 
@@ -159,6 +161,91 @@ const CONCURRENT_TESTS: readonly Check[] = [
   },
 ];
 
+// Raw SQL skips the query builder's parameters and the row schemas (issue 17). Tests may play
+// the attacker with it; scripts/tamper-audit.mjs is outside src/ on purpose (the tamper demo).
+const RAW_SQL: readonly Check[] = [
+  {
+    pattern: /\$(queryRaw|executeRaw|runCommandRaw)/,
+    problem: 'runs raw SQL; use the Prisma query builder',
+  },
+  { pattern: /\$\w*Unsafe\b/, problem: 'calls a Prisma …Unsafe method' },
+  { pattern: /\bPrisma\.raw\(/, problem: 'builds raw SQL with Prisma.raw' },
+];
+
+// Zod 4 (package.json: zod ^4.6.7) says in a schema's definition whether an object refuses
+// unknown keys: z.strictObject() and .strict() set `catchall` to z.never(); z.object() leaves it
+// unset (unknown keys are dropped silently) and z.looseObject() or .passthrough() set it to
+// z.unknown() (node_modules/zod/v4/classic/schemas.js). A record is a dictionary: its key schema
+// decides which keys pass, so one whose keys are any string (no pattern or format, only lengths)
+// is as loose as a loose object.
+type AnyDef = { type: string } & Record<string, unknown>;
+const defOf = (schema: unknown) => (schema as { _zod: { def: AnyDef } })._zod.def;
+
+// Wrappers whose one child is `innerType`; types that hold no object at all.
+const WRAPPERS = new Set([
+  'optional',
+  'nullable',
+  'nonoptional',
+  'default',
+  'prefault',
+  'catch',
+  'readonly',
+]);
+const LEAVES = new Set(
+  'string number bigint boolean date symbol null undefined void never any unknown nan literal enum template_literal file transform custom'.split(
+    ' '
+  )
+);
+
+/** Where inside `schema` a key the schema does not name would get through; `[]` when nowhere. */
+function looseSpots(schema: unknown, at = 'body'): string[] {
+  const def = defOf(schema);
+  const walk = (child: unknown, where: string) => looseSpots(child, where);
+  switch (def.type) {
+    case 'object': {
+      const strict = def.catchall !== undefined && defOf(def.catchall).type === 'never';
+      const shape = Object.entries(def.shape as Record<string, unknown>);
+      return [
+        ...(strict ? [] : [`${at} accepts unknown keys`]),
+        ...shape.flatMap(([key, child]) => walk(child, `${at}.${key}`)),
+      ];
+    }
+    case 'record': {
+      const key = defOf(def.keyType);
+      const checks = (key.checks ?? []) as unknown[];
+      const patterned = key.format || checks.some((c) => defOf(c).check === 'string_format');
+      const anyKey = key.type === 'string' && !patterned;
+      return [
+        ...(anyKey ? [`${at} is a record whose keys are any string`] : []),
+        ...walk(def.valueType, `${at}[key]`),
+      ];
+    }
+    case 'array':
+      return walk(def.element, `${at}[]`);
+    case 'union':
+      return (def.options as unknown[]).flatMap((option) => walk(option, at));
+    case 'intersection':
+      return [...walk(def.left, at), ...walk(def.right, at)];
+    case 'pipe':
+      return [...walk(def.in, at), ...walk(def.out, at)];
+    case 'lazy':
+      return walk((def.getter as () => unknown)(), at);
+    default:
+      if (WRAPPERS.has(def.type)) return walk(def.innerType, at);
+      if (LEAVES.has(def.type)) return [];
+      return [`${at} is a Zod ${def.type}, which this test cannot see into; teach looseSpots`];
+  }
+}
+
+/** `/api/…` of a route.ts under src/app/api. */
+const routePathOf = (file: string) => file.replace(/^src\/app/, '').replace(/\/route\.ts$/, '');
+
+// A route reads a body through readJsonBody(request, schema), or reads the text itself and
+// parses it (the assessment route: `schema.parse(body)`). Either schema must be the table's.
+const BODY_READER = /\b(readJsonBody|readBodyText)\(/;
+const BODY_SCHEMA_USE =
+  /readJsonBody\(\s*\w+\s*,\s*(\w+)\s*\)|\b(\w+)\.(?:safe)?[pP]arse\(\s*body\s*\)/g;
+
 /** Hand-written TypeScript under src/ and tests/: the generated Prisma client is left out. */
 const sourceAndTests = () =>
   [...listFiles('src', /\.tsx?$/), ...listFiles('tests', /\.ts$/)].filter(
@@ -294,5 +381,119 @@ describe('meta rules', () => {
   it('the UI has message files for exactly en, fi, sv and et', () => {
     const files = readdirSync(path.join(repoRoot, 'src/i18n/messages')).sort();
     expect(files).toEqual(['en.json', 'et.json', 'fi.json', 'sv.json']);
+  });
+
+  // Issue 17: a request body refuses keys it does not name (mass assignment), nested objects
+  // too. The bodies come from the route table, so a new route is covered without editing this.
+  it('every request body in the route table refuses unknown keys, nested objects too', () => {
+    const withBody = ROUTES.filter((route) => route.body);
+    expect(withBody.length).toBeGreaterThan(0);
+    const findings = withBody.flatMap((route) =>
+      looseSpots(route.body).map((spot) => `${routeKey(route)}: ${spot}`)
+    );
+    expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  // The table's bodies are the app's bodies only if every route.ts that reads a body parses it
+  // with the very schema of its row, so this follows each body read back to the table.
+  it('every route that reads a body parses it with the body schema of its route-table row', async () => {
+    // routes.ts and every src/server/*-schemas.ts: the modules a route's body schema comes from.
+    const schemaModules = [
+      'routes',
+      ...listFiles('src/server', /-schemas\.ts$/).map((f) => path.basename(f, '.ts')),
+    ];
+    const modules = await Promise.all(
+      schemaModules.map(
+        (name) => import(`../src/server/${name}.ts`) as Promise<Record<string, unknown>>
+      )
+    );
+    const exported = new Map(modules.flatMap((module) => Object.entries(module)));
+    const readers = listFiles('src/app/api', /(^|\/)route\.ts$/).filter((file) =>
+      BODY_READER.test(read(file))
+    );
+    expect(readers.length).toBeGreaterThan(0);
+    const findings = readers.flatMap((file) => {
+      const rowBodies: unknown[] = ROUTES.filter(
+        (route) => route.path === routePathOf(file) && route.body
+      ).map((route) => route.body);
+      const used = [...read(file).matchAll(BODY_SCHEMA_USE)].map((match) => match[1] ?? match[2]);
+      if (used.length === 0) return [`${file} reads a body this test cannot trace to a schema`];
+      return used
+        .filter((name) => !rowBodies.includes(exported.get(name ?? '')))
+        .map((name) => `${file} parses its body with ${name}, not its row's body in routes.ts`);
+    });
+    expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  // Issue 17: app code reaches the database through the query builder only. Comments may name
+  // the calls; tests may use them to play the attacker.
+  it('no app code runs raw SQL or a Prisma …Unsafe method', () => {
+    const files = listFiles('src', /\.[cm]?[jt]sx?$/).filter(
+      (file) => !isTest(file) && !file.startsWith('src/generated/')
+    );
+    expect(files.length).toBeGreaterThan(0);
+    const findings = files.flatMap((file) => scanLines(file, RAW_SQL));
+    expect(findings, formatFindings(findings)).toEqual([]);
+  });
+});
+
+// The strict-body test is only as good as looseSpots: each case pins one way to be loose, and
+// the first checks Zod itself agrees that a z.object() lets an extra key through.
+describe('looseSpots, the strict-body walker', () => {
+  const name = z.string();
+
+  it('passes a strict object and flags z.object(), z.looseObject() and .passthrough()', () => {
+    expect(z.strictObject({ name }).safeParse({ name: 'a', extra: 1 }).success).toBe(false);
+    expect(z.object({ name }).safeParse({ name: 'a', extra: 1 }).success).toBe(true);
+    expect(looseSpots(z.strictObject({ name }))).toEqual([]);
+    expect(looseSpots(z.object({ name }).strict())).toEqual([]);
+    expect(looseSpots(z.object({ name }))).toEqual(['body accepts unknown keys']);
+    expect(looseSpots(z.looseObject({ name }))).toEqual(['body accepts unknown keys']);
+    expect(looseSpots(z.strictObject({ name }).passthrough())).toEqual([
+      'body accepts unknown keys',
+    ]);
+    expect(looseSpots(z.strictObject({ name }).catchall(name))).toEqual([
+      'body accepts unknown keys',
+    ]);
+  });
+
+  it('finds a loose object nested under wrappers, arrays, unions, pipes and lazies', () => {
+    const loose = z.object({ name });
+    const body = z.strictObject({
+      a: loose.optional().nullable().default(null),
+      b: z.array(z.union([name, loose])),
+      c: z.strictObject({ d: loose.readonly() }),
+      e: loose.transform((value) => value.name),
+      f: z.lazy(() => loose),
+      g: z.intersection(loose, z.strictObject({})),
+    });
+    expect(looseSpots(body)).toEqual([
+      'body.a accepts unknown keys',
+      'body.b[] accepts unknown keys',
+      'body.c.d accepts unknown keys',
+      'body.e accepts unknown keys',
+      'body.f accepts unknown keys',
+      'body.g accepts unknown keys',
+    ]);
+    expect(looseSpots(z.strictObject({ a: z.array(z.strictObject({ name })) }))).toEqual([]);
+  });
+
+  it('flags a record whose keys are any string, not one whose keys have a pattern or a list', () => {
+    expect(looseSpots(z.record(z.string(), name))).toEqual([
+      'body is a record whose keys are any string',
+    ]);
+    expect(looseSpots(z.record(z.string().min(1).max(64), name))).toEqual([
+      'body is a record whose keys are any string',
+    ]);
+    expect(looseSpots(z.record(z.string().regex(/^q_\w+$/), name))).toEqual([]);
+    expect(looseSpots(z.record(z.enum(['a', 'b']), z.object({ name })))).toEqual([
+      'body[key] accepts unknown keys',
+    ]);
+  });
+
+  it('flags a Zod type it does not know rather than passing it', () => {
+    expect(looseSpots(z.map(name, name))).toEqual([
+      'body is a Zod map, which this test cannot see into; teach looseSpots',
+    ]);
   });
 });
