@@ -1,6 +1,6 @@
 # Team notes
 
-How the team worked and how the app is put together, kept out of the README (which holds the status table and the feature list). The plan is [kickoff-brief.md](kickoff-brief.md); the mentor questions (all answered) are [mentor-questions.md](mentor-questions.md).
+How the team worked, where to start reading the code, every command, and how the app is put together, kept out of the README (which holds the status table and the feature list). The plan is [kickoff-brief.md](kickoff-brief.md); the mentor questions (all answered) are [mentor-questions.md](mentor-questions.md).
 
 - `AGENTS.md`: the organiser's rules plus our working rules; every agent and person reads it first.
 - `docs/kickoff-brief.md`: the plan (scope, decisions, schema ownership, events, waves, the agent brief template).
@@ -8,6 +8,40 @@ How the team worked and how the app is put together, kept out of the README (whi
 - `tests/meta-rules.test.ts`: the engineering rules checked against the repository itself, in `npm test`.
 - A branch is named after the feature it builds, `<type>/<slice>` with the conventional-commit type as prefix: `feat/pricing`, `feat/invoices`, `chore/wave0-upkeep`, `test/wave1-hardening`; a session that starts on a generated name renames it with `git branch -m` before its first push.
 - Nobody pushes to `main` directly, not even docs or tooling: every change is a branch and a pull request on this repository, CI runs on the PR, and it is squash-merged with a conventional subject.
+
+### Code tour
+
+The files to read first, in this order:
+
+1. **`data/`**: the synthetic data pack. Open `assets.json` and `coefficient-table.json`, then the worked example in [DATA.md](../data/DATA.md).
+2. **`src/data/`**: Zod schemas that load and type-check every data file. A field's type is defined here.
+3. **`src/domain/coefficient.ts`** and its test: a pure function that finds the pricing factor, and how it is tested. All business logic is in `src/domain/`, written the same way: pure functions, dates and data passed in, a test file next to each.
+4. **`src/domain/price-list.ts`**: picks the right price for a date. The price list changes on Friday.
+5. **`src/app/[locale]/page.tsx`**: the landing page; `src/app/[locale]/catalogue/page.tsx` is the catalogue. Next.js App Router: every folder under `src/app/` is a URL.
+6. **`src/app/api/assets/`**: API routes. They use the response envelope (`src/server/api-response.ts`), and the status change writes an audit row in the same transaction (`src/server/audit.ts`). Every route has a row in `src/server/routes.ts`, from which [openapi.json](openapi.json) is generated.
+7. **`prisma/schema.prisma`**: the database. A schema change goes through `npm run db:migrate`, never hand-written SQL.
+
+How the app is put together, slice by slice: the sections below. The engineering rules it is checked against: [RULES.md](../RULES.md), enforced by `tests/meta-rules.test.ts` and `npm run check:all`.
+
+Handy docs: [Next.js App Router](https://nextjs.org/docs/app), [TypeScript for programmers who know C](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html), [Prisma](https://www.prisma.io/docs), [Vitest](https://vitest.dev/guide/), [Tailwind CSS](https://tailwindcss.com/docs).
+
+### Commands
+
+The README lists the six most used; this is the full set.
+
+| Command                        | What it does                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `npm run setup`                | Set up a checkout or worktree: dependencies, database, hooks                                     |
+| `npm run dev`                  | Start the app with hot reload                                                                    |
+| `npm test`                     | Run all tests once (`npm run test:watch` to keep them running)                                   |
+| `npm run test:coverage`        | Tests with the 60 % coverage gate                                                                |
+| `npm run test:e2e`             | Build the app and click the pitch run through in Chromium with Playwright                        |
+| `npm run check:all`            | **Everything CI runs.** Run it before you push                                                   |
+| `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D96) |
+| `npm run db:migrate`           | After you change `prisma/schema.prisma`: creates a migration                                     |
+| `npm run db:reset`             | Wipe the local database and seed it again                                                        |
+| `npm run audit:anchor`         | Have a timestamp authority sign the audit head (D81, network)                                    |
+| `npm run db:studio`            | Browse the database in your browser                                                              |
 
 ### How we worked
 
