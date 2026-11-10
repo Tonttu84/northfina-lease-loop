@@ -1,0 +1,20 @@
+# Time log: the pre-push hook fails when a check fails
+
+Branch `fix/pre-push-hook`. A coding agent (Claude Opus 5.5) on the coordinator's brief: an agent
+saw a test time out during the pre-push hook and the push still went through. Real clock
+(Helsinki), 10 Nov 2026.
+
+| Time (Helsinki) | Step                                                                                                                                                                                                                                                                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 12:24           | Branch from `origin/main` (`ee83059`), `npm run setup` (4 min 19 s). Read `AGENTS.md`, the three hooks, husky's runner (`sh -e "$s"`), the CI workflow, how the tests spawn processes.                                                                                                                                                                       |
+| 12:29           | `tests/husky-hooks.test.ts`: runs `.husky/pre-push` with `sh` and a fake `npm` first on `PATH` that fails one chosen script; all pass, then each of the four steps failing in turn; plus no `&&` in any hook. First run: the `check:no-ai` case found no call log, because `calls-check:no-ai.log` is an NTFS stream on Windows; the log name drops the `:`. |
+| 12:31           | Fail first on the old hook: 4 of 8 fail (`typecheck`, `test`, `check:file-size` exit 0; the `&&` check). `sh -c 'set -e; false && true; echo reached'` prints `reached`, exit 0. `bdaa3c5`.                                                                                                                                                                  |
+| 12:32           | `.husky/pre-push`: one command per line under `set -e`, same steps, order and messages. 8 of 8 green. `a27bc82`.                                                                                                                                                                                                                                             |
+| 12:33           | Other hooks and scripts: `commit-msg` runs one command; `pre-commit` has no `&&` (its secret scan is an explicit `if !`); `scripts/` holds no shell scripts; the CI workflow has no `&&` in a `run:` step. Stack-notes row for the trap, this log.                                                                                                           |
+
+**Chosen:** one command per line over `|| exit 1` after each: `set -e` already stops at the first
+failure, and the test fails on any `&&` in a hook, so the chain cannot come back unnoticed.
+
+**Left undone:** nothing in the brief. Not changed: `check:all` in `package.json` is an `&&`
+chain too, but npm runs it without `set -e`, and an `&&` list's exit status is the failing
+command's, so it already fails correctly.
