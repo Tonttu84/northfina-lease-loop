@@ -24,6 +24,18 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 /** Every spawned shell gets this deadline (AGENTS.md rule 11). */
 const SPAWN_TIMEOUT_MS = 30_000;
 
+/**
+ * The environment without git's own variables. A hook runs with GIT_DIR (and in a worktree
+ * GIT_INDEX_FILE and others) exported, so these tests, run by the pre-push hook through
+ * `npm test`, would otherwise send every git command, `git init` and `git commit` included, to
+ * the repository being pushed instead of the folder they run in.
+ */
+function withoutGitEnv(): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key))
+  ) as NodeJS.ProcessEnv;
+}
+
 /** The pre-push steps in the order the hook runs them, as the fake npm names them. */
 const PRE_PUSH_STEPS = ['typecheck', 'test', 'check:file-size', 'check:no-ai'];
 
@@ -93,7 +105,7 @@ function runPrePush(failing: string | null, { cwd = repoRoot, input = '' } = {})
     encoding: 'utf8',
     timeout: SPAWN_TIMEOUT_MS,
     env: {
-      ...process.env,
+      ...withoutGitEnv(),
       PATH: `${fakeBin}${path.delimiter}${shDir}${process.env.PATH ?? ''}`,
       FAKE_NPM_LOG: log,
       FAKE_NPM_FAIL: failing ?? '',
@@ -159,7 +171,7 @@ describe(
         encoding: 'utf8',
         timeout: SPAWN_TIMEOUT_MS,
         env: {
-          ...process.env,
+          ...withoutGitEnv(),
           GIT_CONFIG_NOSYSTEM: '1',
           GIT_CONFIG_GLOBAL: path.join(scratch!, '.gc'),
         },
