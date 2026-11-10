@@ -28,7 +28,7 @@ Not a question here: Thomas's question-flow validation (#25, merged) added four 
 
 ## Not a question any more: card 8's curve age (D31)
 
-Decided by Johannes on 2026-11-06 as an assumption and stated in the README "Status" section: the pack has no first-lease date, so a first life is aged from its lease start and an item with previous lives from 1 January of its model year (D11). It is not asked as a question, but it may not hold for a real item, so the other reading stays pinned in the tests and the switch is one line.
+Decided by Johannes on 2026-11-06 as an assumption and stated in the README "Status" section (since 2026-11-10 in [scenarios.md](scenarios.md#assumption-d31), linked from it): the pack has no first-lease date, so a first life is aged from its lease start and an item with previous lives from 1 January of its model year (D11). It is not asked as a question, but it may not hold for a real item, so the other reading stays pinned in the tests and the switch is one line.
 
 **The reading.** The pack has no first-lease date. Every pack item is new on the shelf, so a first life is counted from its lease start; an item with previous lives keeps D11 (whole months from 1 January of the model year). It gives the brief's number.
 

@@ -75,7 +75,7 @@ A pass-on hands the item straight to the named person, so no refurbishment is ch
 
 ## Decisions
 
-- **D31** (decided 2026-11-06 as an assumption, stated in the README): the curve age of a first-life item from its lease start; **D11** (`ageInMonths`, from the model year) for an item with previous lives. `curveAgeInMonths` picks the rule.
+- **D31** (decided 2026-11-06 as an assumption, stated in [scenarios.md](../scenarios.md#assumption-d31)): the curve age of a first-life item from its lease start; **D11** (`ageInMonths`, from the model year) for an item with previous lives. `curveAgeInMonths` picks the rule.
 - **D14**: the balance by amortisation, buy = balance, return = max(0, balance − market value) + refurbishment, shown line by line.
 - **D16** (superseded in part by D90): pass on names the next person (a picker of the customers, the leaving customer left out), and the new contract carries `previous_contract_id` (D66, PR #53). Its "assessed and costed like a return" no longer holds.
 - **D90** (decided 2026-11-06, Johannes; review of PR #89): a pass-on charges no refurbishment and is refused below `good`; it starts the next person's quote at the market value in the same transaction, named for them, writes `repriced`, and holds the item `reserved` for them until they sign.
@@ -116,7 +116,7 @@ A pass-on hands the item straight to the named person, so no refurbishment is ch
 
 Written up in `docs/decisions.md`: D31 (card 8's curve age, an assumption) and D32 to D35 (decided: `ended_early`, the cancelled rents, the end-of-term return, what a cancelled invoice owes). The mentor questions are in [mentor-questions.md](../mentor-questions.md).
 
-- **Card 8: the market value by months since lease start (D31) is an assumption, not a confirmed reading.** Decided by Johannes on 2026-11-06 and stated in the README; the pack has no first-lease date. If the mentors answer D11 for every item, `curveAgeInMonths` returns `ageInMonths` for every item: a one-line change, and card 8 is 202 523 as good with 1 800 km.
+- **Card 8: the market value by months since lease start (D31) is an assumption, not a confirmed reading.** Decided by Johannes on 2026-11-06 and stated in [scenarios.md](../scenarios.md#assumption-d31); the pack has no first-lease date. If the mentors answer D11 for every item, `curveAgeInMonths` returns `ageInMonths` for every item: a one-line change, and card 8 is 202 523 as good with 1 800 km.
 - **The condition and usage are reported** at the exit. D77 never bills a condition better than at signing and refuses a usage below it; the assessment takes the admin's inspection. Nothing re-bills the leaving customer if the inspection is worse than the report.
 - **A return at the end of the term issues no invoice.** The cost shown is the refurbishment, but the invoice kinds (`down_payment`, `rent`, `buyout`, `early_exit`) have no refurbishment charge, so nothing is billed and the page says the lessor bears it. Options: add a `refurbishment` kind (a text column, no migration), or decide that normal wear at the end is the lessor's.
 - **`cancelled`** was added to `invoiceStatuses` (a text column, no migration). `contractBalanceOn` in invoicing skips a `cancelled` invoice (D35, wave 2 upkeep), so a cancelled rent is never counted as open.
