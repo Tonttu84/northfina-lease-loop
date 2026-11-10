@@ -41,7 +41,7 @@ Branch `fix/responsive-layout` from `test/responsive-layout`, `origin/main` merg
 - 13:17 the whole browser suite (`npm run test:e2e`) and the docs: the feature page (passes, the fixes by root cause, the two tests, open questions shrunk), `STATUS.md`, `e2e-tests.md`, this log.
 - 13:17 to 13:24 `npm run test:e2e` with the build: 34 passed in 6.4 min (the nine other specs and the 21 tests of this one).
 - 13:24 to 13:26 `npm run check:all` green at the first try: 171 files, 2 020 tests, coverage 96.35 % statements, build.
-- 13:27 `docs(responsive)` commit, push, pull request; then D95 and D98 decided with the PR's number.
+- 13:27 `docs(responsive)` commit; `origin/main` merged again (#22 took D96, #24, #25; only the decisions table and STATUS.md conflicted: main's rows kept, D95, D98 and the responsive row added); push (the pre-push hook green), pull request #27; D95 and D98 decided as PR 27.
 
 ## Left undone (session 2)
 
