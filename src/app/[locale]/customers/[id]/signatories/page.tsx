@@ -86,7 +86,7 @@ export default async function SignatoriesPage({
           <ul className="divide-y divide-line">
             {list.map((s) => (
               <li key={s.id} className="flex flex-wrap items-start justify-between gap-4 py-4">
-                <div className="space-y-1">
+                <div className="min-w-0 space-y-1">
                   <p className="font-medium">
                     {s.name} <span className="text-ink-muted">· {s.email}</span>
                   </p>

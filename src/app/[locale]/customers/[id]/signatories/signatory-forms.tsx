@@ -131,7 +131,7 @@ export function AddSignatoryForm(props: {
     <form onSubmit={add} noValidate className="space-y-4">
       {input('signatory-name', props.fields.name, name, setName)}
       {input('signatory-email', props.fields.email, email, setEmail, 'email')}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {input('signatory-from', props.fields.validFrom, validFrom, setValidFrom, 'date')}
         {input('signatory-to', props.fields.validTo, validTo, setValidTo, 'date')}
       </div>

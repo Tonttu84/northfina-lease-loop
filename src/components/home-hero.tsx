@@ -25,11 +25,11 @@ export function HomeHero({ locale, t }: { locale: Locale; t: Translate }) {
   return (
     <section
       aria-labelledby="hero-title"
-      className="mx-auto max-w-6xl px-4 pt-16 pb-24 text-center sm:px-6 lg:pt-24 lg:pb-32"
+      className="mx-auto max-w-6xl px-4 pt-16 pb-24 text-center sm:px-6 lg:pt-24 lg:pb-32 2xl:max-w-7xl"
     >
       <h1
         id="hero-title"
-        className="mx-auto max-w-5xl text-6xl leading-[1.02] text-balance sm:text-7xl lg:text-8xl"
+        className="mx-auto max-w-5xl text-4xl leading-[1.02] text-balance min-[16rem]:text-5xl min-[20rem]:text-6xl sm:text-7xl lg:text-8xl"
       >
         {before}
         <span className="text-brand-text">{t('home.titleAccent')}</span>

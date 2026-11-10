@@ -61,8 +61,10 @@ export function ActorPicker({
     <form
       onSubmit={onSubmit}
       className={cx(
-        'flex items-center gap-2 text-sm',
-        onDark ? 'min-w-0 flex-1 justify-end' : 'flex-wrap'
+        'flex flex-wrap items-center gap-2 text-sm',
+        // On the staff strip: the rest of the row, never less than its widest part (the select's
+        // 6 rem or the button), else the strip wraps it onto a row of its own.
+        onDark && 'min-w-min flex-1 justify-end'
       )}
     >
       <label
@@ -76,7 +78,13 @@ export function ActorPicker({
         name="actor"
         value={selected}
         onChange={(event) => setSelected(event.target.value)}
-        className={cx(inputClasses, 'min-h-9 w-auto max-w-56 min-w-0 py-1 text-sm')}
+        // 6 rem to start with and never narrower, so the chosen name still shows; it grows into the
+        // room the button leaves, and the button goes under it when there is none. Below 640 px
+        // less side padding, so "Aino Virtanen" shows whole on a 320 px phone.
+        className={cx(
+          inputClasses,
+          'min-h-9 w-auto max-w-56 min-w-24 flex-1 basis-24 py-1 text-sm max-sm:px-2'
+        )}
       >
         <option value="">{labels.anonymous}</option>
         <option value="admin">{labels.admin}</option>
@@ -92,6 +100,8 @@ export function ActorPicker({
         size="sm"
         pending={pending}
         disabled={!hydrated}
+        // The label stays whole: on a narrow row the button goes under the select instead.
+        className="shrink-0"
       >
         {selected === '' && current !== 'anonymous' ? labels.clear : labels.submit}
       </Button>

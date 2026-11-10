@@ -40,15 +40,19 @@ export async function CustomerPortal({ customerId, today, locale, t }: PortalPro
           </Link>
         </p>
       ) : null}
-      <dl className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-raised p-4 shadow-card sm:grid-cols-4">
-        <Total label={t('portal.totals.active')} value={String(portal.activeCount)} />
-        <Total label={t('portal.totals.openCount')} value={String(invoices.open.length)} />
-        <Total label={t('portal.totals.openTotal')} value={money(invoices.openTotalCents)} />
-        <Total
-          label={t('portal.totals.nextDue')}
-          value={invoices.nextDueDate ? day(invoices.nextDueDate) : t('portal.totals.nothingDue')}
-        />
-      </dl>
+      {/* Four totals in a row with room for four, two with room for two, else one under the
+          other: the box's own width in rem, so the reader's larger text counts. */}
+      <div className="@container rounded-xl border border-line bg-raised p-4 shadow-card">
+        <dl className="grid grid-cols-1 gap-3 @min-[14rem]:grid-cols-2 @min-[32rem]:grid-cols-4">
+          <Total label={t('portal.totals.active')} value={String(portal.activeCount)} />
+          <Total label={t('portal.totals.openCount')} value={String(invoices.open.length)} />
+          <Total label={t('portal.totals.openTotal')} value={money(invoices.openTotalCents)} />
+          <Total
+            label={t('portal.totals.nextDue')}
+            value={invoices.nextDueDate ? day(invoices.nextDueDate) : t('portal.totals.nothingDue')}
+          />
+        </dl>
+      </div>
 
       {portal.offers.length > 0 ? (
         // D90: a lease passed on to this customer; the item is held for them until the quote ends.
@@ -320,8 +324,10 @@ function InvoiceLine({
         </p>
         <p className="text-sm text-ink-muted">{date}</p>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="tabular-nums">{formatEuro(invoice.grossCents, intlLocale[locale])}</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="tabular-nums whitespace-nowrap">
+          {formatEuro(invoice.grossCents, intlLocale[locale])}
+        </span>
         <Badge status={status === 'upcoming' ? 'issued' : status}>
           {t(`invoice.status.${status}`)}
         </Badge>

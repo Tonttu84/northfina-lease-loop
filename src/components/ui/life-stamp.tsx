@@ -36,8 +36,11 @@ export function LifeStamp({
         className
       )}
     >
-      <span>{life}</span>
-      <span className="opacity-80">{note}</span>
+      {/* The tilt is on the text, not the ring (globals.css, `stamp-press`). */}
+      <span className="life-stamp-text flex flex-col items-center">
+        <span>{life}</span>
+        <span className="opacity-80">{note}</span>
+      </span>
     </span>
   );
 }

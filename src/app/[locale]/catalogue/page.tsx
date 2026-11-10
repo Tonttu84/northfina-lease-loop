@@ -114,8 +114,10 @@ export default async function CataloguePage({
     filters.condition !== null || filters.make !== null || filters.sort !== DEFAULT_SORT;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-      <h1 className="text-5xl sm:text-6xl">{t('catalogue.title')}</h1>
+    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 2xl:max-w-7xl">
+      <h1 className="text-3xl min-[16rem]:text-4xl min-[20rem]:text-5xl sm:text-6xl">
+        {t('catalogue.title')}
+      </h1>
       <p className="mt-2 text-lg text-ink-muted">
         {t('catalogue.priceNote', { months: termMonths })}
       </p>
@@ -131,7 +133,8 @@ export default async function CataloguePage({
                   href={catalogueHref(locale, { ...NO_FILTERS, category: category.key })}
                   aria-current={active ? 'page' : undefined}
                   className={cx(
-                    'inline-flex min-h-11 items-center gap-2 rounded-full border-2 px-4 font-bold transition-colors',
+                    // The count goes under the name before a word of the name would break.
+                    'inline-flex min-h-11 max-w-full flex-wrap items-center gap-x-2 rounded-full border-2 px-4 font-bold wrap-anywhere transition-colors max-[20rem]:px-3',
                     active
                       ? 'border-brand bg-brand text-brand-contrast'
                       : 'border-line-strong text-ink hover:border-brand'
@@ -140,7 +143,7 @@ export default async function CataloguePage({
                   {category.label}
                   <span
                     className={cx(
-                      'rounded-full px-2 text-xs tabular-nums',
+                      'shrink-0 rounded-full px-2 text-xs tabular-nums',
                       active ? 'bg-brand-contrast text-brand-text' : 'bg-muted'
                     )}
                   >
@@ -204,7 +207,7 @@ export default async function CataloguePage({
           {assets.length === 0 ? t('catalogue.empty') : t('catalogue.noMatch')}
         </Notice>
       ) : (
-        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {groups.map((group) => (
             <li key={group.key}>
               <ModelCard

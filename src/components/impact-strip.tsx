@@ -36,7 +36,10 @@ export async function ImpactStrip({ today, locale, t }: ImpactStripProps) {
     money.perCategory.find((row) => row.category === category)?.cents ?? 0;
 
   return (
-    <section aria-labelledby="impact-title" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <section
+      aria-labelledby="impact-title"
+      className="mx-auto max-w-6xl px-4 py-16 sm:px-6 2xl:max-w-7xl"
+    >
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <h2 id="impact-title" className="text-4xl">
@@ -45,17 +48,18 @@ export async function ImpactStrip({ today, locale, t }: ImpactStripProps) {
           <p className="mt-3 max-w-xl text-lg text-ink-muted">{t('impact.intro')}</p>
         </div>
 
-        <div className="rounded-xl bg-brand-soft p-6 sm:p-8">
+        {/* A container, so the "How is this calculated?" text stays inside this column. */}
+        <div className="@container rounded-xl bg-brand-soft p-6 sm:p-8">
           <p className="text-sm font-extrabold tracking-[0.14em] text-brand-text uppercase">
             {t('impact.totalLabel')}
           </p>
-          <p className="mt-2 font-heading text-5xl font-semibold text-brand-text tabular-nums sm:text-6xl">
+          <p className="mt-2 font-heading text-4xl font-semibold text-brand-text tabular-nums @min-[14rem]:text-5xl @min-[24rem]:text-6xl">
             {t('impact.total', { kg: kg(fleet.totalKg) })}
           </p>
           <p className="mt-3 text-sm font-extrabold tracking-[0.14em] text-brand-text uppercase">
             {t('impact.moneyLabel')}
           </p>
-          <p className="mt-1 font-heading text-3xl font-semibold text-brand-text tabular-nums">
+          <p className="mt-1 font-heading text-2xl font-semibold text-brand-text tabular-nums @min-[14rem]:text-3xl">
             {euro(money.totalCents)}
           </p>
           <p className="mt-1 text-sm text-ink-muted">{t('impact.moneyEstimated')}</p>

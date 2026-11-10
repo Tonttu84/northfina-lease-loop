@@ -153,13 +153,17 @@ export default async function PricePage({
       <p className="mt-6 text-xs font-extrabold tracking-[0.14em] text-accent-ink uppercase">
         {asset.make} · {t(`category.${asset.category}`)}
       </p>
-      <div className="mt-2 flex items-start justify-between gap-4">
-        <h1 className="text-4xl leading-tight text-balance sm:text-5xl">{asset.model}</h1>
+      {/* The stamp beside the name, or under it on the right when both do not fit. */}
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <h1 className="min-w-0 text-3xl leading-tight text-balance min-[20rem]:text-4xl sm:text-5xl">
+          {asset.model}
+        </h1>
         <LifeStamp
           size="lg"
           life={t('stamp.life', { n: asset.previous_lives + 1 })}
           note={asset.previous_lives === 0 ? t('stamp.new') : t('stamp.checked')}
           later={asset.previous_lives > 0}
+          className="ml-auto"
         />
       </div>
       <p className="mt-3 max-w-xl text-lg text-ink-muted">{t('pricing.page.intro')}</p>
@@ -189,10 +193,10 @@ export default async function PricePage({
         {facts.map((fact) => (
           <div
             key={fact.label}
-            className="rule-dashed flex justify-between gap-4 border-b-2 py-3 first:border-t-2"
+            className="rule-dashed flex flex-wrap justify-between gap-x-4 gap-y-1 border-b-2 py-3 first:border-t-2"
           >
-            <dt className="text-ink-muted">{fact.label}</dt>
-            <dd className="text-right font-bold">{fact.value}</dd>
+            <dt className="max-w-full flex-1 basis-32 text-ink-muted">{fact.label}</dt>
+            <dd className="ml-auto min-w-0 text-right font-bold">{fact.value}</dd>
           </div>
         ))}
       </dl>
@@ -216,7 +220,7 @@ export default async function PricePage({
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
       {quoteId && !storedForAsset ? (
         <Notice tone="warning" className="mb-8">
           {t('quote.notFound')}

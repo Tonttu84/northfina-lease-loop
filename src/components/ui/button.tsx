@@ -23,7 +23,10 @@ const sizes: Record<ButtonSize, string> = {
 /** The classes of a button, shared with LinkButton so a link can look like one. */
 export function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md'): string {
   return cx(
-    'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-bold transition-colors',
+    // A button is never wider than its row: its label wraps, centred, and a word longer than the
+    // row breaks (`wrap-anywhere`: "allekirjoituslinkki" at the reader's 200 % text on a phone).
+    // In a row that does not wrap, a button that must keep its label whole says `shrink-0`.
+    'inline-flex max-w-full cursor-pointer items-center justify-center gap-2 rounded-full text-center font-bold wrap-anywhere transition-colors',
     'disabled:cursor-not-allowed disabled:opacity-60',
     variants[variant],
     sizes[size]
@@ -64,7 +67,9 @@ export function Button({
           className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
         />
       ) : null}
-      {pending && pendingLabel ? pendingLabel : children}
+      {/* One label box: its words and an arrow wrap together, so the button never squeezes a
+          word of the label to make room for the arrow beside it. */}
+      <span>{pending && pendingLabel ? pendingLabel : children}</span>
     </button>
   );
 }

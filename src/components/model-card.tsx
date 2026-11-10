@@ -74,7 +74,9 @@ export function ModelCard({ group, offer, termMonths, locale, t }: ModelCardProp
         />
       </div>
 
-      <div className="flex flex-1 flex-col px-2 pt-4 pb-2">
+      {/* Under 20 rem (a phone with the reader's larger text) no side padding: the price tag's
+          label ("KUUKAUDESSA") needs the room. */}
+      <div className="flex flex-1 flex-col px-2 pt-4 pb-2 max-[20rem]:px-0">
         <p className="text-xs font-extrabold tracking-[0.14em] text-accent-ink uppercase">
           {group.make}
         </p>
@@ -91,7 +93,7 @@ export function ModelCard({ group, offer, termMonths, locale, t }: ModelCardProp
         <div className="mt-auto pt-5">
           <PriceTag
             size="sm"
-            className="w-fit min-w-44"
+            className="w-fit max-w-full min-w-[min(11rem,100%)]"
             label={range ? t('catalogue.card.from') : t('catalogue.card.monthly')}
             amount={
               priced ? (
@@ -142,7 +144,7 @@ export function UnavailableCard({ asset, locale, t, isAdmin }: UnavailableCardPr
           {t(`status.${asset.status}`)}
         </Badge>
       </div>
-      <div className="flex flex-1 flex-col px-2 pt-4 pb-2 text-ink-muted">
+      <div className="flex flex-1 flex-col px-2 pt-4 pb-2 text-ink-muted max-[20rem]:px-0">
         <p className="text-xs font-extrabold tracking-[0.14em] uppercase">{asset.make}</p>
         <h3 id={headingId} className="mt-1 text-xl leading-snug text-ink">
           <Link

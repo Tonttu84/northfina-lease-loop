@@ -26,13 +26,20 @@ export function Card({
       aria-labelledby={title && titleId ? titleId : undefined}
       className={cx(
         'rounded-xl border border-line bg-raised shadow-card',
-        padded && 'p-4 sm:p-6',
+        // On a screen under 20 rem (a phone with the reader's larger text) the padding gives the
+        // text a little more of the little room there is.
+        padded && 'p-4 max-[20rem]:p-3 sm:p-6',
         className
       )}
       {...rest}
     >
       {title ? (
-        <h2 id={titleId} className={cx('mb-4 text-xl', !padded && 'px-4 pt-4 sm:px-6 sm:pt-6')}>
+        // The title one size smaller under 20 rem, as the page headings are: more of a long
+        // Finnish compound fits a phone's line at the reader's larger text.
+        <h2
+          id={titleId}
+          className={cx('mb-4 text-xl max-[20rem]:text-lg', !padded && 'px-4 pt-4 sm:px-6 sm:pt-6')}
+        >
           {title}
         </h2>
       ) : null}

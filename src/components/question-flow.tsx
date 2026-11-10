@@ -384,7 +384,7 @@ function QuestionStep(props: StepProps) {
         {question.type === 'choice' ? (
           <fieldset aria-describedby={error ? `${id}-error` : undefined}>
             <legend className="sr-only">{title}</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {question.options?.map((option) => (
                 <label
                   key={option}

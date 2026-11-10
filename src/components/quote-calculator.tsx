@@ -177,7 +177,7 @@ export function QuoteCalculator(props: QuoteCalculatorProps) {
 
   return (
     <div className="space-y-12">
-      <div className="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,21rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-12">
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,21rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-12">
         <div>{props.children}</div>
 
         <section

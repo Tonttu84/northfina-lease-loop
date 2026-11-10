@@ -28,14 +28,29 @@ export function PriceTag({
   className,
 }: PriceTagProps) {
   return (
-    <div className={cx('price-tag py-4 pr-5', size === 'lg' && 'py-6 pr-6', className)}>
-      <p className="text-xs font-bold tracking-widest uppercase opacity-85">{label}</p>
+    // Under 20 rem (a phone with the reader's larger text) less padding and no letter-spacing
+    // in the labels, so a long label word ("KUUKAUSIVUOKRA") fits on its line.
+    <div
+      className={cx(
+        'price-tag py-4 pr-5',
+        size === 'lg' && 'py-6 pr-6',
+        'max-[20rem]:pr-4',
+        className
+      )}
+    >
+      <p className="text-xs font-bold tracking-widest uppercase opacity-85 max-[20rem]:tracking-normal">
+        {label}
+      </p>
       <p
         className={cx(
           'font-heading leading-none font-semibold tabular-nums',
           // Sized for the narrowest panel it sits in (21rem from tablet width), so a farm
           // machine's €8,268.57 fits as well as an e-bike's €134.66.
-          size === 'lg' ? 'mt-2 text-4xl lg:text-5xl xl:text-6xl' : 'mt-1 text-3xl'
+          size === 'lg' ? 'mt-2 text-4xl lg:text-5xl xl:text-6xl' : 'mt-1 text-3xl',
+          // On a phone with the reader's larger text (a screen under 20 rem wide, 16 rem) the
+          // amount steps down so it stays whole in the tag: "8 268,57 €" in a catalogue card,
+          // "€71.64" in the item's calculator.
+          size === 'sm' ? 'max-[20rem]:text-xl max-[16rem]:text-base' : 'max-[20rem]:text-2xl'
         )}
       >
         <span key={flipKey} className={flipKey === undefined ? undefined : 'price-flip'}>
@@ -44,16 +59,23 @@ export function PriceTag({
       </p>
       {sub ? <p className="mt-2 text-sm opacity-90">{sub}</p> : null}
       {lines && lines.length > 0 ? (
-        <dl className="mt-4 grid grid-cols-2 gap-4 border-t-2 border-dashed border-current/35 pt-4">
-          {lines.map((line) => (
-            <div key={line.label}>
-              <dt className="text-xs font-bold tracking-wider uppercase opacity-85">
-                {line.label}
-              </dt>
-              <dd className="font-heading text-xl font-semibold tabular-nums">{line.value}</dd>
-            </div>
-          ))}
-        </dl>
+        // Two figures side by side once the tag has room for two of the longest (a Finnish date,
+        // "4. marraskuuta 2029", 115 px a word): 16 rem, so the reader's larger text needs a
+        // wider tag. Narrower, one above the other.
+        <div className="@container">
+          <dl className="mt-4 grid grid-cols-1 gap-4 border-t-2 border-dashed border-current/35 pt-4 @min-[16rem]:grid-cols-2">
+            {lines.map((line) => (
+              <div key={line.label}>
+                <dt className="text-xs font-bold tracking-wider uppercase opacity-85 max-[20rem]:tracking-normal">
+                  {line.label}
+                </dt>
+                <dd className="font-heading text-xl font-semibold tabular-nums max-[20rem]:text-lg">
+                  {line.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       ) : null}
     </div>
   );

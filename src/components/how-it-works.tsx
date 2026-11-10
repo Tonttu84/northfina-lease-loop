@@ -9,7 +9,7 @@ const CHOICES = ['buy', 'return', 'passOn'] as const;
 export function HowItWorks({ t }: { t: Translate }) {
   return (
     <section id="how-it-works" aria-labelledby="how-title" className="scroll-mt-6 bg-muted">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 2xl:max-w-7xl">
         <h2 id="how-title" className="text-center text-4xl sm:text-5xl">
           {t('home.cta.how')}
         </h2>
@@ -20,11 +20,14 @@ export function HowItWorks({ t }: { t: Translate }) {
             </h3>
             <ol className="mt-5">
               {STEPS.map((n) => (
-                <li key={n} className="relative flex gap-4 pb-6 last:pb-0">
+                // The step's text beside its number while it has 10 rem and its longest word,
+                // else under it (a phone with the reader's larger text, where the dotted line
+                // between the numbers would run through the text and is left out).
+                <li key={n} className="relative flex flex-wrap gap-4 pb-6 last:pb-0">
                   {n < STEPS.length ? (
                     <span
                       aria-hidden="true"
-                      className="absolute top-11 bottom-1 left-[1.3rem] border-l-2 border-dotted border-line-strong"
+                      className="absolute top-11 bottom-1 left-[1.3rem] border-l-2 border-dotted border-line-strong max-[20rem]:hidden"
                     />
                   ) : null}
                   <span
@@ -33,7 +36,7 @@ export function HowItWorks({ t }: { t: Translate }) {
                   >
                     {n}
                   </span>
-                  <span>
+                  <span className="max-w-full flex-1 basis-40">
                     <span className="block font-heading text-xl font-semibold">
                       {t(`home.steps.${n}.title`)}
                     </span>

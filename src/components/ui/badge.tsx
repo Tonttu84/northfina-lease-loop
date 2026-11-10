@@ -66,12 +66,15 @@ export function Badge({ status, tone, srPrefix, className, children }: BadgeProp
   return (
     <span
       className={cx(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+        // `shrink-0` keeps a badge whole beside a title that can wrap; `max-w-full` lets a label
+        // longer than the whole row (the audit chain's in Finnish on a phone) wrap inside the
+        // pill instead of running off the page.
+        'inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium wrap-anywhere ring-1 ring-inset',
         style.pill,
         className
       )}
     >
-      <span aria-hidden="true" className={cx('size-1.5 rounded-full', style.dot)} />
+      <span aria-hidden="true" className={cx('size-1.5 shrink-0 rounded-full', style.dot)} />
       {srPrefix ? <span className="sr-only">{srPrefix}: </span> : null}
       {children}
     </span>

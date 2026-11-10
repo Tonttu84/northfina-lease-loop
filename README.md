@@ -6,7 +6,7 @@ One e-bike, laptop or farm machine, three lives. Lease Loop lets a customer leas
 
 **Result:** shared first place at the 24-hour Northfina × Hive Helsinki hackathon (5–6 November 2026) as Team LeaseMasters; all ten scenario cards of the organiser's brief (worked cases whose exact numbers the judges compared) run end to end and are pinned by tests ([Status](#status)).
 
-**Since the hackathon** (9–10 November 2026), Johannes has added the signed session and sign-in by e-mail link (D92–D94), security hardening and the [security overview](docs/security-overview.md), the Playwright browser tests (D91), the CI supply-chain pins (D96) and the meta checks for strict request bodies and raw SQL (D97).
+**Since the hackathon** (9–10 November 2026), Johannes has added the signed session and sign-in by e-mail link (D92–D94), security hardening and the [security overview](docs/security-overview.md), the Playwright browser tests (D91), the CI supply-chain pins (D96), the meta checks for strict request bodies and raw SQL (D97) and the responsive layout spec and fixes (D95, D98, D99).
 
 ## What to look at
 
@@ -76,7 +76,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 
 - **Leasing:** [pricing and quotes](docs/features/pricing.md), [the question flow and the application](docs/features/question-flow.md), [contracts and signing](docs/features/contracts.md), [company signatories and the signing link](docs/features/signatories.md), [invoicing: VAT by invoice date, the balance](docs/features/invoicing.md), [exits: buy out, return, pass on, early exit](docs/features/exits.md)
 - **Circular life:** [second life: assessment, matchmaking and re-pricing](docs/features/second-life.md), [circular impact and the passport](docs/features/circular-impact.md)
-- **The app:** [catalogue, asset statuses, demo clock, actor and audit trail](docs/features/catalogue.md), [My leases](docs/features/my-leases.md), grown into the [user portal](docs/features/user-portal.md), [the look](docs/features/look.md), [demo cards: one button per scenario card](docs/features/demo-cards.md)
+- **The app:** [catalogue, asset statuses, demo clock, actor and audit trail](docs/features/catalogue.md), [My leases](docs/features/my-leases.md), grown into the [user portal](docs/features/user-portal.md), [the look](docs/features/look.md), [demo cards: one button per scenario card](docs/features/demo-cards.md), [responsive layout: every page at every screen size, language and text size](docs/features/responsive-layout.md)
 - **Accounts and access:** [accounts: sign in by e-mail link, the demo outbox](docs/features/accounts.md), [authorization: who may do what, checked before the action](docs/features/authorization.md)
 - **Audit and security:** [the tamper-evident audit chain, signed and anchored](docs/features/audit-chain.md), [security: demo mode, headers, signed session, limits, strict bodies, no raw SQL](docs/features/security.md), and the [security overview](docs/security-overview.md) with every feature's threat, test and one-minute demo
 - **Data and tests:** [row schemas](docs/features/row-schemas.md), [test isolation](docs/features/test-isolation.md), [browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)

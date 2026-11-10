@@ -84,15 +84,16 @@ export function ExitOptionList({ title, option, locale, t, chosen, note }: ExitO
             <li
               key={`${line.code}-${index}`}
               className={cx(
-                'flex items-baseline justify-between gap-3',
+                'flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5',
                 muted && 'text-ink-muted',
                 strong && 'border-t border-line pt-2',
                 line.effect === 'total' && 'font-semibold'
               )}
             >
-              <span>{exitLineText(line, locale, t)}</span>
+              {/* Beside its amount while the text has 8 rem and its longest word; else under it. */}
+              <span className="max-w-full flex-1 basis-32">{exitLineText(line, locale, t)}</span>
               {typeof amount === 'number' && line.code !== 'value_exceeds_balance' ? (
-                <span className="shrink-0 tabular-nums">
+                <span className="ml-auto shrink-0 tabular-nums whitespace-nowrap">
                   {sign[line.effect]} {formatEuro(amount, intlLocale[locale])}
                 </span>
               ) : null}

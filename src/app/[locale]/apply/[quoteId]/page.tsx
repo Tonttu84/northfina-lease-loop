@@ -11,7 +11,7 @@ import { answersFromCustomer } from '@/domain/question-flow/answers';
 import { whyWeAsk } from '@/domain/question-flow/engine';
 import { getT, messages, type MessageKey } from '@/i18n/get-t';
 import { formatIsoDate } from '@/i18n/format';
-import { intlLocale, isLocale } from '@/i18n/locales';
+import { intlLocale, isLocale, translated } from '@/i18n/locales';
 import { readActor } from '@/server/actor';
 import { flowSetupFor } from '@/server/applications';
 import { getCustomer } from '@/server/customers';
@@ -90,7 +90,10 @@ export default async function ApplyPage({ params }: PageProps<'/[locale]/apply/[
   const texts = Object.fromEntries(
     bank.map((q) => [
       q.id,
-      { text: q.text[locale], why: dictionary[`question.why.${q.id}`] ?? whyWeAsk(q, locale) },
+      {
+        text: translated(locale, (l) => q.text[l]),
+        why: dictionary[`question.why.${q.id}`] ?? translated(locale, (l) => whyWeAsk(q, l)),
+      },
     ])
   );
   const options = Object.fromEntries(
