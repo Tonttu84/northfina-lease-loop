@@ -66,8 +66,9 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       // purpose; nobody sees it, so it is not part of the layout.
       return box.width > 1 && box.height > 1;
     };
+    /** Inside a drawing (the <svg> itself is checked like any box), or pinned to the screen. */
     const fixedOrInSvg = (element: Element) =>
-      element.closest('svg') !== null ||
+      element.parentElement?.closest('svg') != null ||
       ['fixed', 'sticky'].includes(getComputedStyle(element).position);
     /** An ancestor below <body> that clips or scrolls sideways. */
     const heldByScroller = (element: Element) => {
@@ -84,10 +85,19 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     };
 
     if (root.scrollWidth > viewport) {
+      // The box that reaches furthest, hidden ones included: a `visibility: hidden` tooltip
+      // still widens the page, and no other check names it.
+      const widest = [...document.body.querySelectorAll('*')].reduce<Element | null>(
+        (far, element) =>
+          element.getBoundingClientRect().right > (far?.getBoundingClientRect().right ?? viewport)
+            ? element
+            : far,
+        null
+      );
       problems.push({
         check: 'pageScroll',
         element: 'html',
-        detail: `the page is ${root.scrollWidth} px wide in a ${viewport} px viewport`,
+        detail: `the page is ${root.scrollWidth} px wide in a ${viewport} px viewport${widest ? `; furthest: ${describe(widest)}${widest.checkVisibility({ visibilityProperty: true }) ? '' : ' (hidden)'}` : ''}`,
       });
     }
 
