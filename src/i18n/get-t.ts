@@ -5,11 +5,20 @@ import et from './messages/et.json';
 import fi from './messages/fi.json';
 import sv from './messages/sv.json';
 import type { Locale } from './locales';
+import { pseudoMessages } from './pseudo';
 
 export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
 
-export const messages: Record<Locale, Messages> = { en, fi, sv, et };
+export const messages: Record<Locale, Messages> = {
+  en,
+  fi,
+  sv,
+  et,
+  // D95: generated from English, for testing the layout; reachable only in demo mode.
+  'qps-long': pseudoMessages(en, 'long'),
+  'qps-short': pseudoMessages(en, 'short'),
+};
 
 export type TranslateValues = Record<string, string | number>;
 export type Translate = (key: MessageKey, values?: TranslateValues) => string;

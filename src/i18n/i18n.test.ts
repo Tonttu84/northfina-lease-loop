@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { formatIsoDate, formatNumber, formatTimestamp } from './format';
 import { getT, type MessageKey } from './get-t';
-import { defaultLocale, isLocale, localeHref, locales } from './locales';
+import { defaultLocale, isLocale, localeHref, locales, pseudoLocales, translated } from './locales';
 
 const plain = (text: string) => text.replace(/\s/g, ' ');
 
 describe('isLocale', () => {
   it('accepts the four app languages', () => {
-    expect(locales.every(isLocale)).toBe(true);
+    expect(locales.every((locale) => isLocale(locale))).toBe(true);
     expect(isLocale(defaultLocale)).toBe(true);
   });
 
@@ -16,6 +16,20 @@ describe('isLocale', () => {
     expect(isLocale('EN')).toBe(false);
     expect(isLocale('fi-FI')).toBe(false);
     expect(isLocale('')).toBe(false);
+  });
+
+  it('accepts the pseudo-languages only in demo mode (D95)', () => {
+    for (const pseudo of pseudoLocales) {
+      expect(isLocale(pseudo, { NODE_ENV: 'development' })).toBe(true);
+      expect(isLocale(pseudo, { NODE_ENV: 'production', DEMO_TOOLS: '1' })).toBe(true);
+      expect(isLocale(pseudo, { NODE_ENV: 'production' })).toBe(false);
+      expect(isLocale(pseudo, { NODE_ENV: 'development', DEMO_TOOLS: '0' })).toBe(false);
+    }
+    expect(isLocale('qps-other', { NODE_ENV: 'development' })).toBe(false);
+  });
+
+  it('never lists a pseudo-language among the shipped ones', () => {
+    expect(locales).toEqual(['en', 'fi', 'sv', 'et']);
   });
 });
 
@@ -78,5 +92,24 @@ describe('formatting', () => {
 
   it('formats an instant per locale', () => {
     expect(plain(formatTimestamp('2026-11-05T14:30:00.000Z', 'fi'))).toContain('16.30');
+  });
+});
+
+describe('translated (D95)', () => {
+  const texts = {
+    en: 'Monthly income',
+    fi: 'Kuukausitulot',
+    sv: 'Månadsinkomst',
+    et: 'Kuusissetulek',
+  };
+
+  it('reads the shipped language itself', () => {
+    expect(translated('fi', (l) => texts[l])).toBe('Kuukausitulot');
+    expect(translated('en', (l) => texts[l])).toBe('Monthly income');
+  });
+
+  it('runs English through the pseudo-localizer for a pseudo-language', () => {
+    expect(translated('qps-short', (l) => texts[l])).toBe('Mnth incm');
+    expect(translated('qps-long', (l) => texts[l])).toBe('[Möoñťĥľýy íiñçöomée ľöñğ ťéšť]');
   });
 });

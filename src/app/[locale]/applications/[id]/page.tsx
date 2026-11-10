@@ -18,7 +18,7 @@ import { addMonthsClamped } from '@/domain/invoicing/dates';
 import { formatEuro } from '@/domain/money';
 import { formatIsoDate } from '@/i18n/format';
 import { getT, messages, type MessageKey } from '@/i18n/get-t';
-import { intlLocale, isLocale, type Locale } from '@/i18n/locales';
+import { intlLocale, isLocale, translated, type Locale } from '@/i18n/locales';
 import { ADMIN_ACTOR, readActor } from '@/server/actor';
 import { getApplication, type StoredReason } from '@/server/applications';
 import { authorize } from '@/server/authorize';
@@ -112,7 +112,7 @@ export default async function ApplicationPage({
     );
   }
   const questionText = Object.fromEntries(
-    (await loadQuestions()).questions.map((q) => [q.id, q.text[locale]])
+    (await loadQuestions()).questions.map((q) => [q.id, translated(locale, (l) => q.text[l])])
   );
   const dictionary: Record<string, string> = messages[locale];
   const reasonText = (reason: StoredReason) => {
