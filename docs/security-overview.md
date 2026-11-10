@@ -258,15 +258,19 @@ curl -i -X POST http://localhost:3000/api/demo/clock -H 'content-type: applicati
 
 **Threat.** A dependency is compromised or vulnerable, or a build leaks a token (supply-chain attack).
 
-**What we do.** `package-lock.json` pins every dependency, and CI installs with `npm ci`. Dependabot sends one grouped npm update and one GitHub Actions update a week. CI runs on every push and pull request with read-only permissions, no persisted credentials and a 20-minute timeout. A ruleset on `main` forbids direct and force pushes, and requires a pull request, squash merges and a green `ci` check. The review itself is a team rule ([`AGENTS.md`](../AGENTS.md), rule 13), since GitHub requires no approval.
+**What we do.** `package-lock.json` pins every dependency, and CI installs with `npm ci`, then runs `npm audit --audit-level=high`, so a known high or critical advisory fails the build. Every action in the workflow is pinned by full commit SHA, with its release tag in a comment, so a moved tag cannot change what runs. Dependabot sends one grouped npm update and one GitHub Actions update a week, and moves the SHA and the tag together. CI runs on every push and pull request with read-only permissions, no persisted credentials and a 20-minute timeout. A ruleset on `main` forbids direct and force pushes, and requires a pull request, squash merges and a green `ci` check. The review itself is a team rule ([`AGENTS.md`](../AGENTS.md), rule 13), since GitHub requires no approval.
 
 **Where.** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.npmrc`, the "Protect main" ruleset in the repository settings.
 
 **Proof.** No automated test; CI is the check.
 
-**Limits.** `.npmrc` sets `audit=false`, so Dependabot is the only alert path. Actions are pinned by major tag, not by commit SHA. The ruleset requires no approving review.
+**Limits.** Moderate and low advisories pass CI: `npm ci` counts them, and the weekly Dependabot update brings a fix once a version bump allows one (on 2026-11-10, ten moderate, all one `minimatch` advisory in the lint tools, none in production). The audit step needs the registry, so an npm outage fails CI. A pinned action is as current as Dependabot's last weekly update. The ruleset requires no approving review.
 
-**Show it.** Open a pull request's checks on GitHub, then `.github/dependabot.yml`.
+**Show it.** Open a pull request's checks on GitHub (the "Dependency audit" step), then `.github/dependabot.yml`. Locally:
+
+```bash
+npm audit --audit-level=high
+```
 
 ## Known gaps and next steps
 
