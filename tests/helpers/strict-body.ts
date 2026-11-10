@@ -1,6 +1,7 @@
 // The strict-body meta tests' helpers (issue 17, review of PR 23), split out of
 // tests/meta-rules.test.ts to keep it under 600 lines. Pure: a schema or a file's text in,
 // findings out. Their own tests: tests/strict-body.test.ts.
+import { codeLines } from './code-text';
 
 // Zod 4 (package.json: zod ^4.6.7) says in a schema's definition whether an object refuses
 // unknown keys: z.strictObject() and .strict() set `catchall` to z.never(); z.object() leaves it
@@ -108,17 +109,32 @@ const READ_JSON_CALL = /\breadJsonBody\(/g;
 const READ_JSON_TRACED = /\breadJsonBody\(\s*\w+\s*,\s*(\w+)\s*\)/g;
 const READ_TEXT_CALL = /\breadBodyText\(/g;
 const PARSE_BODY = /\b(\w+)\.(?:safe)?[pP]arse\(\s*body\s*\)/g;
-const RAW_BODY_READ = /\b\w+\.(json|text|formData|arrayBuffer|blob)\(\s*\)|\b(request|req)\.body\b/;
+const RENAMED_READER = /\b(readJsonBody|readBodyText)\s+as\b/;
 const SCHEMA_IMPORT =
   /import\s*(?:type\s+)?\{([^}]*)\}\s*from\s*['"]@\/server\/(routes|[\w-]+-schemas)['"]/g;
 
+// A body read past readJsonBody: `.json()` and its kin on anything (a cast, a clone, a line
+// break before the dot), or `.body`, except a spread (`...body`) and the route table's own
+// `route.body` (src/server/openapi.ts). Only readBodyText in src/server/api-response.ts may.
+const RAW_BODY_READ = /\.\s*(json|text|formData|arrayBuffer|blob)\(\s*\)|(?<!\.\.|\broute)\.body\b/;
+
 const count = (text: string, pattern: RegExp) => [...text.matchAll(pattern)].length;
 
+/** The 1-based numbers of the lines of `source` whose code reads a request body itself. */
+export const rawBodyReadLines = (source: string): number[] =>
+  codeLines(source).flatMap((code, index) => (RAW_BODY_READ.test(code) ? [index + 1] : []));
+
 /** The body reads of one route.ts: each schema it parses a body with, or why it cannot tell. */
-export function bodyReadsIn(source: string): { uses: BodySchemaUse[]; problems: string[] } {
+export function bodyReadsIn(text: string): { uses: BodySchemaUse[]; problems: string[] } {
   const problems: string[] = [];
-  if (RAW_BODY_READ.test(source)) {
+  const source = codeLines(text).join('\n');
+  if (rawBodyReadLines(text).length > 0) {
     problems.push('reads the request body itself (request.json() or the like); use readJsonBody');
+  }
+  if (RENAMED_READER.test(source)) {
+    problems.push(
+      'imports readJsonBody or readBodyText under another name this test cannot follow'
+    );
   }
   const traced = [...source.matchAll(READ_JSON_TRACED)].map((match) => match[1] ?? '');
   const calls = count(source, READ_JSON_CALL);

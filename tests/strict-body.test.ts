@@ -4,7 +4,8 @@
 // cases from the review of PR 23 (findings 1 to 4, 6 and 7) are each a hole it planted.
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { bodyReadsIn, looseSpots } from './helpers/strict-body';
+import { codeLines } from './helpers/code-text';
+import { bodyReadsIn, looseSpots, rawBodyReadLines } from './helpers/strict-body';
 
 describe('looseSpots, the strict-body walker', () => {
   const name = z.string();
@@ -171,5 +172,44 @@ describe('bodyReadsIn, the body-read tracer', () => {
     expect(bodyReadsIn('const text = await readBodyText(request);').problems).toEqual([
       'reads the body text 1 times and parses it with a named schema 0 times',
     ]);
+  });
+
+  // Re-review findings 2 to 4: disguised raw reads, a renamed reader, and comments.
+  it('sees a raw read through a cast, a clone or a line break, and a renamed reader', () => {
+    expect(rawBodyReadLines('await (request as Request).json();')).toEqual([1]);
+    expect(rawBodyReadLines('await request.clone().json();')).toEqual([1]);
+    expect(rawBodyReadLines('await request\n  .json();')).toEqual([2]);
+    expect(rawBodyReadLines('const b = request.body;')).toEqual([1]);
+    expect(rawBodyReadLines('f({ ...body }); jsonSchema(route.body);')).toEqual([]);
+    const renamed =
+      "import { readJsonBody as rj } from '@/server/api-response';\n" +
+      'ok(await rj(request, z.looseObject({})));';
+    expect(bodyReadsIn(renamed).problems).toEqual([
+      'imports readJsonBody or readBodyText under another name this test cannot follow',
+    ]);
+  });
+
+  it('reads code, not comments', () => {
+    expect(
+      bodyReadsIn('// Never call request.json() here: readJsonBody does it.').problems
+    ).toEqual([]);
+    expect(rawBodyReadLines('/* request.json() */ const x = 1;')).toEqual([]);
+  });
+});
+
+// Re-review finding 1: a comment start inside a string is part of the string.
+describe('codeLines, the comment cut', () => {
+  it('cuts comments and keeps strings, even with // or /* inside them', () => {
+    expect(codeLines("const base = 'http://localhost'; db.$queryRawUnsafe('SELECT 1');")).toEqual([
+      "const base = 'http://localhost'; db.$queryRawUnsafe('SELECT 1');",
+    ]);
+    expect(codeLines("const accept = 'text/*'; db.$executeRawUnsafe('x');")).toEqual([
+      "const accept = 'text/*'; db.$executeRawUnsafe('x');",
+    ]);
+    expect(codeLines("  /* c */ return db['$queryRaw'];")).toEqual(["    return db['$queryRaw'];"]);
+    expect(codeLines('x(); // db.$queryRaw')).toEqual(['x(); ']);
+    expect(codeLines("/* it's */ y();")).toEqual(['  y();']);
+    expect(codeLines('/**\n * db.$queryRaw\n */ z();')).toEqual(['', '', '  z();']);
+    expect(codeLines('const t = `a\n// b`; w();')).toEqual(['const t = `a', '// b`; w();']);
   });
 });

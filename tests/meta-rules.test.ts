@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { ROUTES, routeKey } from '@/server/routes';
 import { findOversizedFiles, MAX_LINES } from '../scripts/check-file-size.mjs';
 import { checkProject } from '../scripts/check-no-ai.mjs';
-import { bodyReadsIn, looseSpots } from './helpers/strict-body';
+import { codeLines } from './helpers/code-text';
+import { bodyReadsIn, looseSpots, rawBodyReadLines } from './helpers/strict-body';
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -195,18 +196,11 @@ const RAW_SQL: readonly Check[] = [
   },
 ];
 
-/** The code of one line, comments cut out: a comment may name a call, code after it may not. */
-function codeOf(line: string): string {
-  let text = line;
-  if (/^\s*\*/.test(text)) text = text.includes('*/') ? text.slice(text.indexOf('*/') + 2) : '';
-  return text.replace(/\/\*.*?(\*\/|$)/g, ' ').replace(/\/\/.*$/, '');
-}
-
 /** Every line of `file` whose code, without its comments, matches a check. */
 const scanCode = (file: string, checks: readonly Check[]): Finding[] =>
-  readLines(file).flatMap((text, index) =>
+  codeLines(read(file)).flatMap((code, index) =>
     checks
-      .filter(({ pattern }) => pattern.test(codeOf(text)))
+      .filter(({ pattern }) => pattern.test(code))
       .map(({ problem }) => ({ file, line: index + 1, problem }))
   );
 
@@ -388,6 +382,15 @@ describe('meta rules', { timeout: 30_000 }, () => {
         }
       }
       parsedBy.set(file, parsed);
+    }
+    // Server code handed the request may not read it either; readBodyText is the one reader.
+    const serverFiles = listFiles('src/server', /\.ts$/).filter(
+      (file) => !isTest(file) && file !== 'src/server/api-response.ts'
+    );
+    for (const file of serverFiles) {
+      for (const line of rawBodyReadLines(read(file))) {
+        findings.push(`${file}:${line} reads a request body itself; only readBodyText may`);
+      }
     }
     for (const route of ROUTES.filter((row) => row.body)) {
       const file = `src/app${route.path}/route.ts`;
