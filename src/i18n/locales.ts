@@ -1,5 +1,5 @@
 // The languages the app speaks. The first segment of every page URL is one of these: /en, /fi, ...
-import { demoToolsOn } from '@/server/demo-tools';
+import { demoToolsOn } from '@/demo-tools-switch';
 import { pseudoLocalize, type PseudoMode } from './pseudo';
 
 /** The four languages the app ships, in the order the language switcher lists them. */

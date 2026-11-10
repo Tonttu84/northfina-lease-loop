@@ -4,20 +4,28 @@ import en from './messages/en.json';
 import et from './messages/et.json';
 import fi from './messages/fi.json';
 import sv from './messages/sv.json';
-import type { Locale } from './locales';
+import type { Locale, PseudoLocale } from './locales';
 import { pseudoMessages } from './pseudo';
 
 export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
+
+/** D95: the pseudo-languages' messages, generated from English the first time one is read. */
+const generated: Partial<Record<PseudoLocale, Messages>> = {};
 
 export const messages: Record<Locale, Messages> = {
   en,
   fi,
   sv,
   et,
-  // D95: generated from English, for testing the layout; reachable only in demo mode.
-  'qps-long': pseudoMessages(en, 'long'),
-  'qps-short': pseudoMessages(en, 'short'),
+  // Generated from English for testing the layout, and only when first read: a pseudo-language
+  // is reachable only in demo mode (`isLocale`), so a production page never builds them.
+  get 'qps-long'() {
+    return (generated['qps-long'] ??= pseudoMessages(en, 'long'));
+  },
+  get 'qps-short'() {
+    return (generated['qps-short'] ??= pseudoMessages(en, 'short'));
+  },
 };
 
 export type TranslateValues = Record<string, string | number>;

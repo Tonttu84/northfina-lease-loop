@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatIsoDate, formatNumber, formatTimestamp } from './format';
-import { getT, type MessageKey } from './get-t';
+import { getT, messages, type MessageKey } from './get-t';
 import { defaultLocale, isLocale, localeHref, locales, pseudoLocales, translated } from './locales';
 
 const plain = (text: string) => text.replace(/\s/g, ' ');
@@ -111,5 +111,20 @@ describe('translated (D95)', () => {
   it('runs English through the pseudo-localizer for a pseudo-language', () => {
     expect(translated('qps-short', (l) => texts[l])).toBe('Mnth incm');
     expect(translated('qps-long', (l) => texts[l])).toBe('[Möoñťĥľýy íiñçöomée ľöñğ ťéšť]');
+  });
+});
+
+describe('the pseudo-languages are generated on first use (D95, PR 27 review finding 8)', () => {
+  it('holds them behind getters, so importing the messages builds nothing', () => {
+    for (const locale of pseudoLocales) {
+      const property = Object.getOwnPropertyDescriptor(messages, locale);
+      expect(property?.get, locale).toBeTypeOf('function');
+      expect(property?.value, locale).toBeUndefined();
+    }
+  });
+
+  it('builds each once and keeps it', () => {
+    expect(messages['qps-short']).toBe(messages['qps-short']);
+    expect(messages['qps-short']['catalogue.title']).toBe('Ctlg');
   });
 });
