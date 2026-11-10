@@ -40,7 +40,7 @@ Signing in is by e-mail link, no password: type an account's e-mail on `/en/logi
 | `npm test`                     | Run all tests once (`npm run test:watch` to keep them running)                                   |
 | `npm run test:coverage`        | Tests with the 60 % coverage gate                                                                |
 | `npm run check:all`            | **Everything CI runs.** Run it before you push                                                   |
-| `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D95) |
+| `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D96) |
 | `npm run db:migrate`           | After you change `prisma/schema.prisma`: creates a migration                                     |
 | `npm run db:reset`             | Wipe the local database and seed it again                                                        |
 | `npm run audit:anchor`         | Have a timestamp authority sign the audit head (D81, network)                                    |

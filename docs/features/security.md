@@ -22,14 +22,14 @@ Names the demo mode and switches it as one thing, puts the usual security header
 
 **Secrets.** The pre-commit hook already scans the staged files; `npm run check:secrets` (in `check:all`, so in CI) scans the whole tree with the same rules, `.secretlintignore` leaving out dependencies, build output, generated code and the local databases.
 
-**Supply chain (D95).** Every `uses:` in `.github/workflows/ci.yml` names a full 40-character commit SHA, with the release tag that pointed at it in a trailing comment (`actions/checkout@3d3c42e… # v7.0.1`); Dependabot's weekly GitHub Actions update moves the SHA and the comment together. `.npmrc` no longer turns audit off, so `npm ci` reports known advisories, and CI's "Dependency audit" step right after it, `npm audit --audit-level=high`, fails the run on a high or critical one. Moderate and low ones pass and wait for Dependabot: on 2026-11-10, ten moderate, all one advisory (`minimatch`, GHSA-g3hv-75wg-m249) through eslint and typescript-eslint, development only; `npm audit --omit=dev` finds none.
+**Supply chain (D96).** Every `uses:` in `.github/workflows/ci.yml` names a full 40-character commit SHA, with the release tag that pointed at it in a trailing comment (`actions/checkout@3d3c42e… # v7.0.1`); Dependabot's weekly GitHub Actions update moves the SHA and the comment together. `.npmrc` no longer turns audit off, so `npm ci` reports known advisories, and CI's "Dependency audit" step right after it, `npm audit --audit-level=high`, fails the run on a high or critical one. Moderate and low ones pass and wait for Dependabot: on 2026-11-10, ten moderate, all one advisory (`minimatch`, GHSA-g3hv-75wg-m249) through eslint and typescript-eslint, development only; `npm audit --omit=dev` finds none.
 
 ## Decisions
 
 - D74: `DEMO_TOOLS` now gates the clock as well as the card runner, and the default follows the build. The D74 row in `docs/decisions.md` is unchanged; this page is the record.
 - D17 and D93: the picker hands out any actor while the demo tools are on; with them off, only the sign-in link does ([accounts.md](accounts.md)). The signed cookie (D92) and the link together close the polish review's security finding 1 (`docs/reviews/polish-2026-11-08.md`).
 - D92: the actor cookie is a signed, expiring session; `SESSION_SECRET` from `.env`.
-- D95: actions pinned by commit SHA, and CI fails on a high or critical `npm audit` finding.
+- D96: actions pinned by commit SHA, and CI fails on a high or critical `npm audit` finding.
 
 ## Pure functions
 

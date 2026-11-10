@@ -21,7 +21,7 @@ jobs:
       CI: true
     steps:
       - name: Check out
-        # Actions are pinned by commit SHA, with the release tag after it for Dependabot (D95).
+        # Actions are pinned by commit SHA, with the release tag after it for Dependabot (D96).
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # commitlint needs the history
@@ -37,7 +37,7 @@ jobs:
         run: npm ci
 
       # A known high or critical advisory in any dependency fails CI; moderate and low ones are
-      # left to Dependabot (D95).
+      # left to Dependabot (D96).
       - name: Dependency audit
         timeout-minutes: 5
         run: npm audit --audit-level=high
