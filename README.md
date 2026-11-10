@@ -72,26 +72,12 @@ One row per scenario card of the brief ([CHALLENGE.md](CHALLENGE.md) section 4),
 
 One page per slice under `docs/features/` ([template](docs/features/README.md)); the state of each (missing, in progress, done, verified) is [STATUS.md](docs/features/STATUS.md).
 
-- [Catalogue, asset statuses, demo clock, actor and audit trail](docs/features/catalogue.md)
-- [Pricing and quotes](docs/features/pricing.md)
-- [The question flow and the application](docs/features/question-flow.md)
-- [Contracts: signing and the contract page](docs/features/contracts.md)
-- [Invoicing: the schedule, VAT by invoice date, the balance](docs/features/invoicing.md)
-- [Exits: buy out, return, pass on and the early exit](docs/features/exits.md)
-- [Circular impact and the passport](docs/features/circular-impact.md)
-- [Row schemas](docs/features/row-schemas.md)
-- [The look: tokens, the price tag, life stamps and drawings](docs/features/look.md)
-- [The tamper-evident audit chain, signed and anchored outside the database](docs/features/audit-chain.md)
-- [Company signatories and the signing link](docs/features/signatories.md)
-- [Test isolation](docs/features/test-isolation.md)
-- [My leases](docs/features/my-leases.md), grown into the [user portal](docs/features/user-portal.md)
-- [Second life: assessment, matchmaking and re-pricing](docs/features/second-life.md)
-- [Demo cards: one button per scenario card](docs/features/demo-cards.md)
-- [Browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)
-- [Authorization: who may do what, checked before the action](docs/features/authorization.md)
-- [Accounts: sign in by e-mail link, the confirmed e-mail, the demo outbox](docs/features/accounts.md)
-- [Security: demo mode, the response headers, the signed session, the public audit log, limits, strict bodies, no raw SQL](docs/features/security.md)
-- [Security overview: every security feature on one page, with its threat, its test and a one-minute demo](docs/security-overview.md)
+- **Leasing:** [pricing and quotes](docs/features/pricing.md), [the question flow and the application](docs/features/question-flow.md), [contracts and signing](docs/features/contracts.md), [company signatories and the signing link](docs/features/signatories.md), [invoicing: VAT by invoice date, the balance](docs/features/invoicing.md), [exits: buy out, return, pass on, early exit](docs/features/exits.md)
+- **Circular life:** [second life: assessment, matchmaking and re-pricing](docs/features/second-life.md), [circular impact and the passport](docs/features/circular-impact.md)
+- **The app:** [catalogue, asset statuses, demo clock, actor and audit trail](docs/features/catalogue.md), [My leases](docs/features/my-leases.md), grown into the [user portal](docs/features/user-portal.md), [the look](docs/features/look.md), [demo cards: one button per scenario card](docs/features/demo-cards.md)
+- **Accounts and access:** [accounts: sign in by e-mail link, the demo outbox](docs/features/accounts.md), [authorization: who may do what, checked before the action](docs/features/authorization.md)
+- **Audit and security:** [the tamper-evident audit chain, signed and anchored](docs/features/audit-chain.md), [security: demo mode, headers, signed session, limits, strict bodies, no raw SQL](docs/features/security.md), and the [security overview](docs/security-overview.md) with every feature's threat, test and one-minute demo
+- **Data and tests:** [row schemas](docs/features/row-schemas.md), [test isolation](docs/features/test-isolation.md), [browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)
 
 ## How we worked
 
