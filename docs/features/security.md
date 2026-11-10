@@ -24,11 +24,14 @@ Names the demo mode and switches it as one thing, puts the usual security header
 
 **Secrets.** The pre-commit hook already scans the staged files; `npm run check:secrets` (in `check:all`, so in CI) scans the whole tree with the same rules, `.secretlintignore` leaving out dependencies, build output, generated code and the local databases.
 
+**Supply chain (D96).** Every `uses:` in `.github/workflows/ci.yml` names a full 40-character commit SHA, with the release tag that pointed at it in a trailing comment (`actions/checkout@3d3c42e… # v7.0.1`); Dependabot's weekly grouped GitHub Actions update moves the SHA and the comment together. `.npmrc` no longer turns audit off, so `npm ci` reports known advisories, and CI's "Dependency audit" step right after it, `npm audit --audit-level=high`, fails the run on a high or critical one. Moderate and low ones pass and wait for Dependabot: on 2026-11-10, ten moderate, all one advisory (`minimatch`, GHSA-g3hv-75wg-m249) through eslint and typescript-eslint, development only; `npm audit --omit=dev` finds none. `npm audit`'s only offered fix downgrades eslint a major; an `overrides` entry to `minimatch` 11.0.1 or later would clear it, but that is outside the `^10` range eslint 10 and its parts declare and untested against them, so for a dev-only moderate advisory it was considered and left.
+
 ## Decisions
 
 - D74: `DEMO_TOOLS` now gates the clock as well as the card runner, and the default follows the build. The D74 row in `docs/decisions.md` is unchanged; this page is the record.
 - D17 and D93: the picker hands out any actor while the demo tools are on; with them off, only the sign-in link does ([accounts.md](accounts.md)). The signed cookie (D92) and the link together close the polish review's security finding 1 (`docs/reviews/polish-2026-11-08.md`).
 - D92: the actor cookie is a signed, expiring session; `SESSION_SECRET` from `.env`.
+- D96: actions pinned by commit SHA, and CI fails on a high or critical `npm audit` finding.
 - D97: the strict-body and raw-SQL meta tests: the bodies from the route table, strict read from Zod's own definition, raw SQL by a line scan of `src/`.
 
 ## Pure functions
@@ -48,6 +51,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - `src/server/demo-clock.ts`, `src/app/api/demo/clock/route.ts`, `src/app/[locale]/demo/page.tsx`: the clock gated.
 - `src/server/cookie-flags.ts`, `src/server/actor.ts`, `src/server/session.ts`, `scripts/ensure-env.mjs` (`ensureSessionSecret`), `vitest.config.ts`, `package.json` (`prestart`): the cookies and the session.
 - `.env.example`, `.secretlintignore`, `package.json` (`check:secrets`).
+- `.github/workflows/ci.yml` (the pins, the "Dependency audit" step), `.github/dependabot.yml`, `.npmrc`: the supply chain.
 - `src/domain/audit/redact.ts`, `src/app/api/audit-log/route.ts`, `src/app/[locale]/audit/page.tsx`: the public log.
 - `src/server/routes.ts` (the body schemas), `tests/meta-rules.test.ts` (`looseSpots`, `RAW_SQL`): strict bodies and no raw SQL.
 - `src/server/rate-limit.ts`, `src/proxy.ts` (matcher `/` and `/api/:path*`), `src/server/api-response.ts` (`assertBodySize`), `src/app/api/assets/[id]/assessments/route.ts`: the limits.
@@ -61,6 +65,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - `src/domain/audit/redact.test.ts`; `src/app/api/audit-log/route.test.ts` (a visitor masked, the admin not, on a real database).
 - `tests/meta-rules.test.ts`: "every request body in the route table refuses unknown keys, nested objects too", "every route that reads a body parses it with the body schema of its route-table row", "no app code runs raw SQL or a Prisma …Unsafe method", and `looseSpots, the strict-body walker` (each way to be loose, and Zod's own answer for an extra key). Each was seen to fail on a planted loose schema or raw call before it was merged.
 - `src/server/rate-limit.test.ts` (the window, per client, the wait, the sweep); `src/proxy.test.ts` (the redirect, a read untouched, a cross-site write 403 and the same site through, 429 with `Retry-After` and the envelope, per forwarded address); `src/server/api-response.test.ts` "assertBodySize".
+- The supply chain has no test of its own: each CI run is the check (the pinned actions resolve, the audit step passes).
 
 ## Open questions
 
