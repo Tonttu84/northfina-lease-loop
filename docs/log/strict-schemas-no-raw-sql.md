@@ -10,6 +10,8 @@ Branch `test/strict-schemas-no-raw-sql` from `origin/main` at `ee83059`, worktre
 - 12:10 commit `68ba9a9` (the tests).
 - 12:12 the docs commit: the overview's wording on records, this log.
 - 12:13 to 12:17 `npm run check:all` green on the first run: format, lint, typecheck, file size, no-AI, secrets, 170 test files with 2,012 tests (seven new), coverage 97.73 % lines, build. Then the pull request; the review (rule 13) is the coordinator's to start.
+- 12:22 to 12:24 the decision renumbered from D95 to D97 (D95 is the pseudo-localization branch's, D96 is PR 22's). The pre-push test run then timed out the new raw-SQL scan (5.7 s) and "no file clears a table" (6.6 s) under load.
+- 12:27 to 12:32 `tests/meta-rules.test.ts` now keeps each listing and each file it reads (two Maps), so the tree is read once per run. The meta rules get a 30 s timeout with its reason in a comment; the no-AI test lives in this file, so it is covered too. No assertion changed. Two full `npm test` runs before and two after, all green. The slowest meta tests before were no-AI at 2.27 s and 1.73 s, the file-size test at 0.67 s and 0.92 s, "clears a table" at 0.69 s and 0.93 s, and the raw-SQL scan at 0.25 s and 0.44 s. After, they were no-AI at 1.28 s and 1.47 s, the file-size test at 1.25 s and 0.79 s, "clears a table" at 0.89 s and 0.63 s (the first to read the test files), and the raw-SQL scan at 0.06 s twice.
 
 ## Left undone
 

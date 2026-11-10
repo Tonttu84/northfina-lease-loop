@@ -15,17 +15,36 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 // ---------- pure helpers ----------
 
+// The scans below list and read the same tree again and again; nothing here writes to it, so
+// each listing and each file is read once per run and kept (issue 17: the scans timed out
+// under a loaded full suite).
+const listings = new Map<string, readonly string[]>();
+const contents = new Map<string, string>();
+
 /** All files under `dir` (relative to the repo root, forward slashes) that match `pattern`. */
 function listFiles(dir: string, pattern: RegExp): string[] {
-  return readdirSync(path.join(repoRoot, dir), { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.relative(repoRoot, path.join(entry.parentPath, entry.name)))
-    .map((file) => file.split(path.sep).join('/'))
-    .filter((file) => pattern.test(file))
-    .sort();
+  const key = `${dir}\0${String(pattern)}`;
+  let files = listings.get(key);
+  if (!files) {
+    files = readdirSync(path.join(repoRoot, dir), { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => path.relative(repoRoot, path.join(entry.parentPath, entry.name)))
+      .map((file) => file.split(path.sep).join('/'))
+      .filter((file) => pattern.test(file))
+      .sort();
+    listings.set(key, files);
+  }
+  return [...files];
 }
 
-const read = (file: string) => readFileSync(path.join(repoRoot, file), 'utf8');
+function read(file: string): string {
+  let text = contents.get(file);
+  if (text === undefined) {
+    text = readFileSync(path.join(repoRoot, file), 'utf8');
+    contents.set(file, text);
+  }
+  return text;
+}
 
 /** Lines of `file`; works with LF and CRLF checkouts. */
 const readLines = (file: string) => read(file).split(/\r?\n/);
@@ -254,7 +273,9 @@ const sourceAndTests = () =>
 
 // ---------- the rules ----------
 
-describe('meta rules', () => {
+// 30 s, not the default 5 s: these tests scan the whole tree (no-AI walks it in its own script),
+// and under a loaded full suite a scan has taken 5 to 7 s although it takes under 1 s alone.
+describe('meta rules', { timeout: 30_000 }, () => {
   // RULES.md §8 "Small files" and AGENTS.md; also scripts/check-file-size.mjs.
   it(`no hand-written source file is over ${MAX_LINES} lines`, () => {
     const output = execFileSync(
