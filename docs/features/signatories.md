@@ -16,7 +16,7 @@ Every company has a list of the people who may sign leases for it, each valid ov
 **Card 6 worked.** Norvi Logistics (`cust-norvi`, `applicant_can_sign: false`) applies for one `ebike-004`, 549 000 financed, on 2026-11-05, answering can-sign **no** and naming `signatory@norvi.example.com`.
 
 1. The rules give `awaiting_signatory` with `signatory_needed { signatoryEmail }`. In the same transaction the list gets `signatory@norvi.example.com`, granted by `register_check_simulated`, `valid_from` empty, and a link sent 2026-11-05, expiring 2026-11-19. The audit row of `application.created` says `signingLinkTo: signatory@norvi.example.com`.
-2. The decision page shows the demo outbox: "A signing link was sent to signatory@norvi.example.com on 5 November 2026", with the link. On that page Norvi's account and the admin get 403 `NOT_SIGNATORY` if they post a decision.
+2. The decision page shows the admin the demo outbox: "A signing link was sent to signatory@norvi.example.com on 5 November 2026", with the link. On that page Norvi's account and the admin get 403 `FORBIDDEN` with `signatory_required` (D73, D74) if they post a decision.
 3. The signatory opens `/en/sign/<token>` on 2026-11-06: Norvi Logistics, ebike-004, 36 months, the financed amount and the monthly rent, Sign and Decline. Sign: the case is `approved` with `signatory_decided { by: signatory@norvi.example.com, decision: approved, on: 2026-11-06 }`, the entry is valid from 2026-11-06, and the audit actor is `signatory:signatory@norvi.example.com` with `signatoryRegistered: true`.
 4. The same link again answers 409 `SIGNING_LINK_USED`; on 2026-11-19 an unused one answers 410 `SIGNING_LINK_EXPIRED`.
 
@@ -60,19 +60,19 @@ Routes: `GET`/`POST /api/customers/[id]/signatories`, `POST /api/customers/[id]/
 
 ## Tests that pin the numbers
 
-| What                                                                                        | Test                                                                               |
-| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `valid_from` inclusive, `valid_to` exclusive; the last active one; expired and used links   | `src/domain/signatories/mandates.test.ts`                                          |
-| Card 6: the case waits, the link goes to the named e-mail, expires 2026-11-19               | `src/server/applications.test.ts` "the signing link (D39, D46), card 6"            |
-| Signing approves, registers the signatory, audit actor `signatory:<email>`; decline rejects | same describe                                                                      |
-| Norvi's account and the admin get `not_signatory`; a second use `already_used`; a race      | same describe; `applications.hardening.test.ts` "the signatory (D39, D46)"         |
-| The routes: NOT_SIGNATORY on the decision page, the link signs, used 409, unknown 404       | `src/app/api/applications/route.test.ts`; `src/server/signatory-responses.test.ts` |
-| The list: seed idempotent, add by the company, a stranger and Norvi refused, revoke, last   | `src/server/signatories.test.ts`                                                   |
-| The admin on behalf (D47)                                                                   | `applications.test.ts` "D47: …"                                                    |
+| What                                                                                                           | Test                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `valid_from` inclusive, `valid_to` exclusive; the last active one; expired and used links                      | `src/domain/signatories/mandates.test.ts`                                          |
+| Card 6: the case waits, the link goes to the named e-mail, expires 2026-11-19                                  | `src/server/applications.test.ts` "the signing link (D39, D46), card 6"            |
+| Signing approves, registers the signatory, audit actor `signatory:<email>`; decline rejects                    | same describe                                                                      |
+| Norvi's account and the admin get `signatory_required`; a second use `already_used`; a race                    | same describe; `applications.hardening.test.ts` "the signatory (D39, D46)"         |
+| The routes: 403 `FORBIDDEN` (`signatory_required`) on the decision page, the link signs, used 409, unknown 404 | `src/app/api/applications/route.test.ts`; `src/server/signatory-responses.test.ts` |
+| The list: seed idempotent, add by the company, a stranger and Norvi refused, revoke, last                      | `src/server/signatories.test.ts`                                                   |
+| The admin on behalf (D47)                                                                                      | `applications.test.ts` "D47: …"                                                    |
 
 ## Open questions
 
-- **No e-mail is sent.** The link is shown in the decision page's demo outbox, to whoever opens the page; whoever holds it acts as the signatory. The decision page has no access check yet (finding 1 of [the wave 3 review](../reviews/wave-3.md)). Production replaces this with the e-mailed invitation and Suomi.fi strong identification on opening, and the list with the trade register and Suomi.fi e-Authorizations (a register check when an e-mail is named).
+- **No e-mail is sent.** The link is shown in the decision page's demo outbox, to the admin only: the page asks `read_application` first (D73) and shows the outbox when the actor is the admin, never to the coordinator (finding 1 of [the wave 3 review](../reviews/wave-3.md), fixed). Whoever holds the link acts as the signatory. Production replaces this with the e-mailed invitation and Suomi.fi strong identification on opening, and the list with the trade register and Suomi.fi e-Authorizations (a register check when an e-mail is named).
 - **Amount limits per signatory** (two signatories jointly above a sum, as many companies' rules say) are not modelled.
 - The seed day is the real day: on a demo clock before it, the seeded signatories are not yet valid.
 - A second application naming the same e-mail reuses the entry; an entry that was revoked stays revoked, and its new link answers `signatory_not_active`. When the same e-mail has since been added again, the link still takes the ended entry: a defect, finding 3 of [the wave 3 review](../reviews/wave-3.md).
