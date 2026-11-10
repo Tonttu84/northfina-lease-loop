@@ -48,3 +48,25 @@ Branch `fix/responsive-layout` from `test/responsive-layout`, `origin/main` merg
 - A pass with every `<details>` opened, and browsers other than Chromium (the feature page's open questions).
 - Hyphenation in the test browser: none, so a long word breaks without a hyphen there; real browsers with the language's dictionary hyphenate the headings.
 - The review (AGENTS.md rule 13): a fresh session reviews the pull request; the author does not.
+
+## Session 3: the review's findings (2026-11-10)
+
+The rule-13 review of PR 27 at `a1c342f` (approve with fixes, ten findings) and the owner's two decisions of 2026-11-10: the contract keeps its width on wide screens (D98's exception), and the header's links fold into the menu below 1024 px for everyone (D99). Checks first, seen to fail on the unchanged app, then the layout; no existing check was loosened.
+
+- 15:42 read the review. 15:43 to 15:47 the new checks in `e2e/layout.ts` (`overlap`, `brokenWord`, inline elements in `textOverflow`, `hidden` and `clip` no longer scrollers, `document.fonts.ready`) and in the spec (the page again with the menu open, the header test at 1024 and 1100 px, the contract at 2560 px in the D98 test).
+- 15:47 to 15:55 run 10 on the unchanged build (`E2E_SKIP_BUILD=1`): 20 of 21 failed, 1 436 findings (852 `overlap`, 296 `brokenWord`, 228 `outOfViewport`, 60 `textOverflow`). Real: the staff strip's select over "Demo" (finding 1), the open menu to −154 px (finding 4), "Turvallisuustarkastus" and "Säkerhetsbesiktning" beside their amounts, "Continue", "See the cata|logue", "Maatalouskon|eet", the brand in `qps-long`, hyphenated "pe-rioodi", "inloggnings-länk" and "lukus-tatud" (finding 3), the calculator's "€71.64" and the contract's "€107.30" running out of their tag (the inline check), the contract at 1280 px. False positives, fixed in the checks before any layout change: the life stamp's tilted lines (a rotated box's rectangle is its bounding box; transformed boxes are now left out of `overlap`), a word measured without its glued "[" and words within a pixel of their column (now the whole run and a 1 px margin). The hidden and clip change found nothing else.
+- 15:47 to 16:00 the fixes: the pseudo-languages behind getters and the switch in a module that imports nothing (finding 8; the getter test seen to fail on the old `get-t.ts`); the strip and the menu; label minimums; one label box in buttons; price tag sizes; chip counts; no `hyphens: auto`; the 16 rem grid; the contract's width; D98's exception and D99.
+- 15:55 `test(e2e)` commit `ad9eeae`. 16:00 to 16:09 run 11 with the build: 19 of 21 failed, 152 findings, all `brokenWord` on the staff strip's button ("Continue", "Fortsätt"): `flex-1` is `flex: 1 1 0%`, so the picker never wrapped and squeezed its button; it now has `min-w-min`, and the select starts at 6 rem.
+- 16:10 to 16:12 commits `1a17c97` (`fix(header)`), `c5c1336` (`fix(layout)`), `c380b0e` (contract, D98, D99), `0a65515` (`refactor(i18n)`). Merged `main` (#23 meta tests, #26 Tailwind 4.3.5; README and the decisions table conflicted: main's rows kept, D95, D98 and D99 added); `npm ci` for Tailwind 4.3.5.
+- 16:15 to 16:21 run 12 with the build: 21 of 21 passed, 0 findings.
+- 16:21 screenshots, read one by one: the strip at 390 px with 200 % text (select, then the button on its own row), the open menu at 150 % and 200 % (inside the screen, the language pills two by two), the second-life plan at 150 % (the amount under "Turvallisuustarkastus"), the contract's tag and the calculator at 200 %, the Estonian how-it-works at 360 px (no hyphen), the header at 1280 and 1024 px (one row; the select grows to 14 rem on a wide strip, about 54 px wider than before), the contract at 2560 px (1024 px), the Finnish dates at 320 px (one column, each date on one line). Worse: "Catalogu|e" at 390 px with 200 % text (fits nothing, so the check allows it); the title now steps down one more size under 16 rem (`383865a`).
+- 16:22 to 16:28 run 13 with the build: 20 of 21 passed, 8 findings, all on the demo page in `qps-long`: the check took the audit chain's short head hash ("37ce…22", new on every run) for the word "ce". The check's own definition leaves ids out; it now strips only punctuation from a token's ends, so a token with a digit is no word (`a9c4b28`). Run 12 had passed only because its hash broke elsewhere.
+- 16:28 to 16:34 `npm run test:e2e` with the build: 34 passed in 6.2 min.
+- 16:34 to 16:40 run 14 (`E2E_SKIP_BUILD=1`, only the check changed): 21 of 21 passed, 0 findings.
+- 16:40 `npm run check:all` failed on the feature page's formatting only; 16:50 to 16:52 after `prettier --write`, green: 173 files, 2 047 tests, coverage 96.35 % statements, build.
+- 16:53 `docs(responsive)` commit, push, the PR body's **Reviewed:** line.
+
+## Left undone (session 3)
+
+- Browsers other than Chromium; an animation that ends without a fill before the check (`price-flip`, `audit-card-in`): the feature page's open questions.
+- A second review of the fixed head (AGENTS.md rule 13: a fix beyond a finding is reviewed again).
