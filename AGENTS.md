@@ -88,7 +88,6 @@ Numbered, since code and docs cite them by number ("AGENTS.md rule 11").
 
 - A fresh worktree has no `.husky/_` (git-ignored, per folder), so its hooks do not run until `npm run setup` has.
 - `.husky/` hooks run under `sh -e`: one command per line, never `a && b` (`tests/husky-hooks.test.ts`).
-- Under full-suite load the no-AI meta test has timed out at about 5.4 s against its 5 s limit, failing a pre-push; alone it passes. Report it when it happens again.
 - After pulling anything that touches `prisma/`, run `npx prisma generate`: the generated client is per worktree.
 - `next dev` writes the block below into this file; it is committed on purpose.
 - More traps: `docs/stack-notes.md`.
