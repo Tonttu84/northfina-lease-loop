@@ -1,16 +1,47 @@
-# Dependabot keeps the dependencies current: one grouped npm PR a week, and one grouped PR for the
-# GitHub Actions, which the workflow pins by commit SHA with the release tag in a trailing comment
-# (`@<sha> # v7.0.1`); Dependabot moves both. It is not the only alert path: `npm ci` reports
-# known advisories, and CI fails on a high or critical one (`npm audit --audit-level=high`, D96).
+# Dependabot version updates: one grouped pull request per ecosystem, roughly every two weeks, from
+# the owner's shared template (Tonttu84/ai-workflow, templates/dependabot.yml; D104).
+#
+# Dependabot has no two-week interval, so the schedule is a cron job on the 1st and the 15th of
+# each month (times in UTC). The commit-message prefixes (`chore`, and `ci` for actions) make every
+# title a valid subject for the commit hook and the CI commit check; the hook lets Dependabot's
+# long "bump ..." subjects, and only those, past the 72-character limit.
+#
+# The workflows pin actions by commit SHA with the release tag in a trailing comment
+# (`@<sha> # v7.0.1`), and only Dependabot moves them. It is not the only alert path: `npm ci`
+# reports known advisories, and CI fails on a high or critical one (`npm audit --audit-level=high`,
+# D96). Security updates are a separate repository setting, on; each ecosystem has a short-named
+# group for them, since groups apply to version updates unless they say otherwise.
 version: 2
 updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: cron
+      cronjob: '0 6 1,15 * *'
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
+      gha-sec:
+        applies-to: security-updates
+        patterns:
+          - '*'
+    commit-message:
+      prefix: ci
+
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: cron
+      cronjob: '0 6 1,15 * *'
     groups:
       npm:
+        applies-to: version-updates
+        patterns:
+          - '*'
+      npm-sec:
+        applies-to: security-updates
         patterns:
           - '*'
     ignore:
@@ -22,15 +53,4 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
     commit-message:
-      prefix: chore(deps)
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    groups:
-      actions:
-        patterns:
-          - '*'
-    commit-message:
-      prefix: chore(ci)
+      prefix: chore
