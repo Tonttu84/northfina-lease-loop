@@ -190,13 +190,13 @@ for i in $(seq 121); do curl -s -o /dev/null -w '%{http_code}\n' -X DELETE http:
 
 **Threat.** Malformed or extra input reaches the database, or an error message leaks a stack trace, SQL or personal data (mass assignment, information leakage).
 
-**What we do.** Every JSON body is parsed with its schema in the route table (`src/server/routes.ts`), a `z.strictObject` all the way down, through `readJsonBody` (the assessment route reads its optional body itself and parses it the same way). An unknown key at any depth is 400 `VALIDATION_ERROR`, and bad JSON is 400 `INVALID_JSON`. Two meta tests hold it: one walks each body schema's Zod definition and fails on an object that would let an unknown key through, the other checks that every route parses its body with its row's schema. Each row is checked by its Zod write schema (`parseRow`) right before the write. Every route is wrapped in `handleRoute`: an unknown error is logged on the server, and the client gets only 500 `INTERNAL_ERROR`.
+**What we do.** Every JSON body is parsed with its schema in the route table (`src/server/routes.ts`), a `z.strictObject` all the way down, through `readJsonBody` (the assessment route reads its optional body itself and parses it the same way). An unknown key at any depth is 400 `VALIDATION_ERROR`, and bad JSON is 400 `INVALID_JSON`. Two meta tests hold it. The first walks each body schema's Zod definition, at any depth. It fails on an object that would let an unknown key through, an open value (`z.any`, `z.unknown`, `z.custom`, a bare transform), a `.catch()` and a loose record. The second follows every body read in a `route.ts` through the file's own import to its row's schema. It fails on a schema the route declares itself, a `request.json()` or the like, a read it cannot trace, and a row whose body no route parses. Each row is checked by its Zod write schema (`parseRow`) right before the write. Every route is wrapped in `handleRoute`: an unknown error is logged on the server, and the client gets only 500 `INTERNAL_ERROR`.
 
 **Where.** `src/server/api-response.ts`, `src/server/row-rules.ts`, `src/server/routes.ts` and the `*-schemas.ts` files in `src/server/`, `tests/meta-rules.test.ts`.
 
 **Proof.** `tests/meta-rules.test.ts`: "every request body in the route table refuses unknown keys, nested objects too" and "every route that reads a body parses it with the body schema of its route-table row"; `src/server/api-response.test.ts`: "turns an unknown error into a generic 500 and never leaks its message".
 
-**Limits.** Query strings are `z.object` schemas: an unknown query parameter is dropped, not refused. A dictionary (`z.record`) passes the strict-body test when its keys must match a pattern or a format, as the application's answers do; a length limit alone does not count. Some writes have no row schema yet, as [`docs/features/row-schemas.md`](features/row-schemas.md) lists. `Content-Type` is not checked.
+**Limits.** Query strings are `z.object` schemas: an unknown query parameter is dropped, not refused. A dictionary (`z.record`) passes the strict-body test when its keys must match a pattern or a format, as the application's answers do; a length limit alone does not count. The tests read definitions and source text, not requests. A `z.preprocess` fails as an open value: the walker cannot see what its function does to the keys. A body read through a renamed `readJsonBody` import, or by server code handed the request, is not seen. Some writes have no row schema yet, as [`docs/features/row-schemas.md`](features/row-schemas.md) lists. `Content-Type` is not checked.
 
 **Show it.** A sign-in request with an extra key answers 400 `VALIDATION_ERROR` with an `unrecognized_keys` issue.
 
@@ -208,13 +208,13 @@ curl -s -X POST http://localhost:3000/api/login -H 'content-type: application/js
 
 **Threat.** Text a visitor typed runs as SQL, or as a script in another visitor's page (SQL injection, stored XSS).
 
-**What we do.** The app reaches the database through Prisma's query builder only. A meta test fails on `$queryRaw`, `$executeRaw`, any Prisma `…Unsafe` method or `Prisma.raw` in code under `src/` outside tests. The only raw SQL is the tamper demo (`scripts/tamper-audit.mjs`) and tests that play the attacker, all as parameterized tagged templates. React escapes what it renders, and nothing uses `dangerouslySetInnerHTML`.
+**What we do.** The app reaches the database through Prisma's query builder only. A meta test fails on `$queryRaw`, `$executeRaw`, any Prisma `…Unsafe` method, `Prisma.raw` or a `better-sqlite3` import in code under `src/` outside tests. The only raw SQL is the tamper demo (`scripts/tamper-audit.mjs`) and tests that play the attacker, all as parameterized tagged templates. React escapes what it renders, and nothing uses `dangerouslySetInnerHTML`.
 
 **Where.** `src/server/` (every read and write), `tests/meta-rules.test.ts`, `scripts/tamper-audit.mjs`.
 
 **Proof.** `tests/meta-rules.test.ts`: "no app code runs raw SQL or a Prisma …Unsafe method". `dangerouslySetInnerHTML` has no automated test; the grep below is its check.
 
-**Limits.** The raw-SQL test reads the text line by line: it skips comment lines and does not look under `scripts/`, where the tamper demo is. Only the grep watches for `dangerouslySetInnerHTML`, and it does not cover XSS through an `href`.
+**Limits.** The raw-SQL test reads the text line by line and cuts the comments out of each line. A `//` inside a string, such as a URL, hides the rest of its line. It does not look under `scripts/`, where the tamper demo is. Only the grep watches for `dangerouslySetInnerHTML`, and it does not cover XSS through an `href`.
 
 **Show it.** The meta test passes, and the grep lists only test files.
 
