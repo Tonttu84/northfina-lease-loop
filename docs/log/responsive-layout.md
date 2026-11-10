@@ -16,7 +16,7 @@ Branch `test/responsive-layout` from `origin/main` at `f58503b`, worktree `.clau
 - 11:01 to 11:02 `npm run check:all` green at the first try: 171 files, 2 020 tests, coverage 96.4 % statements, build.
 - 11:03 commits `2f36b8f` (`feat(i18n)`, D95) and `90fc6b8` (`test(e2e)`); `0b799d0` (`docs(responsive)`).
 - 11:04 to 11:05 the passport scrolled sideways at 1280 px with 200 % text with no element named: a `visibility: hidden` popover widens the page and the checks skip hidden boxes. `pageScroll` now names the box that reaches furthest, hidden ones included; an `<svg>` root is now checked like any box (only what is inside a drawing is skipped).
-- 11:05 to 11:09 run 5: 19 of 19 failed in 244 s, the same 739 findings as run 4 in the same groups; the passport's culprit is named. 11:10 docs updated; 11:10 to 11:13 `npm run check:all` green (2 020 tests, build); 11:13 `be3cec7` (`test(e2e)`), 11:15 `e4a9aae` (`docs(responsive)`), 11:16 this row's correction of two commit times. Nothing pushed.
+- 11:05 to 11:09 run 5: 19 of 19 failed in 244 s, the same 739 findings as run 4 in the same groups; the passport's culprit is named. 11:10 docs updated; 11:10 to 11:13 `npm run check:all` green (2 020 tests, build); 11:13 `be3cec7` (`test(e2e)`), 11:15 `e4a9aae` (`docs(responsive)`), 11:15 `a05328b` this row's correction of two commit times. Nothing pushed.
 
 ## Left undone
 
