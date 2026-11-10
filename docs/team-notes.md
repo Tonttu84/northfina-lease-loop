@@ -37,6 +37,7 @@ The README lists the six most used; this is the full set.
 | `npm run test:coverage`        | Tests with the 60 % coverage gate                                                                                   |
 | `npm run test:e2e`             | Build the app and click the pitch run through in Chromium with Playwright (once: `npx playwright install chromium`) |
 | `npm run check:all`            | **Everything CI runs.** Run it before you push                                                                      |
+| `npm run lint:limits`          | The function limits (D105) as warnings: a report, outside `check:all`                                               |
 | `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D96)                    |
 | `npm run db:migrate`           | After you change `prisma/schema.prisma`: creates a migration                                                        |
 | `npm run db:reset`             | Wipe the local database and seed it again                                                                           |
