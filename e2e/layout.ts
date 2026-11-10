@@ -3,11 +3,20 @@
 //
 // - `pageScroll`: the page scrolls sideways (the document is wider than the viewport).
 // - `outOfViewport`: an element sticks out of the viewport and no scroller of its own holds it
-//   (an ancestor with `overflow-x: auto | scroll | hidden | clip` below <body> is such a scroller,
-//   for example a table's wrapper). Only the outermost offender is listed.
+//   (an ancestor with `overflow-x: auto | scroll` below <body> is such a scroller, for example a
+//   table's wrapper; `hidden` and `clip` cut the content off where nobody can scroll to it, so they
+//   do not count). Only the outermost offender is listed.
 // - `animatedOverflow`: the same, at any moment of a CSS animation (sampled through its keyframes).
 // - `textOverflow`: text wider than its own box (a long word, a number that does not wrap) in an
-//   element that lets it spill (`overflow-x: visible`).
+//   element that lets it spill (`overflow-x: visible`); for an inline element (a <span>, a link),
+//   a line of it reaching past the box of the block it sits in.
+// - `overlap`: two controls or texts that sit in the page's flow cross each other (a select drawn
+//   over a link). Boxes in a layer of their own (absolute, fixed, sticky) and a box inside the
+//   other do not count; an inline text counts by its lines, one line-height tall each.
+// - `brokenWord`: a word of a language (letters only: no e-mail address, number or id) broken
+//   across two lines although it would fit on one line of its column: the width its text could
+//   have, the nearest box whose width does not come from its content, less the padding of the
+//   boxes in between. A word longer than that must break and is not listed.
 // - `textOverlapsBelow` / `textClipped`: text taller than its box by more than half a line (a fixed
 //   height it outgrew), running over what follows or cut off. Less is the glyphs' ink above and
 //   below a tight line height, which every large heading has and nobody sees.
@@ -66,18 +75,25 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       // purpose; nobody sees it, so it is not part of the layout.
       return box.width > 1 && box.height > 1;
     };
+    const hasOwnText = (element: Element) =>
+      [...element.childNodes].some(
+        (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== ''
+      );
     /** Inside a drawing (the <svg> itself is checked like any box), or pinned to the screen. */
     const fixedOrInSvg = (element: Element) =>
       element.parentElement?.closest('svg') != null ||
       ['fixed', 'sticky'].includes(getComputedStyle(element).position);
-    /** An ancestor below <body> that clips or scrolls sideways. */
+    /**
+     * An ancestor below <body> that scrolls sideways, so the reader can reach what it holds.
+     * `hidden` and `clip` are not scrollers: what they cut off is lost, so it still counts.
+     */
     const heldByScroller = (element: Element) => {
       for (
         let parent = element.parentElement;
         parent && parent !== document.body;
         parent = parent.parentElement
       ) {
-        if (['auto', 'scroll', 'hidden', 'clip'].includes(getComputedStyle(parent).overflowX)) {
+        if (['auto', 'scroll'].includes(getComputedStyle(parent).overflowX)) {
           return true;
         }
       }
@@ -155,13 +171,36 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     for (const element of elements) {
       const html = element as HTMLElement;
       if (['INPUT', 'SELECT', 'TEXTAREA', 'svg'].includes(element.tagName)) continue;
+      const ownText = hasOwnText(element);
+      const style = getComputedStyle(element);
+      // An inline element has no box of its own to overflow (its client width is 0): its lines
+      // must stay inside the block it is laid out in, where that block lets text spill.
+      if (style.display === 'inline') {
+        if (!ownText) continue;
+        let block = element.parentElement;
+        while (block && getComputedStyle(block).display.startsWith('inline')) {
+          block = block.parentElement;
+        }
+        if (!block || getComputedStyle(block).overflowX !== 'visible') continue;
+        const inner = block.getBoundingClientRect();
+        const blockStyle = getComputedStyle(block);
+        const left = inner.left + parseFloat(blockStyle.borderLeftWidth);
+        const right = inner.right - parseFloat(blockStyle.borderRightWidth);
+        const out = [...element.getClientRects()].find(
+          (line) => line.width > 0 && (line.right > right + 1 || line.left < left - 1)
+        );
+        if (out) {
+          problems.push({
+            check: 'textOverflow',
+            element: describe(element),
+            detail: `a line spans ${Math.round(out.left)} to ${Math.round(out.right)} in a block from ${Math.round(left)} to ${Math.round(right)}`,
+          });
+        }
+        continue;
+      }
       // A screen-reader-only label is a 1 px box that clips on purpose.
       if (html.clientWidth <= 1 || html.clientHeight <= 1) continue;
-      const ownText = [...element.childNodes].some(
-        (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== ''
-      );
       if (!ownText) continue;
-      const style = getComputedStyle(element);
       if (style.overflowX === 'visible' && html.scrollWidth > html.clientWidth + 1) {
         problems.push({
           check: 'textOverflow',
@@ -182,6 +221,129 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
           element: describe(element),
           detail: `text is ${html.scrollHeight} px tall in a ${html.clientHeight} px box`,
         });
+      }
+    }
+
+    // Two controls or texts in the page's flow that cross each other: one covers the other (a
+    // squeezed <select> drawn over the link beside it). A layer of its own (absolute, fixed,
+    // sticky: a menu panel, a tooltip, a stamp on a drawing) sits on top by design, and a box
+    // inside the other is not a crossing. A transformed box (the life stamp's tilted text) is left
+    // out too: its rectangle is the bounding box of the rotated shape, which covers the next line
+    // although the lines themselves do not touch. An inline text counts line by line, each line
+    // one line-height tall around its middle, so a tight heading's ink does not touch the next.
+    const CONTROL =
+      'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"]';
+    const inLayer = (element: Element) => {
+      for (let node: Element | null = element; node && node !== document.body;) {
+        const style = getComputedStyle(node);
+        if (['absolute', 'fixed', 'sticky'].includes(style.position)) return true;
+        if ([style.transform, style.rotate, style.scale].some((value) => value !== 'none')) {
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
+    const boxesOf = (element: Element) => {
+      const style = getComputedStyle(element);
+      if (style.display !== 'inline') return [element.getBoundingClientRect()];
+      const half =
+        (style.lineHeight === 'normal'
+          ? 1.2 * parseFloat(style.fontSize)
+          : parseFloat(style.lineHeight)) / 2;
+      return [...element.getClientRects()]
+        .filter((line) => line.width > 0)
+        .map((line) => {
+          const middle = line.top + line.height / 2;
+          return new DOMRect(line.left, middle - half, line.width, 2 * half);
+        });
+    };
+    const placed = elements
+      .filter((element) => (element.matches(CONTROL) || hasOwnText(element)) && !inLayer(element))
+      .map((element) => ({ element, boxes: boxesOf(element) }));
+    for (const [index, a] of placed.entries()) {
+      for (const b of placed.slice(index + 1)) {
+        if (a.element.contains(b.element) || b.element.contains(a.element)) continue;
+        const crossing = a.boxes.some((one) =>
+          b.boxes.some(
+            (other) =>
+              Math.min(one.right, other.right) - Math.max(one.left, other.left) > 2 &&
+              Math.min(one.bottom, other.bottom) - Math.max(one.top, other.top) > 2
+          )
+        );
+        if (crossing) {
+          problems.push({
+            check: 'overlap',
+            element: describe(a.element),
+            detail: `crosses ${describe(b.element)}`,
+          });
+        }
+      }
+    }
+
+    // A word of a language broken across two lines although it would fit on one line of its
+    // column. The column is the nearest box whose width does not come from its content (not
+    // inline, not a table cell, not a flex item, not absolutely positioned), less the padding and
+    // borders of the boxes in between: the most room a line of this text can get by wrapping.
+    // A word longer than that has to break and is not listed; e-mail addresses, numbers and ids
+    // (anything but letters) are not words here, and `break-all` text breaks by design.
+    const columnOf = (start: Element) => {
+      let inset = 0;
+      for (let node: Element | null = start; node && node !== document.body;) {
+        const style = getComputedStyle(node);
+        const parent: Element | null = node.parentElement;
+        // A flex item's width starts from its content; a grid item's is its track's, which the
+        // grid sets (a grid's own width is its column for what it holds).
+        const sizedByContent =
+          style.display.startsWith('inline') ||
+          style.display.startsWith('table') ||
+          /flex/.test(parent ? getComputedStyle(parent).display : '') ||
+          ['absolute', 'fixed'].includes(style.position);
+        const own =
+          parseFloat(style.paddingLeft) +
+          parseFloat(style.paddingRight) +
+          parseFloat(style.borderLeftWidth) +
+          parseFloat(style.borderRightWidth);
+        if (!sizedByContent) return node.getBoundingClientRect().width - own - inset;
+        if (style.display !== 'inline') inset += own;
+        node = parent;
+      }
+      return document.documentElement.clientWidth - inset;
+    };
+    const WORD = /^[\p{L}\p{M}'’]{2,}$/u;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    const reported = new Set<Element>();
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      const parent = text.parentElement;
+      if (!parent || reported.has(parent) || !visible(parent) || fixedOrInSvg(parent)) continue;
+      const style = getComputedStyle(parent);
+      if (style.wordBreak === 'break-all' || style.whiteSpace.startsWith('nowrap')) continue;
+      if (parent.closest('script, style, noscript')) continue;
+      const content = text.textContent ?? '';
+      for (const match of content.matchAll(/[^\s\-‐‑–—/]+/gu)) {
+        const lead = match[0].search(/[\p{L}\p{M}]/u);
+        if (lead < 0) continue;
+        const word = match[0].slice(lead).replace(/[^\p{L}\p{M}'’]+$/u, '');
+        if (!WORD.test(word)) continue;
+        // The whole run up to the next break opportunity, punctuation glued to the word included
+        // ("[Catalogue" cannot break before its letters either).
+        range.setStart(text, match.index);
+        range.setEnd(text, match.index + match[0].length);
+        const lines = [...range.getClientRects()].filter((line) => line.width > 0);
+        const tops = new Set(lines.map((line) => Math.round(line.top / 2)));
+        if (tops.size < 2) continue;
+        const width = lines.reduce((sum, line) => sum + line.width, 0);
+        const column = columnOf(parent);
+        // Within a pixel of the column is a word that just does not fit (rounding).
+        if (width > column - 1) continue;
+        reported.add(parent);
+        problems.push({
+          check: 'brokenWord',
+          element: describe(parent),
+          detail: `"${match[0]}" breaks across ${tops.size} lines though it is ${Math.round(width)} px and its column has ${Math.round(column)} px`,
+        });
+        break;
       }
     }
 
@@ -389,7 +551,9 @@ export async function useViewport(page: Page, viewport: Viewport): Promise<void>
       fixed: Math.round(DEFAULT_FONT.fixed * zoom),
     },
   });
-  await page.evaluate(
-    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-  );
+  // The fonts first (a font swapping in late would move every line), then two frames.
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
 }

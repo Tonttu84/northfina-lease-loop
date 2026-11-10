@@ -130,6 +130,15 @@ for (const [name, setup] of Object.entries(PAGES)) {
         const where = `${locale} ${viewport.name}`;
         problems.push(...report.problems.map((p) => ({ ...p, where })));
         metrics.push({ ...report.metrics, where });
+        // Where the header's links fold into its menu, the page again with the menu open: the
+        // open panel is the only way to the links there.
+        const menu = page.locator('details[data-nav-menu]');
+        if (await menu.isVisible()) {
+          await menu.evaluate((details) => details.setAttribute('open', ''));
+          const opened = await checkLayout(page, { phone: viewport.width <= 430 });
+          problems.push(...opened.problems.map((p) => ({ ...p, where: `${where} menu open` })));
+          await menu.evaluate((details) => details.removeAttribute('open'));
+        }
       }
     }
 
@@ -153,22 +162,28 @@ async function metricsAt(page: Page, path: string, viewport: Viewport, locale = 
   return (await checkLayout(page, { phone: false })).metrics;
 }
 
-test('the header keeps one row at 768 px when someone is signed in', async ({ page, actAs }) => {
+test('the header keeps one row when someone is signed in', async ({ page, actAs }) => {
   // Issue 19: signed in, the nav gains "My leases" ("All leases" for the admin) and "Account" in
   // place of "Sign in"; that must not wrap the header onto a second row in a shipped language.
+  // 768 px is the tablet that wrapped; 1024 px is where the links come out of the menu (D99),
+  // 1100 px a width between that and the 1280 px laptop.
   const grown: string[] = [];
-  for (const locale of SHIPPED) {
-    await actAs(null);
-    const signedOut = (await metricsAt(page, '/catalogue', TABLET, locale)).headerHeight;
-    for (const actor of ['cust-aino', 'admin']) {
-      await actAs(actor);
-      const signedIn = (await metricsAt(page, '/catalogue', TABLET, locale)).headerHeight;
-      if (signedIn !== signedOut) {
-        grown.push(`${locale} as ${actor}: ${signedIn} px, signed out ${signedOut} px`);
+  for (const screen of [TABLET, wide(1024), wide(1100)]) {
+    for (const locale of SHIPPED) {
+      await actAs(null);
+      const signedOut = (await metricsAt(page, '/catalogue', screen, locale)).headerHeight;
+      for (const actor of ['cust-aino', 'admin']) {
+        await actAs(actor);
+        const signedIn = (await metricsAt(page, '/catalogue', screen, locale)).headerHeight;
+        if (signedIn !== signedOut) {
+          grown.push(
+            `${screen.width} px ${locale} as ${actor}: ${signedIn} px, signed out ${signedOut} px`
+          );
+        }
       }
     }
   }
-  expect(grown, `the header grows when signed in at 768 px:\n${grown.join('\n')}`).toEqual([]);
+  expect(grown, `the header grows when signed in:\n${grown.join('\n')}`).toEqual([]);
 });
 
 test('wide screens get wider lists and keep narrow forms (D98)', async ({ page }) => {
@@ -182,9 +197,11 @@ test('wide screens get wider lists and keep narrow forms (D98)', async ({ page }
     'catalogue 2560': (await metricsAt(page, '/catalogue', wide(2560))).contentWidth,
     'sign in 2560': (await metricsAt(page, '/login', wide(2560))).contentWidth,
     'my leases 2560': 0,
+    'contract 2560': 0,
   };
-  await runCardByRoute(page, 1);
+  const contract = (await runCardByRoute(page, 1)).landing;
   width['my leases 2560'] = (await metricsAt(page, '/leases', wide(2560))).contentWidth;
+  width['contract 2560'] = (await metricsAt(page, contract, wide(2560))).contentWidth;
 
   expect({ columns, width }).toEqual({
     // From 1536 px (Tailwind's `2xl`) the catalogue shows four columns; below it, three.
@@ -196,8 +213,10 @@ test('wide screens get wider lists and keep narrow forms (D98)', async ({ page }
       // below (the catalogue 1152 px, my leases 896 px)...
       'catalogue 2560': 1280,
       'my leases 2560': 1280,
-      // ...and a form keeps its narrow column (`max-w-2xl`, 672 px).
+      // ...and a form keeps its narrow column (`max-w-2xl`, 672 px)...
       'sign in 2560': 672,
+      // ...and so does the contract, which reads like a document (`max-w-5xl`, 1024 px).
+      'contract 2560': 1024,
     },
   });
 });
