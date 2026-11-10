@@ -4,7 +4,9 @@
 // no sideways scroll, nothing sticking out of the viewport (not even during an animation), no text
 // escaping its box, no tap target under 24 px on a phone, no text that ignores the reader's size.
 // What the content does with a wide screen is measured and attached to the report
-// (`layout-metrics`), not asserted: that is a design rule, not breakage.
+// (`layout-metrics`); two design rules on top of it are asserted at the end of the file: the
+// header keeps one row at 768 px when someone is signed in (issue 19), and wide screens get wider
+// lists and keep narrow forms (D98).
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
@@ -15,6 +17,7 @@ import {
   VIEWPORTS,
   type LayoutMetrics,
   type LayoutProblem,
+  type Viewport,
 } from './layout';
 
 test.describe.configure({ timeout: 300_000 });
@@ -137,3 +140,64 @@ for (const [name, setup] of Object.entries(PAGES)) {
     expect(problems, `layout problems on ${name}:\n${format(problems)}`).toEqual([]);
   });
 }
+
+// Design rules on top of "nothing breaks": what the metrics above only report, pinned.
+const TABLET: Viewport = { name: 'tablet', width: 768, height: 1024 };
+const SHIPPED = LOCALES.filter((locale) => !locale.startsWith('qps-'));
+const wide = (width: number): Viewport => ({ name: `${width}`, width, height: 1080 });
+
+/** The layout metrics of a page (path without the locale) at one viewport. */
+async function metricsAt(page: Page, path: string, viewport: Viewport, locale = 'en') {
+  await useViewport(page, viewport);
+  await page.goto(`/${locale}${path}`);
+  return (await checkLayout(page, { phone: false })).metrics;
+}
+
+test('the header keeps one row at 768 px when someone is signed in', async ({ page, actAs }) => {
+  // Issue 19: signed in, the nav gains "My leases" ("All leases" for the admin) and "Account" in
+  // place of "Sign in"; that must not wrap the header onto a second row in a shipped language.
+  const grown: string[] = [];
+  for (const locale of SHIPPED) {
+    await actAs(null);
+    const signedOut = (await metricsAt(page, '/catalogue', TABLET, locale)).headerHeight;
+    for (const actor of ['cust-aino', 'admin']) {
+      await actAs(actor);
+      const signedIn = (await metricsAt(page, '/catalogue', TABLET, locale)).headerHeight;
+      if (signedIn !== signedOut) {
+        grown.push(`${locale} as ${actor}: ${signedIn} px, signed out ${signedOut} px`);
+      }
+    }
+  }
+  expect(grown, `the header grows when signed in at 768 px:\n${grown.join('\n')}`).toEqual([]);
+});
+
+test('wide screens get wider lists and keep narrow forms (D98)', async ({ page }) => {
+  const columns = {
+    1440: (await metricsAt(page, '/catalogue', wide(1440))).gridColumns,
+    1920: (await metricsAt(page, '/catalogue', wide(1920))).gridColumns,
+    2560: (await metricsAt(page, '/catalogue', wide(2560))).gridColumns,
+  };
+  const width = {
+    'catalogue 1440': (await metricsAt(page, '/catalogue', wide(1440))).contentWidth,
+    'catalogue 2560': (await metricsAt(page, '/catalogue', wide(2560))).contentWidth,
+    'sign in 2560': (await metricsAt(page, '/login', wide(2560))).contentWidth,
+    'my leases 2560': 0,
+  };
+  await runCardByRoute(page, 1);
+  width['my leases 2560'] = (await metricsAt(page, '/leases', wide(2560))).contentWidth;
+
+  expect({ columns, width }).toEqual({
+    // From 1536 px (Tailwind's `2xl`) the catalogue shows four columns; below it, three.
+    columns: { 1440: 3, 1920: 4, 2560: 4 },
+    width: {
+      // Below 1536 px nothing changes: the catalogue keeps its 1152 px (`max-w-6xl`).
+      'catalogue 1440': 1152,
+      // From 1536 px a list page caps its content at 1280 px (`max-w-7xl`), whatever its cap
+      // below (the catalogue 1152 px, my leases 896 px)...
+      'catalogue 2560': 1280,
+      'my leases 2560': 1280,
+      // ...and a form keeps its narrow column (`max-w-2xl`, 672 px).
+      'sign in 2560': 672,
+    },
+  });
+});
