@@ -1,5 +1,5 @@
 // Card 1 as the judges see it: the Run button on the demo page, the steps it lists, the link to
-// the contract, and the contract page with the numbers the README Status table pins (net 10 730,
+// the contract, and the contract page with the numbers docs/scenarios.md pins (net 10 730,
 // gross 13 466 twice, then 13 520 from January 2027 at 26 % VAT). A second click is refused and
 // links the first run's contract (D70).
 import { expect, runCard, test } from './fixtures';
