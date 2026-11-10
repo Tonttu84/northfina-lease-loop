@@ -2,7 +2,7 @@
 
 ## What it does
 
-Names the demo mode and switches it as one thing, puts the usual security headers on every response, signs the actor cookie so it cannot be written by hand, keeps a visitor's personal data out of the public audit log, and caps what one client may write. None of it is a login: D17 stands, the "continue as" picker is the demo's way in, and the policy in [authorization.md](authorization.md) decides what each actor may do.
+Names the demo mode and switches it as one thing, puts the usual security headers on every response, signs the actor cookie so it cannot be written by hand, keeps a visitor's personal data out of the public audit log, and caps what one client may write. None of it is a login: D17 stands, the "continue as" picker is the demo's way in, and the policy in [authorization.md](authorization.md) decides what each actor may do. Every security feature of the app, this page's and the others', is summed up with its threat, its test and a one-minute demo in [the security overview](../security-overview.md).
 
 ## The rule
 
