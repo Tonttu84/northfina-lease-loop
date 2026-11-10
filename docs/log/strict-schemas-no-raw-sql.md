@@ -30,10 +30,29 @@ Branch `test/strict-schemas-no-raw-sql` from `origin/main` at `ee83059`, worktre
 - 13:06 to 13:08 fail first: findings 1 to 6 planted together with a script in the session's scratchpad (the reviewer's holes, plus `better-sqlite3`). `tests/meta-rules.test.ts` stayed 19/19 green. Finding 7 planted alone, a self-recursive loose `z.lazy` in the login body: red with only "RangeError: Maximum call stack size exceeded".
 - 13:08 to 13:14 the fixes. The walker and the tracer moved to `tests/helpers/strict-body.ts`, with their tests (the four old ones unchanged, seven new) in `tests/strict-body.test.ts`; with the fixes, `tests/meta-rules.test.ts` would have gone over 600 lines. The trace follows each schema through the route file's own import, refuses a local declaration, fails on `request.json()` and the like and on a call it cannot trace, and checks that every table row with a body is parsed. The walker flags open values, `.catch()`, loose records and any-string keys behind a union or a pipe, and keeps the path's definitions so recursion is walked once. The raw-SQL scan cuts comments out of a line instead of skipping it, and also fails on a `better-sqlite3` import. `git ls-files` has `timeout: 20_000`. All seven holes planted again: three tests red with 16 findings, each naming the route or the file and line. Reverted, green. Commit `7fa9dcf`.
 - 13:14 to 13:16 the docs: the overview's validation and raw-SQL sections and the feature page say what the tests catch and cannot (a `z.preprocess` fails as an open value, a renamed `readJsonBody` import and server code handed the request are not seen, a `//` in a string hides the rest of its line). D97 cites PR #23.
-- 13:17 to 13:19 `npm run check:all` green: format, lint, typecheck, file size, no-AI, secrets, 171 test files with 2,019 tests, coverage 97.73 % lines, build. Then the push, the **Reviewed** line in the PR body, and CI. A re-review of the fixed head is the coordinator's to start.
+- 13:17 to 13:19 `npm run check:all` green: format, lint, typecheck, file size, no-AI, secrets, 171 test files with 2,019 tests, coverage 97.73 % lines, build. Then the push, the **Reviewed** line in the PR body, and CI (green on `3eef2c6`).
+
+## The re-review and its fixes
+
+- By 13:44 read the second fresh review, of `3eef2c6`. Verdict: approve with fixes; all nine findings confirmed fixed by planting each hole again. It found five new things:
+  1. Low regression: the comment cut treated a `//` or `/*` inside a string as a comment.
+  2. Low gap: a raw body read through a cast, a clone or a line break passed in a handler with no body row, and so did one in `src/server`.
+  3. Low gap: a renamed `readJsonBody` import hid an untraced read.
+  4. Nit: `bodyReadsIn` read comments as code.
+  5. Nit: the docs (the overview's Where and Proof, D97's decision text, this log).
+
+  Note 6 (the forward check matches a row by path, not method) is left as a note.
+
+- 13:44 to 13:45 fail first, with a second plant script in the scratchpad: the reviewer's two string lines in `src/server/quotes.ts`, `(request as Request).json()` and `request.clone().json()` in the actor route's `DELETE`, a `r.clone().json()` helper in `src/server/actor.ts`, and `readJsonBody as rj` in the demo-clock route. `tests/meta-rules.test.ts` stayed 15/15 green. The comment "Never call request.json() here" above the quotes route's `POST` was red: the false positive.
+- 13:45 to 13:47 the fixes: `codeLines` in `tests/helpers/code-text.ts` cuts comments only outside strings and template literals, and both the raw-SQL scan and `bodyReadsIn` read it. `RAW_BODY_READ` matches `.json()` and its kin on anything, and `.body` except a spread and `route.body` (`src/server/openapi.ts` reads the table's schema there). It runs on every `route.ts` and every non-test file in `src/server` but `api-response.ts`. A renamed `readJsonBody` or `readBodyText` fails. Holes planted again: two tests red, naming `src/app/api/actor/route.ts`, `src/app/api/demo/clock/route.ts` (renamed reader), `src/server/actor.ts:97` and `src/server/quotes.ts:312` and `:313`; the comment no longer fails. Reverted, green. Commit `794bf78`.
+- 13:47 to 13:50 the docs: the overview's Where and Proof name the helpers and `tests/strict-body.test.ts`. The Limits drop what the fixes catch (a renamed reader, server code, a `//` in a string). D97's decision text says what the tests do now.
 
 ## Left undone
 
 - `dangerouslySetInnerHTML` is still checked by the grep only; issue 17 asked for raw SQL, so no meta test was added for it.
 - Query strings and route params stay `z.object` (unknown query keys are dropped, not refused); the issue is about bodies.
 - `scripts/` is not scanned for raw SQL: `scripts/tamper-audit.mjs` is the tamper demo and needs it.
+- The tests read source text and schema definitions, not requests, so a few things are out of reach:
+  - a body read outside `src/app/api` and `src/server`;
+  - what a `z.preprocess` function does (it fails as an open value instead);
+  - a route file with two methods that both take a body, whose schemas could be swapped (re-review note 6: the forward check matches a row by path, not by method; no route has two today).
