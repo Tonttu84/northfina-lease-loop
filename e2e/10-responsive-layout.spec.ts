@@ -227,3 +227,35 @@ test('wide screens get wider lists and keep narrow forms (D98)', async ({ page }
     },
   });
 });
+
+test("the passport card's arrow is hidden or beside its text", async ({ page }) => {
+  // PR 27's third review: with the card's row wrapping, the arrow wrapped alone onto a second
+  // row under the booklet (320 px at 100 % text, 480 px at 150 %, 640 px at 200 %) although
+  // nothing overlapped or overflowed. Shown, its top must be above the bottom of the text.
+  const alone: string[] = [];
+  for (const locale of LOCALES) {
+    await useViewport(page, VIEWPORTS[0]!);
+    await page.goto(`/${locale}/assets/ebike-008`);
+    for (const viewport of VIEWPORTS) {
+      await useViewport(page, viewport);
+      const place = await page.evaluate(() => {
+        const card = document.querySelector('main a[href$="/passport"]')!;
+        const arrow = [...card.querySelectorAll('span[aria-hidden="true"]')].find(
+          (span) => span.textContent?.trim() === '→'
+        )!;
+        const text = card.querySelector('span.font-heading')!.parentElement!;
+        if (!arrow.checkVisibility()) return null;
+        return {
+          arrowTop: Math.round(arrow.getBoundingClientRect().top),
+          textBottom: Math.round(text.getBoundingClientRect().bottom),
+        };
+      });
+      if (place && place.arrowTop >= place.textBottom) {
+        alone.push(
+          `${locale} ${viewport.name}: the arrow's top ${place.arrowTop} px, the text's bottom ${place.textBottom} px`
+        );
+      }
+    }
+  }
+  expect(alone, `the passport card's arrow on a row of its own:\n${alone.join('\n')}`).toEqual([]);
+});
