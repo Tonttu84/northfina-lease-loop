@@ -141,67 +141,79 @@ describe('.husky hooks', () => {
   );
 });
 
-describe('.husky/pre-push checks the message of every commit being pushed (D102)', () => {
-  let scratch: string | undefined;
-  /** Git in the scratch repository, with no global or system config (no user hooks, no signing). */
-  const git = (...args: string[]) =>
-    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], {
-      cwd: scratch,
-      encoding: 'utf8',
-      timeout: SPAWN_TIMEOUT_MS,
-      env: {
-        ...process.env,
-        GIT_CONFIG_NOSYSTEM: '1',
-        GIT_CONFIG_GLOBAL: path.join(scratch!, '.gc'),
-      },
-    }).trim();
-  /** Makes an empty commit with `message` and returns its SHA. */
-  const commit = (message: string) => {
-    git('commit', '-q', '--allow-empty', '-m', message);
-    return git('rev-parse', 'HEAD');
-  };
-  /** The line git writes to pre-push's stdin for a push of `localSha` over `remoteSha`. */
-  const pushLine = (localSha: string, remoteSha = '0'.repeat(40)) =>
-    `refs/heads/main ${localSha} refs/heads/main ${remoteSha}\n`;
+// Each test spawns several git and bash processes, which took 5.3 s under full-suite load on
+// Windows: a deadline of two spawn limits instead of Vitest's 5 s.
+const PUSH_TEST_TIMEOUT_MS = 2 * SPAWN_TIMEOUT_MS;
 
-  beforeAll(() => {
-    scratch = mkdtempSync(path.join(tmpdir(), 'lease-loop-push-'));
-    writeFileSync(path.join(scratch, '.gc'), '');
-    git('init', '-q', '-b', 'main');
-    mkdirSync(path.join(scratch, '.husky'));
-    cpSync(path.join(repoRoot, '.husky', 'pre-push'), path.join(scratch, '.husky', 'pre-push'));
-    cpSync(path.join(repoRoot, '.githooks'), path.join(scratch, '.githooks'), { recursive: true });
-  });
+describe(
+  '.husky/pre-push checks the message of every commit being pushed (D102)',
+  {
+    timeout: PUSH_TEST_TIMEOUT_MS,
+  },
+  () => {
+    let scratch: string | undefined;
+    /** Git in the scratch repository, with no global or system config (no user hooks, no signing). */
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], {
+        cwd: scratch,
+        encoding: 'utf8',
+        timeout: SPAWN_TIMEOUT_MS,
+        env: {
+          ...process.env,
+          GIT_CONFIG_NOSYSTEM: '1',
+          GIT_CONFIG_GLOBAL: path.join(scratch!, '.gc'),
+        },
+      }).trim();
+    /** Makes an empty commit with `message` and returns its SHA. */
+    const commit = (message: string) => {
+      git('commit', '-q', '--allow-empty', '-m', message);
+      return git('rev-parse', 'HEAD');
+    };
+    /** The line git writes to pre-push's stdin for a push of `localSha` over `remoteSha`. */
+    const pushLine = (localSha: string, remoteSha = '0'.repeat(40)) =>
+      `refs/heads/main ${localSha} refs/heads/main ${remoteSha}\n`;
 
-  afterAll(() => {
-    if (scratch) rmSync(scratch, { recursive: true, force: true });
-  });
+    beforeAll(() => {
+      scratch = mkdtempSync(path.join(tmpdir(), 'lease-loop-push-'));
+      writeFileSync(path.join(scratch, '.gc'), '');
+      git('init', '-q', '-b', 'main');
+      mkdirSync(path.join(scratch, '.husky'));
+      cpSync(path.join(repoRoot, '.husky', 'pre-push'), path.join(scratch, '.husky', 'pre-push'));
+      cpSync(path.join(repoRoot, '.githooks'), path.join(scratch, '.githooks'), {
+        recursive: true,
+      });
+    }, PUSH_TEST_TIMEOUT_MS);
 
-  it('refuses a new branch whose tip has a bad message, before any npm check', () => {
-    const bad = commit('Added the pricing page.');
-    const { status, calls } = runPrePush(null, { cwd: scratch, input: pushLine(bad) });
-    expect(status).not.toBe(0);
-    expect(calls).toEqual([]);
-  });
-
-  it('refuses a bad message anywhere in the pushed range, not only at the tip', () => {
-    const base = commit('feat(pricing): the base the remote already has');
-    commit('wip');
-    const tip = commit('fix(pricing): a good tip');
-    const { status, calls } = runPrePush(null, { cwd: scratch, input: pushLine(tip, base) });
-    expect(status).not.toBe(0);
-    expect(calls).toEqual([]);
-  });
-
-  it('passes good messages on to the four checks', () => {
-    const base = commit('test(pricing): a good base');
-    const tip = commit('feat(pricing): a good tip');
-    const { status, calls, stdout } = runPrePush(null, {
-      cwd: scratch,
-      input: pushLine(tip, base),
+    afterAll(() => {
+      if (scratch) rmSync(scratch, { recursive: true, force: true });
     });
-    expect(status).toBe(0);
-    expect(calls).toEqual(PRE_PUSH_STEPS);
-    expect(stdout).toContain('Ready to push');
-  });
-});
+
+    it('refuses a new branch whose tip has a bad message, before any npm check', () => {
+      const bad = commit('Added the pricing page.');
+      const { status, calls } = runPrePush(null, { cwd: scratch, input: pushLine(bad) });
+      expect(status).not.toBe(0);
+      expect(calls).toEqual([]);
+    });
+
+    it('refuses a bad message anywhere in the pushed range, not only at the tip', () => {
+      const base = commit('feat(pricing): the base the remote already has');
+      commit('wip');
+      const tip = commit('fix(pricing): a good tip');
+      const { status, calls } = runPrePush(null, { cwd: scratch, input: pushLine(tip, base) });
+      expect(status).not.toBe(0);
+      expect(calls).toEqual([]);
+    });
+
+    it('passes good messages on to the four checks', () => {
+      const base = commit('test(pricing): a good base');
+      const tip = commit('feat(pricing): a good tip');
+      const { status, calls, stdout } = runPrePush(null, {
+        cwd: scratch,
+        input: pushLine(tip, base),
+      });
+      expect(status).toBe(0);
+      expect(calls).toEqual(PRE_PUSH_STEPS);
+      expect(stdout).toContain('Ready to push');
+    });
+  }
+);
