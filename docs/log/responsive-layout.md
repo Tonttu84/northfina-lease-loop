@@ -1,0 +1,23 @@
+# Responsive layout: time log
+
+Branch `test/responsive-layout` from `origin/main` at `f58503b`, worktree `.claude/worktrees/responsive`. Real clock (Helsinki), 2026-11-10. The user asked whether the frontend is truly responsive (any screen size, any language, the reader's text size) and wants it proven by automated tests, not by someone looking at screenshots.
+
+- 10:13 worktree and branch, `npm run setup`.
+- 10:13 to 10:20 the first version of `e2e/layout.ts` (sideways scroll, out of the viewport, text overflow, tap targets on phones) and `e2e/10-responsive-layout.spec.ts` (19 pages, each as its actor, the cards run through `/api/demo/cards/N/run`, nine screen sizes).
+- 10:20 to 10:30 run 1 on the built app: 19 of 19 failed, mostly a false positive (the screen-reader-only 1 px boxes, now excluded). Real: the audit chain's "anchored" badge spills in Finnish, Swedish and Estonian at 320 px on `/demo` and `/audit`; the item page's life stamp spills only during its `stamp-press` animation (`scale(1.18)` for about 400 ms), which led to the `animatedOverflow` check.
+- 10:30 to 10:35 the text sizes (150 %, 200 % on 390, 768 and 1280 px), every language, the vertical and `textNotScaling` checks, and pseudo-localization (D95): `src/i18n/pseudo.ts` with its tests, the gate in `isLocale`, `translated` for the question texts.
+- 10:30 a second agent session takes over: AGENTS.md, the state of the worktree. The padding word `ťéẋť` (ẋ is U+1E8B, outside the fonts' `latin-ext`) becomes `ťéšť`; `translated('qps-long', …)` is pinned as `[Möoñťĥľýy íiñçöomée ľöñğ ťéšť]`; a new test holds every character of `qps-long` to ASCII, Latin-1, Latin Extended-A or the English file's own. `vitest run src/i18n`: 39 tests green; lint and typecheck green.
+- 10:31 to 10:36 run 2, with the build (`.next/BUILD_ID` at 10:32): 19 of 19 failed in 287 s, 2 768 findings. While it ran: the D95 row, the STATUS row, the README and feature-list lines, spec 10 in `e2e-tests.md`.
+- 10:36 to 10:41 each check vetted on examples in a throwaway spec. Four false positives, fixed in `e2e/layout.ts`: the content of a closed `<details>` (the header's menu, the price breakdown) is laid out but not shown, so the checks now skip what `checkVisibility()` hides; 468 `textOverlapsBelow` findings were 4 to 7 px of glyph ink under tight heading line heights (the next element starts 32 px below), so vertical overflow now needs more than half a line; the leases rows' links are stretched over their card by an absolute `::after`, and the 13 to 16 px radios sit in 44 px labels, so the tap area now takes the label and the stretched box; WCAG 2.5.8's spacing exception is applied. Confirmed real: the life stamp's first keyframe, the badge (the page 382 px wide at 320 px), and `textNotScaling` catching an injected 14 px text.
+- 10:41 to 10:46 run 3 (`E2E_SKIP_BUILD=1`, only test code changed): 294 s; no `textOverlapsBelow` or `smallTargets` left. A tablet at 150 % text squeezed a two-column grid to 14 px cells: the text size was a `font-size` on `<html>`, which does not move the rem breakpoints, so no reader would see that layout. Vetted `Page.setFontSizes` (the browser's own setting): the breakpoints move and the tablet gets the phone header. `useViewport` now uses it.
+- 10:48 run 4 stopped at once: the protocol refuses 19.5 px (13 × 1.5); rounded. 10:51 to 10:56 run 4: 19 of 19 failed in 316 s, 739 findings (150 page scroll, 414 out of the viewport, 241 text overflow, 84 animation). 10:56 to 10:58 a last vet (two injected 16 px buttons side by side are still flagged), the wide-screen metrics.
+- 10:58 to 10:59 the other specs on the same build: 13 passed in 1.2 min; the pseudo-languages broke nothing.
+- 10:59 to 11:00 `docs/features/responsive-layout.md`, the run times in `e2e-tests.md`, this log.
+- 11:01 to 11:02 `npm run check:all` green at the first try: 171 files, 2 020 tests, coverage 96.4 % statements, build.
+- 11:03 commits `2f36b8f` (`feat(i18n)`, D95) and `90fc6b8` (`test(e2e)`); the docs commit with this log closes the session. Nothing pushed.
+
+## Left undone
+
+- The layout findings themselves (the page's open questions list them): fixing them is the next step, the user's decision.
+- A pass with every `<details>` opened (the header menu spills when open at 150 % and 200 % text).
+- The review (AGENTS.md rule 13), the push and the pull request.
