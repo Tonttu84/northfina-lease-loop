@@ -29,19 +29,19 @@ Handy docs: [Next.js App Router](https://nextjs.org/docs/app), [TypeScript for p
 
 The README lists the six most used; this is the full set.
 
-| Command                        | What it does                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `npm run setup`                | Set up a checkout or worktree: dependencies, database, hooks                                     |
-| `npm run dev`                  | Start the app with hot reload                                                                    |
-| `npm test`                     | Run all tests once (`npm run test:watch` to keep them running)                                   |
-| `npm run test:coverage`        | Tests with the 60 % coverage gate                                                                |
-| `npm run test:e2e`             | Build the app and click the pitch run through in Chromium with Playwright                        |
-| `npm run check:all`            | **Everything CI runs.** Run it before you push                                                   |
-| `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D96) |
-| `npm run db:migrate`           | After you change `prisma/schema.prisma`: creates a migration                                     |
-| `npm run db:reset`             | Wipe the local database and seed it again                                                        |
-| `npm run audit:anchor`         | Have a timestamp authority sign the audit head (D81, network)                                    |
-| `npm run db:studio`            | Browse the database in your browser                                                              |
+| Command                        | What it does                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `npm run setup`                | Set up a checkout or worktree: dependencies, database, hooks                                                        |
+| `npm run dev`                  | Start the app with hot reload                                                                                       |
+| `npm test`                     | Run all tests once (`npm run test:watch` to keep them running)                                                      |
+| `npm run test:coverage`        | Tests with the 60 % coverage gate                                                                                   |
+| `npm run test:e2e`             | Build the app and click the pitch run through in Chromium with Playwright (once: `npx playwright install chromium`) |
+| `npm run check:all`            | **Everything CI runs.** Run it before you push                                                                      |
+| `npm audit --audit-level=high` | CI's dependency audit, outside `check:all` (network): fails on a high or critical advisory (D96)                    |
+| `npm run db:migrate`           | After you change `prisma/schema.prisma`: creates a migration                                                        |
+| `npm run db:reset`             | Wipe the local database and seed it again                                                                           |
+| `npm run audit:anchor`         | Have a timestamp authority sign the audit head (D81, network)                                                       |
+| `npm run db:studio`            | Browse the database in your browser                                                                                 |
 
 ### How we worked
 
