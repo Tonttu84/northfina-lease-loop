@@ -227,23 +227,37 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     // Two controls or texts in the page's flow that cross each other: one covers the other (a
     // squeezed <select> drawn over the link beside it). A layer of its own (absolute, fixed,
     // sticky: a menu panel, a tooltip, a stamp on a drawing) sits on top by design, and a box
-    // inside the other is not a crossing. A transformed box (the life stamp's tilted text) is left
-    // out too: its rectangle is the bounding box of the rotated shape, which covers the next line
-    // although the lines themselves do not touch. An inline text counts line by line, each line
-    // one line-height tall around its middle, so a tight heading's ink does not touch the next.
+    // inside the other is not a crossing. A transformed box (the life stamp's tilted text) is
+    // measured untransformed: a transform does not move a box in the layout, and a rotated box's
+    // rectangle is the bounding box of the rotated shape, which would cover the next line. An
+    // inline text counts line by line, each line one line-height tall around its middle, so a
+    // tight heading's ink does not touch the next.
     const CONTROL =
       'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"]';
     const inLayer = (element: Element) => {
       for (let node: Element | null = element; node && node !== document.body;) {
-        const style = getComputedStyle(node);
-        if (['absolute', 'fixed', 'sticky'].includes(style.position)) return true;
-        if ([style.transform, style.rotate, style.scale].some((value) => value !== 'none')) {
-          return true;
-        }
+        if (['absolute', 'fixed', 'sticky'].includes(getComputedStyle(node).position)) return true;
         node = node.parentElement;
       }
       return false;
     };
+    // Every transform off for the measuring (an inline `!important` beats an animation's fill),
+    // put back afterwards. An identity matrix (an animation's settled `scale(1)`) is no transform.
+    const TRANSFORMS = ['transform', 'rotate', 'scale', 'translate'];
+    const moved = [...document.body.querySelectorAll('*')].filter((element) => {
+      const style = getComputedStyle(element);
+      if (style.transform !== 'none' && !new DOMMatrix(style.transform).isIdentity) return true;
+      return [style.rotate, style.scale, style.translate].some((value) => value !== 'none');
+    }) as (HTMLElement | SVGElement)[];
+    const saved = moved.map((element) =>
+      TRANSFORMS.map((name) => [
+        element.style.getPropertyValue(name),
+        element.style.getPropertyPriority(name),
+      ])
+    );
+    for (const element of moved) {
+      for (const name of TRANSFORMS) element.style.setProperty(name, 'none', 'important');
+    }
     const boxesOf = (element: Element) => {
       const style = getComputedStyle(element);
       if (style.display !== 'inline') return [element.getBoundingClientRect()];
@@ -261,6 +275,13 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     const placed = elements
       .filter((element) => (element.matches(CONTROL) || hasOwnText(element)) && !inLayer(element))
       .map((element) => ({ element, boxes: boxesOf(element) }));
+    moved.forEach((element, index) => {
+      TRANSFORMS.forEach((name, at) => {
+        const [value, priority] = saved[index]![at]!;
+        if (value) element.style.setProperty(name, value, priority);
+        else element.style.removeProperty(name);
+      });
+    });
     for (const [index, a] of placed.entries()) {
       for (const b of placed.slice(index + 1)) {
         if (a.element.contains(b.element) || b.element.contains(a.element)) continue;
@@ -282,31 +303,26 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     }
 
     // A word of a language broken across two lines although it would fit on one line of its
-    // column. The column is the nearest box whose width does not come from its content (not
-    // inline, not a table cell, not a flex item, not absolutely positioned), less the padding and
-    // borders of the boxes in between: the most room a line of this text can get by wrapping.
-    // A word longer than that has to break and is not listed; e-mail addresses, numbers and ids
-    // (anything but letters) are not words here, and `break-all` text breaks by design.
+    // column. The column is the widest line the word could have had: the viewport less the
+    // padding and borders of every box around the text. Every width chosen in between (a flex
+    // item squeezed by its neighbour, a grid track, a fixed width, a max-width, an inline-block)
+    // is a choice the layout could make differently, as a squeezed label did before its value
+    // learned to move under it; padding is the design's. A word longer than the column has to
+    // break and is not listed; e-mail addresses, numbers and ids (anything but letters) are not
+    // words here, a soft hyphen (U+00AD) marks a place a word may break, and `break-all` text
+    // breaks by design.
     const columnOf = (start: Element) => {
       let inset = 0;
       for (let node: Element | null = start; node && node !== document.body;) {
         const style = getComputedStyle(node);
-        const parent: Element | null = node.parentElement;
-        // A flex item's width starts from its content; a grid item's is its track's, which the
-        // grid sets (a grid's own width is its column for what it holds).
-        const sizedByContent =
-          style.display.startsWith('inline') ||
-          style.display.startsWith('table') ||
-          /flex/.test(parent ? getComputedStyle(parent).display : '') ||
-          ['absolute', 'fixed'].includes(style.position);
-        const own =
-          parseFloat(style.paddingLeft) +
-          parseFloat(style.paddingRight) +
-          parseFloat(style.borderLeftWidth) +
-          parseFloat(style.borderRightWidth);
-        if (!sizedByContent) return node.getBoundingClientRect().width - own - inset;
-        if (style.display !== 'inline') inset += own;
-        node = parent;
+        if (style.display !== 'inline') {
+          inset +=
+            parseFloat(style.paddingLeft) +
+            parseFloat(style.paddingRight) +
+            parseFloat(style.borderLeftWidth) +
+            parseFloat(style.borderRightWidth);
+        }
+        node = node.parentElement;
       }
       return document.documentElement.clientWidth - inset;
     };
@@ -321,7 +337,7 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       if (style.wordBreak === 'break-all' || style.whiteSpace.startsWith('nowrap')) continue;
       if (parent.closest('script, style, noscript')) continue;
       const content = text.textContent ?? '';
-      for (const match of content.matchAll(/[^\s\-‐‑–—/]+/gu)) {
+      for (const match of content.matchAll(/[^\s\-‐‑–—/­]+/gu)) {
         // Punctuation glued to either end ("[Catalogue", "lõpus?") is not part of the word; a
         // digit is, so a hash ("37ce…22") or an id is no word of a language.
         const word = match[0].replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
