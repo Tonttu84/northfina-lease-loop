@@ -79,10 +79,11 @@ export function ActorPicker({
         value={selected}
         onChange={(event) => setSelected(event.target.value)}
         // 6 rem to start with and never narrower, so the chosen name still shows; it grows into the
-        // room the button leaves, and the button goes under it when there is none.
+        // room the button leaves, and the button goes under it when there is none. Below 640 px
+        // less side padding, so "Aino Virtanen" shows whole on a 320 px phone.
         className={cx(
           inputClasses,
-          'min-h-9 w-auto max-w-56 min-w-24 flex-1 basis-24 py-1 text-sm'
+          'min-h-9 w-auto max-w-56 min-w-24 flex-1 basis-24 py-1 text-sm max-sm:px-2'
         )}
       >
         <option value="">{labels.anonymous}</option>
@@ -99,7 +100,7 @@ export function ActorPicker({
         size="sm"
         pending={pending}
         disabled={!hydrated}
-        // The row does not wrap and the select gives way first: the label stays whole.
+        // The label stays whole: on a narrow row the button goes under the select instead.
         className="shrink-0"
       >
         {selected === '' && current !== 'anonymous' ? labels.clear : labels.submit}

@@ -44,18 +44,19 @@ export function PassportCard({ locale, assetId, title, text, className }: CardPr
     <Link
       href={passportHref(locale, assetId)}
       className={cx(
-        'group flex items-center gap-4 rounded-xl bg-brand p-4 text-brand-contrast shadow-sm transition-colors hover:bg-brand-hover sm:p-5',
+        'group flex flex-wrap items-center gap-4 rounded-xl bg-brand p-4 text-brand-contrast shadow-sm transition-colors hover:bg-brand-hover sm:p-5',
         className
       )}
     >
       <BookletIcon className="h-12 w-10 shrink-0 opacity-90" />
-      <span className="min-w-0 flex-1">
+      {/* Beside the booklet while it has 10 rem and its longest word, else under it. */}
+      <span className="max-w-full flex-1 basis-40">
         <span className="block font-heading text-lg font-semibold">{title}</span>
         <span className="block text-sm opacity-85">{text}</span>
       </span>
       <span
         aria-hidden="true"
-        className="text-2xl transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none"
+        className="text-2xl transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none max-[20rem]:hidden"
       >
         →
       </span>

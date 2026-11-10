@@ -142,7 +142,7 @@ export default async function ApplicationPage({
       {/* The outcome is the page's first heading under the h1; it is there on load, so it
           is not announced as a live region. */}
       <div
-        className={`mb-8 flex items-center gap-5 rounded-xl border-2 p-6 ${PANEL[TONE[decision]]}`}
+        className={`mb-8 flex flex-wrap items-center gap-5 rounded-xl border-2 p-6 ${PANEL[TONE[decision]]}`}
       >
         <span
           aria-hidden="true"
@@ -150,7 +150,8 @@ export default async function ApplicationPage({
         >
           {GLYPH[TONE[decision]]}
         </span>
-        <div className="min-w-0">
+        {/* Beside the icon while it has 10 rem and its longest word, else under it. */}
+        <div className="max-w-full flex-1 basis-40">
           <h2 className="font-heading text-2xl leading-tight font-semibold sm:text-3xl">
             {t(`decision.status.${decision}`)}
           </h2>
