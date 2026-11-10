@@ -122,7 +122,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 - [Browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)
 - [Authorization: who may do what, checked before the action](docs/features/authorization.md)
 - [Accounts: sign in by e-mail link, the confirmed e-mail, the demo outbox](docs/features/accounts.md)
-- [Security: demo mode, the response headers, the signed session, the public audit log, limits](docs/features/security.md)
+- [Security: demo mode, the response headers, the signed session, the public audit log, limits, strict bodies, no raw SQL](docs/features/security.md)
 - [Security overview: every security feature on one page, with its threat, its test and a one-minute demo](docs/security-overview.md)
 
 ## How we worked

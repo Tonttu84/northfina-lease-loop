@@ -16,7 +16,7 @@ You are helping Team LeaseMasters keep building **Lease Loop**, the product we b
 
 ## Team working rules (on top of the organiser's)
 
-The full kick-off brief is `docs/kickoff-brief.md`; the hour-one decisions are `docs/decisions.md`; the stack traps are `docs/stack-notes.md`. The meta rules above are tested: `tests/meta-rules.test.ts` runs in `npm test` and fails on a file over 600 lines, AI in the app, a domain module without a test, an impure domain file, a route without `handleRoute` or a write outside `withAudit`.
+The full kick-off brief is `docs/kickoff-brief.md`; the hour-one decisions are `docs/decisions.md`; the stack traps are `docs/stack-notes.md`. The meta rules above are tested: `tests/meta-rules.test.ts` runs in `npm test` and fails on a file over 600 lines, AI in the app, a domain module without a test, an impure domain file, a route without `handleRoute`, a write outside `withAudit`, a request body schema that lets an unknown key through or raw SQL in app code.
 
 **Priority of sources.** `CHALLENGE.md`, `RULES.md`, `data/DATA.md` and the data pack win. The brief and the decisions file are second. The brief's section 10, the practice repo as a parts bin, was for the hackathon and no longer applies: nothing is ported from `ThomasParratt/leasing-platform` any more, and that clone is not a source here.
 

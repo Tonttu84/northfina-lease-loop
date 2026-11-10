@@ -1,8 +1,8 @@
-# Security: demo mode, the response headers, the signed session, the public audit log, limits
+# Security: demo mode, the response headers, the signed session, the public audit log, limits, strict bodies, no raw SQL
 
 ## What it does
 
-Names the demo mode and switches it as one thing, puts the usual security headers on every response, signs the actor cookie so it cannot be written by hand, keeps a visitor's personal data out of the public audit log, and caps what one client may write. None of it is the login itself, which is the sign-in link ([accounts.md](accounts.md), D93); while the demo tools are on, the "continue as" picker (D17) is the demo's shortcut, and the policy in [authorization.md](authorization.md) decides what each actor may do. Every security feature of the app, this page's and the others', is summed up with its threat, its test and a one-minute demo in [the security overview](../security-overview.md).
+Names the demo mode and switches it as one thing, puts the usual security headers on every response, signs the actor cookie so it cannot be written by hand, keeps a visitor's personal data out of the public audit log, caps what one client may write, and tests that every request body refuses unknown keys and that app code runs no raw SQL. None of it is the login itself, which is the sign-in link ([accounts.md](accounts.md), D93); while the demo tools are on, the "continue as" picker (D17) is the demo's shortcut, and the policy in [authorization.md](authorization.md) decides what each actor may do. Every security feature of the app, this page's and the others', is summed up with its threat, its test and a one-minute demo in [the security overview](../security-overview.md).
 
 ## The rule
 
@@ -20,6 +20,8 @@ Names the demo mode and switches it as one thing, puts the usual security header
 
 **Limits.** The proxy counts the writes (anything but GET, HEAD, OPTIONS) on `/api` per client, the first address of `X-Forwarded-For`, which Next's server fills from the socket when a request carries none, so each address has its own window: at most 120 in a minute, then 429 `RATE_LIMITED` in the API envelope with `Retry-After`. Reads are not counted; one instance holds the one SQLite file, so one memory is the whole truth, and the map never holds more than 10 000 clients (the ended windows go first, then the oldest). It is a nuisance bar against a careless script, not a guarantee: a client that sets the header picks its own bucket. A body over 64 KiB is refused with 413 `PAYLOAD_TOO_LARGE`: before it is read when its declared length says so, once read when it declared none (a chunked body), in `readJsonBody` and the assessment route's own reader; the route handlers themselves put no limit on a body.
 
+**Strict bodies and no raw SQL (issue 17).** Every request body is the `body` schema of its row in the route table (`src/server/routes.ts`), and `tests/meta-rules.test.ts` holds it there. It walks each body schema's Zod definition: an object counts as strict only when its `catchall` is `z.never()`, which is what `z.strictObject()` and `.strict()` set in Zod 4; `z.object()` (unknown keys dropped), `z.looseObject()`, `.passthrough()` and a `catchall` of anything else fail, at any depth, through `optional`, `nullable`, `default`, arrays, unions, pipes and lazies. A `z.record` counts as loose when its keys may be any string, and an unknown Zod type fails rather than passes. A second test follows every `readJsonBody(request, schema)` and `schema.parse(body)` in a `route.ts` back to the very schema of its row, so a route cannot parse a body the table does not declare. A third fails on `$queryRaw`, `$executeRaw`, `$runCommandRaw`, any `…Unsafe` method or `Prisma.raw(` in code under `src/` outside tests; comment lines and the tamper demo under `scripts/` are left out.
+
 **Secrets.** The pre-commit hook already scans the staged files; `npm run check:secrets` (in `check:all`, so in CI) scans the whole tree with the same rules, `.secretlintignore` leaving out dependencies, build output, generated code and the local databases.
 
 ## Decisions
@@ -27,6 +29,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - D74: `DEMO_TOOLS` now gates the clock as well as the card runner, and the default follows the build. The D74 row in `docs/decisions.md` is unchanged; this page is the record.
 - D17 and D93: the picker hands out any actor while the demo tools are on; with them off, only the sign-in link does ([accounts.md](accounts.md)). The signed cookie (D92) and the link together close the polish review's security finding 1 (`docs/reviews/polish-2026-11-08.md`).
 - D92: the actor cookie is a signed, expiring session; `SESSION_SECRET` from `.env`.
+- D95: the strict-body and raw-SQL meta tests: the bodies from the route table, strict read from Zod's own definition, raw SQL by a line scan of `src/`.
 
 ## Pure functions
 
@@ -46,6 +49,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - `src/server/cookie-flags.ts`, `src/server/actor.ts`, `src/server/session.ts`, `scripts/ensure-env.mjs` (`ensureSessionSecret`), `vitest.config.ts`, `package.json` (`prestart`): the cookies and the session.
 - `.env.example`, `.secretlintignore`, `package.json` (`check:secrets`).
 - `src/domain/audit/redact.ts`, `src/app/api/audit-log/route.ts`, `src/app/[locale]/audit/page.tsx`: the public log.
+- `src/server/routes.ts` (the body schemas), `tests/meta-rules.test.ts` (`looseSpots`, `RAW_SQL`): strict bodies and no raw SQL.
 - `src/server/rate-limit.ts`, `src/proxy.ts` (matcher `/` and `/api/:path*`), `src/server/api-response.ts` (`assertBodySize`), `src/app/api/assets/[id]/assessments/route.ts`: the limits.
 
 ## Tests that pin the numbers
@@ -55,6 +59,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - `src/server/cookie-flags.test.ts`, `src/server/actor.test.ts`: the Secure flag.
 - `src/server/session.test.ts` (round trip, the three parts, expiry on the second, another secret, an edited actor or expiry, the plain id, malformed values, a wrong-length signature, the same bytes in standard base64 or another base64url spelling, no secret, a secret under 32 characters), `src/server/actor.test.ts` "the cookie headers" and "resolveActor" (a signed cookie read, a plain id, a past expiry and another secret as anonymous, no secret), `src/app/api/actor/route.test.ts` (the picker's cookie decodes to the posted actor, an unknown id and `anonymous` are 404, DELETE clears), `scripts/ensure-env.test.mjs` "ensureSessionSecret" (the placeholder filled, a secret kept, a short one kept and reported, a provided variable not written, `allProvided`), `src/app/api/demo/cards/[id]/run/route.test.ts` (the runner's cookie decodes to the card's customer).
 - `src/domain/audit/redact.test.ts`; `src/app/api/audit-log/route.test.ts` (a visitor masked, the admin not, on a real database).
+- `tests/meta-rules.test.ts`: "every request body in the route table refuses unknown keys, nested objects too", "every route that reads a body parses it with the body schema of its route-table row", "no app code runs raw SQL or a Prisma …Unsafe method", and `looseSpots, the strict-body walker` (each way to be loose, and Zod's own answer for an extra key). Each was seen to fail on a planted loose schema or raw call before it was merged.
 - `src/server/rate-limit.test.ts` (the window, per client, the wait, the sweep); `src/proxy.test.ts` (the redirect, a read untouched, a cross-site write 403 and the same site through, 429 with `Retry-After` and the envelope, per forwarded address); `src/server/api-response.test.ts` "assertBodySize".
 
 ## Open questions
