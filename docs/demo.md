@@ -1,6 +1,6 @@
 # Demo script: the pitch run (10 to 12 minutes)
 
-The run we show the judges, one presenter at the keyboard. It clicks through the product; the "Code tour" in the [README](../README.md) is the other walk, through the code. The numbers below come from the README "Status" table and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh. The run itself is clicked through in a browser by `npm run test:e2e` (card 1 and card 6 from the Run buttons to the contract and the signing link, the actor picker, the second-life page, the language switch, the audit badges and the tamper script, the catalogue filters; [features/e2e-tests.md](features/e2e-tests.md)).
+The run we show the judges, one presenter at the keyboard. It clicks through the product; the [Code tour](team-notes.md#code-tour) in the team notes is the other walk, through the code. The numbers below come from the Status table in [scenarios.md](scenarios.md) and the feature pages; a test pins every one of them, so if one differs on the day, the database is not fresh. The run itself is clicked through in a browser by `npm run test:e2e` (card 1 and card 6 from the Run buttons to the contract and the signing link, the actor picker, the second-life page, the language switch, the audit badges and the tamper script, the catalogue filters; [features/e2e-tests.md](features/e2e-tests.md)).
 
 ## Before you start (not on the clock)
 
@@ -13,6 +13,12 @@ npm run dev          # http://localhost:3000
 A database seeded or assessed before D86 still quotes the old D12 second-life price (market value + refurbishment cost), because the quote reads the latest stored assessment: after pulling D86, run `npm run db:reset` (as above) or re-assess the returned items.
 
 Open `http://localhost:3000/en/demo` in a window about 1 280 px wide, with a second tab on `/en/audit`. Nobody is picked in "Continue as"; each Run button sets the actor and the demo clock itself (D71).
+
+### The demo tools and signing in
+
+The demo tools (the clock, the Run buttons, the "continue as" picker and the sign-in links' outbox) are on under `npm run dev`. On a production build (`npm run build && npm start`) they are off unless `.env` says `DEMO_TOOLS="1"`; set that for a pitch on a built app. A `.env` created before 9 November 2026 may still say `"1"`, since `npm run db:setup` never rewrites an existing file ([features/security.md](features/security.md)). The actor cookie is signed with a `SESSION_SECRET` that `npm run db:setup`, `npm run dev` and `npm start` add to `.env` when it is missing (D92).
+
+Signing in is by e-mail link, no password: type an account's e-mail on `/en/login` (a customer's address from the data pack, or `backoffice@leaseloop.example`), and the link appears on the demo page's outbox, since no e-mail leaves the demo; opening it signs you in and confirms the e-mail on your account page ([features/accounts.md](features/accounts.md)). "Continue as" stays as a shortcut while the demo tools are on.
 
 ## 0:00 to 1:00, what it is
 
