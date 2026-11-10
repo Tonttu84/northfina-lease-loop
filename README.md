@@ -124,6 +124,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 - [Accounts: sign in by e-mail link, the confirmed e-mail, the demo outbox](docs/features/accounts.md)
 - [Responsive layout: every page at every screen size, language and text size](docs/features/responsive-layout.md)
 - [Security: demo mode, the response headers, the signed session, the public audit log, limits](docs/features/security.md)
+- [Security overview: every security feature on one page, with its threat, its test and a one-minute demo](docs/security-overview.md)
 
 ## How we worked
 
