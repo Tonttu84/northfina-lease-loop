@@ -25,6 +25,13 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const SPAWN_TIMEOUT_MS = 30_000;
 
 /**
+ * A test that pushes through the hook spawns several git and bash processes (the shared
+ * commit check, then the fake npm): under full-suite load on Windows they took 5.3 to 7.1 s, so
+ * every such test gets two spawn limits instead of Vitest's 5 s.
+ */
+const PUSH_TEST_TIMEOUT_MS = 2 * SPAWN_TIMEOUT_MS;
+
+/**
  * The environment without git's own variables. A hook runs with GIT_DIR (and in a worktree
  * GIT_INDEX_FILE and others) exported, so these tests, run by the pre-push hook through
  * `npm test`, would otherwise send every git command, `git init` and `git commit` included, to
@@ -121,7 +128,7 @@ function runPrePush(failing: string | null, { cwd = repoRoot, input = '' } = {})
   return { status: result.status, stdout: result.stdout, calls };
 }
 
-describe('.husky/pre-push', () => {
+describe('.husky/pre-push', { timeout: PUSH_TEST_TIMEOUT_MS }, () => {
   it('passes when every check passes, after running all four in order', () => {
     const { status, stdout, calls } = runPrePush(null);
     expect(status).toBe(0);
@@ -152,10 +159,6 @@ describe('.husky hooks', () => {
     }
   );
 });
-
-// Each test spawns several git and bash processes, which took 5.3 s under full-suite load on
-// Windows: a deadline of two spawn limits instead of Vitest's 5 s.
-const PUSH_TEST_TIMEOUT_MS = 2 * SPAWN_TIMEOUT_MS;
 
 describe(
   '.husky/pre-push checks the message of every commit being pushed (D102)',
