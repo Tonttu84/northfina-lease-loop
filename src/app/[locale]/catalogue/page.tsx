@@ -115,7 +115,9 @@ export default async function CataloguePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 2xl:max-w-7xl">
-      <h1 className="text-4xl min-[20rem]:text-5xl sm:text-6xl">{t('catalogue.title')}</h1>
+      <h1 className="text-3xl min-[16rem]:text-4xl min-[20rem]:text-5xl sm:text-6xl">
+        {t('catalogue.title')}
+      </h1>
       <p className="mt-2 text-lg text-ink-muted">
         {t('catalogue.priceNote', { months: termMonths })}
       </p>
