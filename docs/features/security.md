@@ -29,7 +29,7 @@ Names the demo mode and switches it as one thing, puts the usual security header
 - D74: `DEMO_TOOLS` now gates the clock as well as the card runner, and the default follows the build. The D74 row in `docs/decisions.md` is unchanged; this page is the record.
 - D17 and D93: the picker hands out any actor while the demo tools are on; with them off, only the sign-in link does ([accounts.md](accounts.md)). The signed cookie (D92) and the link together close the polish review's security finding 1 (`docs/reviews/polish-2026-11-08.md`).
 - D92: the actor cookie is a signed, expiring session; `SESSION_SECRET` from `.env`.
-- D95: the strict-body and raw-SQL meta tests: the bodies from the route table, strict read from Zod's own definition, raw SQL by a line scan of `src/`.
+- D97: the strict-body and raw-SQL meta tests: the bodies from the route table, strict read from Zod's own definition, raw SQL by a line scan of `src/`.
 
 ## Pure functions
 
