@@ -98,7 +98,7 @@ curl -i -X DELETE http://localhost:3000/api/actor -H 'Sec-Fetch-Site: cross-site
 
 **Proof.** `src/app/api/authz.routes.test.ts`: "the wrong customer is 403 FORBIDDEN and writes nothing"; `tests/meta-rules.test.ts`: "every API route not on the public allowlist calls authorize".
 
-**Limits.** The meta test looks for the text `authorize(` in each route file; it proves no call path and skips pages. `POST /api/contracts` validates the body before it authorizes. `can()` lets anyone run a demo card; that route answers 404 `NOT_FOUND` while the demo tools are off.
+**Limits.** The meta test looks for the text `authorize(` in each route file; it proves no call path and skips pages. `POST /api/contracts` and `POST /api/applications` validate the body before they authorize, because the record they act on is named in it. `can()` lets anyone run a demo card; that route answers 404 `NOT_FOUND` while the demo tools are off.
 
 **Show it.** Pick Aino in the header and run this in the devtools console: it answers 403 `FORBIDDEN` with `admin_only` in its details. Signed out, the same call answers 401 `FORBIDDEN` with `not_signed_in`.
 

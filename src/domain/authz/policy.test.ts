@@ -193,7 +193,7 @@ describe('can: the company changes its own signatory list only as an active sign
 });
 
 describe('isAuthzRefusal', () => {
-  it('knows the four codes and nothing else', () => {
+  it('knows the five codes and nothing else', () => {
     expect(isAuthzRefusal({ code: 'not_owner' })).toBe(true);
     expect(isAuthzRefusal({ code: 'signatory_required' })).toBe(true);
     expect(isAuthzRefusal({ code: 'already_signed' })).toBe(false);
