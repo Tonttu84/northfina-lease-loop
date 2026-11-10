@@ -6,24 +6,46 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { ROUTES, routeKey } from '@/server/routes';
 import { findOversizedFiles, MAX_LINES } from '../scripts/check-file-size.mjs';
 import { checkProject } from '../scripts/check-no-ai.mjs';
+import { codeLines } from './helpers/code-text';
+import { bodyReadsIn, looseSpots, rawBodyReadLines } from './helpers/strict-body';
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 // ---------- pure helpers ----------
 
+// The scans below list and read the same tree again and again; nothing here writes to it, so
+// each listing and each file is read once per run and kept (issue 17: the scans timed out
+// under a loaded full suite).
+const listings = new Map<string, readonly string[]>();
+const contents = new Map<string, string>();
+
 /** All files under `dir` (relative to the repo root, forward slashes) that match `pattern`. */
 function listFiles(dir: string, pattern: RegExp): string[] {
-  return readdirSync(path.join(repoRoot, dir), { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.relative(repoRoot, path.join(entry.parentPath, entry.name)))
-    .map((file) => file.split(path.sep).join('/'))
-    .filter((file) => pattern.test(file))
-    .sort();
+  const key = `${dir}\0${String(pattern)}`;
+  let files = listings.get(key);
+  if (!files) {
+    files = readdirSync(path.join(repoRoot, dir), { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => path.relative(repoRoot, path.join(entry.parentPath, entry.name)))
+      .map((file) => file.split(path.sep).join('/'))
+      .filter((file) => pattern.test(file))
+      .sort();
+    listings.set(key, files);
+  }
+  return [...files];
 }
 
-const read = (file: string) => readFileSync(path.join(repoRoot, file), 'utf8');
+function read(file: string): string {
+  let text = contents.get(file);
+  if (text === undefined) {
+    text = readFileSync(path.join(repoRoot, file), 'utf8');
+    contents.set(file, text);
+  }
+  return text;
+}
 
 /** Lines of `file`; works with LF and CRLF checkouts. */
 const readLines = (file: string) => read(file).split(/\r?\n/);
@@ -159,6 +181,32 @@ const CONCURRENT_TESTS: readonly Check[] = [
   },
 ];
 
+// Raw SQL skips the query builder's parameters and the row schemas (issue 17). Tests may play
+// the attacker with it; scripts/tamper-audit.mjs is outside src/ on purpose (the tamper demo).
+const RAW_SQL: readonly Check[] = [
+  {
+    pattern: /\$(queryRaw|executeRaw|runCommandRaw)/,
+    problem: 'runs raw SQL; use the Prisma query builder',
+  },
+  { pattern: /\$\w*Unsafe\b/, problem: 'calls a Prisma …Unsafe method' },
+  { pattern: /\bPrisma\.raw\(/, problem: 'builds raw SQL with Prisma.raw' },
+  {
+    pattern: /(\bfrom\s*|\brequire\(\s*|\bimport\(\s*)['"]better-sqlite3['"]/,
+    problem: 'opens SQLite with better-sqlite3 itself, past Prisma',
+  },
+];
+
+/** Every line of `file` whose code, without its comments, matches a check. */
+const scanCode = (file: string, checks: readonly Check[]): Finding[] =>
+  codeLines(read(file)).flatMap((code, index) =>
+    checks
+      .filter(({ pattern }) => pattern.test(code))
+      .map(({ problem }) => ({ file, line: index + 1, problem }))
+  );
+
+/** `/api/…` of a route.ts under src/app/api. */
+const routePathOf = (file: string) => file.replace(/^src\/app/, '').replace(/\/route\.ts$/, '');
+
 /** Hand-written TypeScript under src/ and tests/: the generated Prisma client is left out. */
 const sourceAndTests = () =>
   [...listFiles('src', /\.tsx?$/), ...listFiles('tests', /\.ts$/)].filter(
@@ -167,13 +215,16 @@ const sourceAndTests = () =>
 
 // ---------- the rules ----------
 
-describe('meta rules', () => {
+// 30 s, not the default 5 s: these tests scan the whole tree (no-AI walks it in its own script),
+// and under a loaded full suite a scan has taken 5 to 7 s although it takes under 1 s alone.
+describe('meta rules', { timeout: 30_000 }, () => {
   // RULES.md §8 "Small files" and AGENTS.md; also scripts/check-file-size.mjs.
   it(`no hand-written source file is over ${MAX_LINES} lines`, () => {
     const output = execFileSync(
       'git',
       ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
-      { cwd: repoRoot, encoding: 'utf8' }
+      // Rule 11: a sync call blocks vitest's own timer, so the deadline must be git's.
+      { cwd: repoRoot, encoding: 'utf8', timeout: 20_000 }
     );
     const paths = [...new Set(output.split('\0').filter(Boolean))];
     const readIfExists = (file: string): string | null =>
@@ -294,5 +345,70 @@ describe('meta rules', () => {
   it('the UI has message files for exactly en, fi, sv and et', () => {
     const files = readdirSync(path.join(repoRoot, 'src/i18n/messages')).sort();
     expect(files).toEqual(['en.json', 'et.json', 'fi.json', 'sv.json']);
+  });
+
+  // Issue 17: a request body refuses keys it does not name (mass assignment), nested objects
+  // too. The bodies come from the route table, so a new route is covered without editing this.
+  it('every request body in the route table refuses unknown keys, nested objects too', () => {
+    const withBody = ROUTES.filter((route) => route.body);
+    expect(withBody.length).toBeGreaterThan(0);
+    const findings = withBody.flatMap((route) =>
+      looseSpots(route.body).map((spot) => `${routeKey(route)}: ${spot}`)
+    );
+    expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  // The table's bodies are the app's bodies only if every route.ts parses each body it reads
+  // with the very schema of its row: each read is followed through the file's own import to
+  // that module's export, a read it cannot follow fails, and a row whose body no route parses
+  // fails too (review of PR 23, findings 1 and 2).
+  it('every route that reads a body parses it with the body schema of its route-table row', async () => {
+    const routeFiles = listFiles('src/app/api', /(^|\/)route\.ts$/);
+    expect(routeFiles.length).toBeGreaterThan(0);
+    const findings: string[] = [];
+    const parsedBy = new Map<string, unknown[]>();
+    for (const file of routeFiles) {
+      const { uses, problems } = bodyReadsIn(read(file));
+      findings.push(...problems.map((problem) => `${file} ${problem}`));
+      const rowBodies: unknown[] = ROUTES.filter(
+        (route) => route.path === routePathOf(file) && route.body
+      ).map((route) => route.body);
+      const parsed: unknown[] = [];
+      for (const { local, imported, module } of uses) {
+        const exports = (await import(`../src/server/${module}.ts`)) as Record<string, unknown>;
+        parsed.push(exports[imported]);
+        if (!rowBodies.includes(exports[imported])) {
+          findings.push(`${file} parses its body with ${local}, not its row's body in routes.ts`);
+        }
+      }
+      parsedBy.set(file, parsed);
+    }
+    // Server code handed the request may not read it either; readBodyText is the one reader.
+    const serverFiles = listFiles('src/server', /\.ts$/).filter(
+      (file) => !isTest(file) && file !== 'src/server/api-response.ts'
+    );
+    for (const file of serverFiles) {
+      for (const line of rawBodyReadLines(read(file))) {
+        findings.push(`${file}:${line} reads a request body itself; only readBodyText may`);
+      }
+    }
+    for (const route of ROUTES.filter((row) => row.body)) {
+      const file = `src/app${route.path}/route.ts`;
+      if (!parsedBy.get(file)?.includes(route.body)) {
+        findings.push(`${routeKey(route)} has a body in routes.ts that ${file} never parses`);
+      }
+    }
+    expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  // Issue 17: app code reaches the database through the query builder only. Comments may name
+  // the calls; tests may use them to play the attacker.
+  it('no app code runs raw SQL or a Prisma …Unsafe method', () => {
+    const files = listFiles('src', /\.[cm]?[jt]sx?$/).filter(
+      (file) => !isTest(file) && !file.startsWith('src/generated/')
+    );
+    expect(files.length).toBeGreaterThan(0);
+    const findings = files.flatMap((file) => scanCode(file, RAW_SQL));
+    expect(findings, formatFindings(findings)).toEqual([]);
   });
 });
