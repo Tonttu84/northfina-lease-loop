@@ -2,11 +2,12 @@
 // 320 px phone to a 2560 px screen, landscape, and with the reader's text at 150 % and 200 % (the
 // browser's own text size setting). A page passes when no check in e2e/layout.ts finds anything:
 // no sideways scroll, nothing sticking out of the viewport (not even during an animation), no text
-// escaping its box, no tap target under 24 px on a phone, no text that ignores the reader's size.
-// What the content does with a wide screen is measured and attached to the report
-// (`layout-metrics`); two design rules on top of it are asserted at the end of the file: the
-// header keeps one row at 768 px when someone is signed in (issue 19), and wide screens get wider
-// lists and keep narrow forms (D98).
+// escaping its box, no two boxes drawn over each other, no word broken that fits its line, no tap
+// target under 24 px on a phone, no text that ignores the reader's size; with the header's menu
+// open too, where it shows. What the content does with a wide screen is measured and attached to
+// the report (`layout-metrics`); two design rules on top of it are asserted at the end of the
+// file: the header keeps one row at 768, 1024 and 1100 px when someone is signed in (issue 19,
+// D99), and wide screens get wider lists and keep narrow forms and the contract (D98).
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
@@ -131,12 +132,18 @@ for (const [name, setup] of Object.entries(PAGES)) {
         problems.push(...report.problems.map((p) => ({ ...p, where })));
         metrics.push({ ...report.metrics, where });
         // Where the header's links fold into its menu, the page again with the menu open: the
-        // open panel is the only way to the links there.
+        // open panel is the only way to the links there. What the closed page already reported
+        // is not listed twice.
         const menu = page.locator('details[data-nav-menu]');
         if (await menu.isVisible()) {
           await menu.evaluate((details) => details.setAttribute('open', ''));
           const opened = await checkLayout(page, { phone: viewport.width <= 430 });
-          problems.push(...opened.problems.map((p) => ({ ...p, where: `${where} menu open` })));
+          const seen = new Set(report.problems.map((p) => `${p.check} ${p.element}`));
+          problems.push(
+            ...opened.problems
+              .filter((p) => !seen.has(`${p.check} ${p.element}`))
+              .map((p) => ({ ...p, where: `${where} menu open` }))
+          );
           await menu.evaluate((details) => details.removeAttribute('open'));
         }
       }
