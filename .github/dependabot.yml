@@ -1,5 +1,7 @@
-# Dependabot is the only alert path for dependencies: .npmrc has audit=false, so `npm ci` never
-# warns. One grouped npm PR a week, and one for the GitHub Actions the workflow pins.
+# Dependabot keeps the dependencies current: one grouped npm PR a week, and one for the GitHub
+# Actions, which the workflow pins by commit SHA with the release tag in a trailing comment
+# (`@<sha> # v7.0.1`); Dependabot moves both. It is not the only alert path: `npm ci` reports
+# known advisories, and CI fails on a high or critical one (`npm audit --audit-level=high`, D95).
 version: 2
 updates:
   - package-ecosystem: npm
