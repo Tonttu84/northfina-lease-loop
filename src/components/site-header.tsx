@@ -46,7 +46,7 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
   return (
     <>
       <div className="staff-zone bg-staff text-staff-contrast">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 2xl:max-w-7xl">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="font-bold tracking-wide uppercase opacity-80 max-sm:hidden">
               {t('staff.label')}
@@ -85,25 +85,29 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
       </div>
 
       <header className="rule-dashed border-b-2 bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 2xl:max-w-7xl">
           <Link
             href={`/${locale}`}
-            className="flex items-center gap-2.5 rounded-lg"
+            className="flex min-w-0 items-center gap-2.5 rounded-lg"
             aria-label={t('brand.home')}
           >
             <LoopMark className="size-9" />
-            <span className="font-heading text-xl font-semibold tracking-tight">
+            <span className="min-w-0 font-heading text-xl font-semibold tracking-tight">
               {t('brand.name')}
             </span>
           </Link>
 
-          <div className="hidden items-center gap-4 md:flex">
+          {/* From 1024 px (lg) the links and the languages fit on the header's one row in every
+              language, signed in too; at 768 px the four links of a signed-in visitor in Swedish
+              or Finnish need about 500 px beside the brand and the languages, so the header wrapped
+              onto a second row there (issue 19). */}
+          <div className="hidden items-center gap-4 lg:flex">
             <NavLinks label={t('nav.main')} items={mainLinks} />
             <LanguageSwitcher current={locale} label={t('nav.language')} />
           </div>
 
-          {/* On a phone the links fold into a menu; <details> needs no JavaScript. */}
-          <details data-nav-menu className="group relative md:hidden">
+          {/* Below 1024 px the links fold into a menu; <details> needs no JavaScript. */}
+          <details data-nav-menu className="group relative shrink-0 lg:hidden">
             <summary
               className={cx(
                 'flex size-11 cursor-pointer list-none items-center justify-center rounded-full',
