@@ -9,7 +9,11 @@ Branch `docs/issue-18-drift` from `origin/main` at `ee83059`, worktree `.claude/
 - 12:05 setup finished on the second run (4 min 26 s in all); `npx prettier --write` on the changed files.
 - 12:05 to 12:08 six commits: `f393b9c` STATUS rows, `c257d29` decision references, `775047b` the authorization page, `fbf7123` signatories and question flow, `de2ff4d` the test name, `0d53b6b` `DEMO_TOOLS` in `.env.example`, the README and `security.md`.
 - 12:08 to 12:15 `npm run check:all` green on the first run: format, lint, typecheck, file size, no-AI, secrets, 170 test files with 2 005 tests, coverage 97.73 % lines, build. The no-AI meta test did not time out this time.
-- Then this log, a second `check:all` and the push; the pull request is opened, not merged, and its rule-13 review is the coordinator's to start.
+- 12:15 this log, commit `afaf335`.
+- 12:15 to 12:19 the second `npm run check:all` at `afaf335`, green: the same 170 test files and 2 005 tests, coverage 97.73 % lines, build.
+- 12:19 to 12:22 push and [PR 24](https://github.com/Tonttu84/northfina-lease-loop/pull/24) opened (12:22 by GitHub's `createdAt`); not merged.
+- 12:28 the rule-13 review by a fresh session at `afaf335`: approve with fixes; two low findings (a test citation in `question-flow.md` that did not exist, this log left open) and three nits (D81's branch citation, the two repositories' PR numbers in STATUS, a `user-portal.md` wording, left as it is on the coordinator's word).
+- 12:28 to 12:30 findings 1 to 4 fixed: the `question-flow.md` test-table row cites `src/server/applications.test.ts` "review finding 1: the company account posting a decision gets signatory_required; the admin too"; this log closed; D81 cites `PR #69` only and the decisions header says "a decided or built row"; one sentence in STATUS's "After the hackathon" section names which repository its PR numbers are on. Commit `docs: the review of PR 24`, push, the **Reviewed** line in the PR body, then CI on the new head.
 
 ## What the checks found
 
@@ -30,7 +34,7 @@ Found by the grep and fixed (each repeats a corrected claim):
 
 ## Left undone
 
-- `docs/decisions.md`: rows that name neither a branch nor a PR were left as they are (D17 to D20, D42, D45 "wave 2 upkeep", D77 "product-review fixes", which could be team PR #62, #63 or #65). D81 cites `#69` and its branch; kept. D73 and D74 say "built", not "decided"; only their branch reference was replaced (team PR #61). D91 is still "proposed … decided when its PR merges" although PR #6 merged; changing a status is not a reference fix, so it is left for the owner. D39 still says the decision page answers `NOT_SIGNATORY`; a decision's text is not changed here.
+- `docs/decisions.md`: rows that name neither a branch nor a PR were left as they are (D17 to D20, D42, D45 "wave 2 upkeep", D77 "product-review fixes", which could be team PR #62, #63 or #65). D81 cited `#69` and its branch; since the review it cites `PR #69` only. D73 and D74 say "built", not "decided"; only their branch reference was replaced (team PR #61). D91 is still "proposed … decided when its PR merges" although PR #6 merged; changing a status is not a reference fix, so it is left for the owner. D39 still says the decision page answers `NOT_SIGNATORY`; a decision's text is not changed here.
 - The message key `demo.toolsOff.body` (four languages) names only the clock and the scenario cards; it is product text shown on the demo page, not changed here.
 - The `isAuthzRefusal` test asserts two of the five codes; only its name was changed, as the brief allowed.
 - Logs and reviews under `docs/log/` and `docs/reviews/` keep their historical wording.

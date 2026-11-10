@@ -69,6 +69,8 @@ One row per feature of the plan (`docs/kickoff-brief.md` sections 4 and 9), kept
 
 ## After the hackathon: the polish review
 
+The PR numbers in this section (#6, #13, #14) are on this repository; the ones in the sections above are on the team's hackathon repository (`ThomasParratt/northfina-lease-loop`).
+
 | Feature                                                                                                                                                                                                                                                                        | State | Verified by                                                                                                                                               | Page                         |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | The actor cookie as a signed, expiring session under `SESSION_SECRET` (D92)                                                                                                                                                                                                    | done  | #13: `src/server/session.test.ts`, `src/server/actor.test.ts`, `src/app/api/actor/route.test.ts`                                                          | [security.md](security.md)   |
