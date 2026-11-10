@@ -322,9 +322,9 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       if (parent.closest('script, style, noscript')) continue;
       const content = text.textContent ?? '';
       for (const match of content.matchAll(/[^\s\-‐‑–—/]+/gu)) {
-        const lead = match[0].search(/[\p{L}\p{M}]/u);
-        if (lead < 0) continue;
-        const word = match[0].slice(lead).replace(/[^\p{L}\p{M}'’]+$/u, '');
+        // Punctuation glued to either end ("[Catalogue", "lõpus?") is not part of the word; a
+        // digit is, so a hash ("37ce…22") or an id is no word of a language.
+        const word = match[0].replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
         if (!WORD.test(word)) continue;
         // The whole run up to the next break opportunity, punctuation glued to the word included
         // ("[Catalogue" cannot break before its letters either).
