@@ -159,7 +159,7 @@ export function AuditTable({ rows, labels }: { rows: AuditTableRow[]; labels: Au
           aria-label={fill(labels.dock, 'count', openRows.length)}
           className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-brand bg-surface shadow-[0_-8px_24px_rgb(0_0_0/0.12)]"
         >
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pt-2.5 sm:px-6">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pt-2.5 sm:px-6 2xl:max-w-7xl">
             <p className="text-sm font-bold">{fill(labels.dock, 'count', openRows.length)}</p>
             <button
               type="button"
@@ -171,7 +171,7 @@ export function AuditTable({ rows, labels }: { rows: AuditTableRow[]; labels: Au
           </div>
           <div
             ref={strip}
-            className="mx-auto flex max-w-6xl snap-x gap-3 overflow-x-auto px-4 pt-2 pb-4 sm:px-6"
+            className="mx-auto flex max-w-6xl snap-x gap-3 overflow-x-auto px-4 pt-2 pb-4 sm:px-6 2xl:max-w-7xl"
           >
             {openRows.map((row) => (
               <EntryCard key={row.id} row={row} labels={labels} onClose={() => toggle(row.id)} />

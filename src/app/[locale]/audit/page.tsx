@@ -69,7 +69,7 @@ export default async function AuditPage({ params }: PageProps<'/[locale]/audit'>
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
       <PageHeader title={t('audit.title')} intro={t('audit.intro')}>
         <StaffNote>{t('staff.note')}</StaffNote>
       </PageHeader>

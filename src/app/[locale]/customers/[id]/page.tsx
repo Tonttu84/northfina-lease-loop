@@ -50,7 +50,7 @@ export default async function CustomerPage({ params }: PageProps<'/[locale]/cust
           : null;
   if (refusal || !customer) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
         <PageHeader title={t('portal.customer.title')} />
         <Notice tone={actor === ANONYMOUS_ACTOR ? 'info' : 'warning'}>{refusal}</Notice>
       </div>
@@ -58,7 +58,7 @@ export default async function CustomerPage({ params }: PageProps<'/[locale]/cust
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
       <PageHeader title={customer.name} intro={t('portal.customer.intro')} />
       <CustomerPortal customerId={customer.id} today={today} locale={locale} t={t} />
     </div>

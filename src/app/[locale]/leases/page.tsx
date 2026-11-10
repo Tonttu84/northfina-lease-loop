@@ -47,7 +47,7 @@ export default async function LeasesPage({ params }: PageProps<'/[locale]/leases
   );
   if (!auth.ok) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
         <PageHeader title={title} />
         <Notice tone="info">{t('leases.chooseActor')}</Notice>
       </div>
@@ -57,7 +57,7 @@ export default async function LeasesPage({ params }: PageProps<'/[locale]/leases
   if (!isAdmin) {
     const today = await todayForRequest();
     return (
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
         <PageHeader title={title} intro={t('leases.intro')} />
         <CustomerPortal customerId={actor} today={today} locale={locale} t={t} />
       </div>
@@ -71,7 +71,7 @@ export default async function LeasesPage({ params }: PageProps<'/[locale]/leases
   const nameOf = (id: string) => customers.find((c) => c.id === id)?.name ?? id;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 2xl:max-w-7xl">
       <PageHeader title={title} intro={t('leases.introAdmin')} />
 
       <section aria-labelledby="leases-contracts">
