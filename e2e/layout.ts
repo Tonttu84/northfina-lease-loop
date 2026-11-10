@@ -347,6 +347,9 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
         range.setStart(text, match.index);
         range.setEnd(text, match.index + match[0].length);
         const lines = [...range.getClientRects()].filter((line) => line.width > 0);
+        // After a soft hyphen the browser draws its hyphen at the end of the line before and
+        // counts it in the next word's first rectangle: that is the break, not part of the word.
+        if (content[match.index - 1] === '­' && lines.length > 1) lines.shift();
         const tops = new Set(lines.map((line) => Math.round(line.top / 2)));
         if (tops.size < 2) continue;
         const width = lines.reduce((sum, line) => sum + line.width, 0);
