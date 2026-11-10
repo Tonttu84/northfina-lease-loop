@@ -3,7 +3,7 @@
 // The trap they pin: under `set -e`, a failure in an `a && b && c` list exits only when it is the
 // last command, so `npm run typecheck && npm test && …` let a failing type check or test through.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,12 +24,21 @@ const PRE_PUSH_STEPS = ['typecheck', 'test', 'check:file-size', 'check:no-ai'];
 function findSh(): string {
   const probe = spawnSync('sh', ['-c', 'exit 0'], { timeout: SPAWN_TIMEOUT_MS });
   if (!probe.error && probe.status === 0) return 'sh';
-  const execPath = execFileSync('git', ['--exec-path'], {
-    encoding: 'utf8',
-    timeout: SPAWN_TIMEOUT_MS,
-  }).trim();
-  // <git>/mingw64/libexec/git-core -> <git>/bin/sh.exe
-  return path.join(execPath, '..', '..', '..', 'bin', 'sh.exe');
+  let gitSh = '(git not found)';
+  try {
+    const execPath = execFileSync('git', ['--exec-path'], {
+      encoding: 'utf8',
+      timeout: SPAWN_TIMEOUT_MS,
+    }).trim();
+    // <git>/mingw64/libexec/git-core -> <git>/bin/sh.exe
+    gitSh = path.join(execPath, '..', '..', '..', 'bin', 'sh.exe');
+  } catch {
+    // No git on PATH: reported below.
+  }
+  if (gitSh.endsWith('sh.exe') && existsSync(gitSh)) return gitSh;
+  throw new Error(
+    `no sh on PATH and no Git sh.exe at ${gitSh}; run the tests from Git Bash or put Git's bin on PATH`
+  );
 }
 
 /**
@@ -44,7 +53,7 @@ exit 0
 `;
 
 let sh: string;
-let fakeBin: string;
+let fakeBin: string | undefined;
 
 beforeAll(() => {
   sh = findSh();
@@ -53,12 +62,14 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  rmSync(fakeBin, { recursive: true, force: true });
+  // beforeAll may have thrown before the folder existed.
+  if (fakeBin) rmSync(fakeBin, { recursive: true, force: true });
 });
 
 /** Runs `.husky/pre-push` with the fake npm; `failing` names the one script that fails. */
 function runPrePush(failing: string | null) {
   // No `:` in the name: on Windows `calls-check:no-ai.log` is an NTFS stream, not a file.
+  if (!fakeBin) throw new Error('the fake npm folder was not made (beforeAll failed)');
   const log = path.join(fakeBin, `calls-${(failing ?? 'none').replace(/\W/g, '-')}.log`);
   rmSync(log, { force: true });
   const result = spawnSync(sh, [path.join('.husky', 'pre-push')], {
