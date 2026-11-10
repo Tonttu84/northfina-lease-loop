@@ -11,6 +11,8 @@ Branch `docs/security-overview` from `origin/main` at `f58503b`, worktree `.clau
 
 ## Discrepancies found (the page follows the code; the other pages are not changed here)
 
+(The first two are fixed in the second session below.)
+
 - `docs/features/security.md`, "Cross-site writes": "A JSON body already forces a preflight". `readJsonBody` never checks `Content-Type`, so a `text/plain` body that parses as JSON needs no preflight; `SameSite=Lax` and the `Sec-Fetch-Site` refusal are what stop a cross-site write.
 - `docs/features/security.md`, "The public audit log": the list of masked keys leaves out `signatoryEmail`, which `PRIVATE_DETAIL_KEYS` masks.
 - `docs/features/authorization.md`: the actor × action table says `ok` for the admin on `sign_contract`; the code and `policy.test.ts` say `customer_signs` (D88; the page mentions it further down). The table also lacks `withdraw_application` and `read_account`, and the rule order on the page differs from the order in `can()`.
