@@ -86,3 +86,17 @@ The rule-13 review of PR 27 at `a1c342f` (approve with fixes, ten findings) and 
 - Browsers other than Chromium; `price-flip`, which ends without a fill and is missed if it finished before the check (the feature page's open questions).
 - More soft hyphens: only five compounds have one; other Finnish words longer than a phone's line at 200 % text break without a hyphen.
 - A third review of the fixes after the re-review, if the team wants one.
+
+## Session 5: the third review's findings (2026-11-10)
+
+The third review of PR 27 at `1aa241c` (approve with fixes): one blocking finding (the passport card's arrow) and follow-ups F1 to F8, of which F1, F2, F3 and F8 are fixed here and F4, F6 and F7 stay open questions on the feature page.
+
+- 19:39 read the review. 19:40 the arrow test written first and run on the unchanged build: it fails at 320 px in all six languages ("the arrow's top 1424 px, the text's bottom 1408 px"); committed `609ea17`. The fix (`94bb717`): the card's text and arrow in one flex item.
+- 19:42 F3's plant (a `margin: 0 40px` box with "Turvallisuustarkastus" grown to 327 px in a 310 px line) reported on the current check ("its column has 390 px"); 19:43 after subtracting fixed side margins it is gone. The re-review's plants A1 to B re-run: still caught (A2 with a word without a soft hyphen, as the step label now has one). Plants removed. F1 (transitions switched off too), F2 (restore in a `finally`) and F8 (the header comment, `­` written as an escape) in the same commit `f62b5d0`; `e2e/layout.ts` is 590 lines.
+- 19:47 to 19:53 run 19 with the build: 22 of 22 passed, 0 findings. 19:53 to 19:59 `npm run test:e2e` with the build: 35 passed in 6.7 min.
+- 20:00 to 20:02 `npm run check:all` green at the first try: 173 files, 2 047 tests, coverage 96.35 % statements, build. Then the docs commit, push, the PR body's **Reviewed:** line.
+
+## Left undone (session 5)
+
+- F4 (a word in a fixed-width cell of a scrolled table; scaled or rotated ancestors), F6 (more soft hyphens), F7 (a soft hyphen also breaks a compound that would fit the next line): open questions on the feature page.
+- Browsers other than Chromium.
