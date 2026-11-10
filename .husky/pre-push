@@ -1,7 +1,12 @@
-# Runs before every push: the fast part of what CI checks.
+# Runs before every push: the commit-message check, then the fast part of what CI checks.
 # One command per line: `set -e` ignores a failure in every command of an `a && b` list but the
 # last, so a chain would let a failing type check or test through (tests/husky-hooks.test.ts).
 set -e
+
+# The shared ai-workflow check (D102): every commit being pushed, read from git's stdin, with the
+# same .githooks/commit-msg CI's commit-check workflow runs.
+echo "📝 Commit messages of the commits being pushed…"
+bash .githooks/pre-push "$@"
 
 echo "🧪 Type check, tests, file size and no-AI checks before push…"
 npm run typecheck
