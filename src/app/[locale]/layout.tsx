@@ -85,7 +85,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
                 href={`/${locale}/catalogue`}
                 className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full bg-raised px-5 font-bold wrap-anywhere text-brand-text transition-colors hover:bg-brand-soft"
               >
-                {t('home.cta.catalogue')} <span aria-hidden="true">→</span>
+                <span>
+                  {t('home.cta.catalogue')} <span aria-hidden="true">→</span>
+                </span>
               </Link>
               <p className="text-sm opacity-80">{t('footer.note')}</p>
             </div>

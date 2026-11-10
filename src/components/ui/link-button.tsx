@@ -9,6 +9,11 @@ type LinkButtonProps = ComponentProps<typeof Link> & {
   size?: ButtonSize;
 };
 
-export function LinkButton({ variant, size, className, ...rest }: LinkButtonProps) {
-  return <Link className={cx(buttonClasses(variant, size), className)} {...rest} />;
+export function LinkButton({ variant, size, className, children, ...rest }: LinkButtonProps) {
+  // One label box, as in <Button>: the words and an arrow wrap together.
+  return (
+    <Link className={cx(buttonClasses(variant, size), className)} {...rest}>
+      <span>{children}</span>
+    </Link>
+  );
 }

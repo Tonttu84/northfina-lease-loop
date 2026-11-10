@@ -248,9 +248,10 @@
     font-family: var(--font-heading);
     font-weight: 600;
     letter-spacing: -0.01em;
-    /* Where the browser has the page language's hyphenation (<html lang>), a broken heading
-       word breaks at a syllable, with a hyphen. */
-    hyphens: auto;
+    /* No `hyphens: auto`: a browser that hyphenates breaks words that fit their line to even out
+       the lines ("pe-rioodi" on a 360 px phone in Estonian, "inloggnings-länk" at 320 px in
+       Swedish), which the layout spec's `brokenWord` check forbids. Only a word longer than its
+       line breaks (`overflow-wrap` above). */
   }
 
   ::selection {

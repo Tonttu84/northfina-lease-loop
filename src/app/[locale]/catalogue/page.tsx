@@ -131,7 +131,8 @@ export default async function CataloguePage({
                   href={catalogueHref(locale, { ...NO_FILTERS, category: category.key })}
                   aria-current={active ? 'page' : undefined}
                   className={cx(
-                    'inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border-2 px-4 font-bold wrap-anywhere transition-colors max-[20rem]:px-3',
+                    // The count goes under the name before a word of the name would break.
+                    'inline-flex min-h-11 max-w-full flex-wrap items-center gap-x-2 rounded-full border-2 px-4 font-bold wrap-anywhere transition-colors max-[20rem]:px-3',
                     active
                       ? 'border-brand bg-brand text-brand-contrast'
                       : 'border-line-strong text-ink hover:border-brand'

@@ -195,7 +195,7 @@ export default async function PricePage({
             key={fact.label}
             className="rule-dashed flex flex-wrap justify-between gap-x-4 gap-y-1 border-b-2 py-3 first:border-t-2"
           >
-            <dt className="min-w-0 flex-1 basis-32 text-ink-muted">{fact.label}</dt>
+            <dt className="max-w-full flex-1 basis-32 text-ink-muted">{fact.label}</dt>
             <dd className="ml-auto min-w-0 text-right font-bold">{fact.value}</dd>
           </div>
         ))}

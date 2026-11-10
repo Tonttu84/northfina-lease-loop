@@ -23,13 +23,14 @@ type DefinitionListProps = {
 
 export function DefinitionList({ items, variant = 'rows', className }: DefinitionListProps) {
   if (variant === 'grid') {
-    // Two columns once there is room for two dates side by side (14 rem, so with the reader's
-    // larger text it takes a wider box); narrower, one fact under the other.
+    // Two columns once there is room for two dates side by side, each on one line ("5.
+    // marraskuuta 2026": 16 rem, so with the reader's larger text it takes a wider box);
+    // narrower, one fact under the other.
     return (
       <div className="@container">
         <dl
           className={cx(
-            'grid grid-cols-1 gap-x-4 gap-y-3 text-sm @min-[14rem]:grid-cols-2',
+            'grid grid-cols-1 gap-x-4 gap-y-3 text-sm @min-[16rem]:grid-cols-2',
             className
           )}
         >
@@ -52,11 +53,14 @@ export function DefinitionList({ items, variant = 'rows', className }: Definitio
           className={cx(
             // A value that does not fit beside its label moves under it, still on the right; one
             // longer than the whole row (an e-mail address with the reader's 200 % text) breaks.
+            // The label takes 8 rem or its longest word, whichever is wider (a flex item's own
+            // minimum, capped at the row by `max-w-full`), so the value moves before a word of
+            // the label would break.
             'flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5',
             item.total && 'border-t-2 border-ink font-semibold'
           )}
         >
-          <dt className="min-w-0 flex-1 basis-32">
+          <dt className="max-w-full flex-1 basis-32">
             <span className={item.total ? undefined : 'text-ink-muted'}>{item.label}</span>
             {item.hint ? <span className="block text-xs text-ink-muted">{item.hint}</span> : null}
           </dt>

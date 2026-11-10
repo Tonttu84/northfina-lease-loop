@@ -205,19 +205,19 @@ function PlanAndValue({ proposal, ctx }: { proposal: SecondLifeProposal; ctx: Ct
         ) : (
           <dl>
             {plan.steps.map((step) => (
-              // The amount beside its step while the step's name has 8 rem, else under it.
+              // The amount beside its step while the name has 8 rem and its longest word, else under.
               <div
                 key={step.id}
                 className="rule-dashed flex flex-wrap justify-between gap-x-4 gap-y-1 border-b-2 py-2"
               >
-                <dt className="min-w-0 flex-1 basis-32">{stepLabel(step, ctx)}</dt>
+                <dt className="max-w-full flex-1 basis-32">{stepLabel(step, ctx)}</dt>
                 <dd className="ml-auto font-bold">
                   <Money cents={step.costCents} locale={locale} />
                 </dd>
               </div>
             ))}
             <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2">
-              <dt className="min-w-0 flex-1 basis-32 font-bold">{t('secondLife.plan.total')}</dt>
+              <dt className="max-w-full flex-1 basis-32 font-bold">{t('secondLife.plan.total')}</dt>
               <dd className="ml-auto font-bold">
                 <Money cents={plan.totalCents} locale={locale} />
               </dd>

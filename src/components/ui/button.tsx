@@ -67,7 +67,9 @@ export function Button({
           className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
         />
       ) : null}
-      {pending && pendingLabel ? pendingLabel : children}
+      {/* One label box: its words and an arrow wrap together, so the button never squeezes a
+          word of the label to make room for the arrow beside it. */}
+      <span>{pending && pendingLabel ? pendingLabel : children}</span>
     </button>
   );
 }
