@@ -46,7 +46,8 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
   return (
     <>
       <div className="staff-zone bg-staff text-staff-contrast">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 2xl:max-w-7xl">
+        {/* The row wraps: on a narrow screen with large text the picker goes under the links. */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 2xl:max-w-7xl">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="font-bold tracking-wide uppercase opacity-80 max-sm:hidden">
               {t('staff.label')}
@@ -85,17 +86,22 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
       </div>
 
       <header className="rule-dashed border-b-2 bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 2xl:max-w-7xl">
-          <Link
-            href={`/${locale}`}
-            className="flex min-w-0 items-center gap-2.5 rounded-lg"
-            aria-label={t('brand.home')}
-          >
-            <LoopMark className="size-9" />
-            <span className="min-w-0 font-heading text-xl font-semibold tracking-tight">
-              {t('brand.name')}
-            </span>
-          </Link>
+        {/* The brand's name wraps at its spaces beside the menu button; only when its longest
+            word and the button cannot share the row (a long language at the reader's 200 %
+            text) does the row wrap, the button under it on the right. */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 2xl:max-w-7xl">
+          <div className="flex flex-1 basis-0">
+            <Link
+              href={`/${locale}`}
+              className="flex items-center gap-2.5 rounded-lg"
+              aria-label={t('brand.home')}
+            >
+              <LoopMark className="size-9" />
+              <span className="font-heading text-xl font-semibold tracking-tight">
+                {t('brand.name')}
+              </span>
+            </Link>
+          </div>
 
           {/* From 1024 px (lg) the links and the languages fit on the header's one row in every
               language, signed in too; at 768 px the four links of a signed-in visitor in Swedish
@@ -107,7 +113,7 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
           </div>
 
           {/* Below 1024 px the links fold into a menu; <details> needs no JavaScript. */}
-          <details data-nav-menu className="group relative shrink-0 lg:hidden">
+          <details data-nav-menu className="group relative ml-auto shrink-0 lg:hidden">
             <summary
               className={cx(
                 'flex size-11 cursor-pointer list-none items-center justify-center rounded-full',
@@ -128,7 +134,9 @@ export function SiteHeader({ locale, t, actor, customers }: SiteHeaderProps) {
                 <path className="hidden group-open:block" d="M6 6l12 12M18 6L6 18" />
               </svg>
             </summary>
-            <div className="absolute right-0 z-20 mt-2 w-64 space-y-4 rounded-lg border border-line bg-raised p-4 shadow-lg">
+            {/* 16 rem, never wider than the screen less its 1 rem margins: it opens leftwards from
+                the menu button, which sits 1 rem from the right edge. */}
+            <div className="absolute right-0 z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border border-line bg-raised p-4 shadow-lg">
               <NavLinks label={t('nav.main')} items={mainLinks} vertical />
               <LanguageSwitcher current={locale} label={t('nav.language')} />
             </div>
