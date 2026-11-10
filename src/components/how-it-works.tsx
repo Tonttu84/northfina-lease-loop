@@ -9,7 +9,7 @@ const CHOICES = ['buy', 'return', 'passOn'] as const;
 export function HowItWorks({ t }: { t: Translate }) {
   return (
     <section id="how-it-works" aria-labelledby="how-title" className="scroll-mt-6 bg-muted">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 2xl:max-w-7xl">
         <h2 id="how-title" className="text-center text-4xl sm:text-5xl">
           {t('home.cta.how')}
         </h2>
@@ -33,7 +33,7 @@ export function HowItWorks({ t }: { t: Translate }) {
                   >
                     {n}
                   </span>
-                  <span>
+                  <span className="min-w-0">
                     <span className="block font-heading text-xl font-semibold">
                       {t(`home.steps.${n}.title`)}
                     </span>

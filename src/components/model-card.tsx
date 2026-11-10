@@ -91,7 +91,7 @@ export function ModelCard({ group, offer, termMonths, locale, t }: ModelCardProp
         <div className="mt-auto pt-5">
           <PriceTag
             size="sm"
-            className="w-fit min-w-44"
+            className="w-fit max-w-full min-w-[min(11rem,100%)]"
             label={range ? t('catalogue.card.from') : t('catalogue.card.monthly')}
             amount={
               priced ? (

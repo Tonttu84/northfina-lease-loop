@@ -26,7 +26,9 @@ export function Card({
       aria-labelledby={title && titleId ? titleId : undefined}
       className={cx(
         'rounded-xl border border-line bg-raised shadow-card',
-        padded && 'p-4 sm:p-6',
+        // On a screen under 20 rem (a phone with the reader's larger text) the padding gives the
+        // text a little more of the little room there is.
+        padded && 'p-4 max-[20rem]:p-3 sm:p-6',
         className
       )}
       {...rest}

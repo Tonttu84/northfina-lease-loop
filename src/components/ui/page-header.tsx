@@ -27,7 +27,10 @@ export function PageHeader({ title, intro, back, actions, children }: PageHeader
       ) : null}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl min-w-0">
-          <h1 className="text-4xl leading-tight text-balance sm:text-5xl">{title}</h1>
+          {/* One step smaller on a screen under 20 rem (a phone with the reader's larger text). */}
+          <h1 className="text-3xl leading-tight text-balance min-[20rem]:text-4xl sm:text-5xl">
+            {title}
+          </h1>
           {intro ? <p className="mt-3 text-lg text-ink-muted">{intro}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

@@ -231,12 +231,26 @@
 }
 
 @layer base {
+  /*
+   * A word longer than its line breaks instead of running out of its box: a Finnish compound
+   * in a heading at the reader's 200 % text, an e-mail address on a phone
+   * (docs/features/responsive-layout.md). Only a word that cannot fit is broken; everything
+   * else wraps at its spaces as before. Amounts and dates that must stay whole say so
+   * themselves (`whitespace-nowrap`, as <Money> does).
+   */
+  body {
+    overflow-wrap: break-word;
+  }
+
   h1,
   h2,
   h3 {
     font-family: var(--font-heading);
     font-weight: 600;
     letter-spacing: -0.01em;
+    /* Where the browser has the page language's hyphenation (<html lang>), a broken heading
+       word breaks at a syllable, with a hyphen. */
+    hyphens: auto;
   }
 
   ::selection {
@@ -280,7 +294,8 @@
   color: var(--brand-contrast);
   clip-path: polygon(18px 0, 100% 0, 100% 100%, 18px 100%, 0 50%);
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  padding-left: 2.25rem;
+  /* The hole (16 + 10 px, fixed) and a gap that grows with the text: 2.25rem at 16 px text. */
+  padding-left: calc(26px + 0.625rem);
 }
 
 .price-tag::before {
@@ -315,22 +330,31 @@
   animation: price-flip 240ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
-/* A stamp is pressed onto the page: it lands a touch big, then settles. */
+/*
+ * A stamp is pressed onto the page: it lands a touch big, then settles. Only its text is tilted:
+ * the double ring is a circle and looks the same at any angle, while a tilted box is a tilted
+ * square whose corners reach 13 % further out, and the 1.18 press pushed those corners past a
+ * phone's edge (the page scrolled sideways for 420 ms on every load). Upright, the ring at its
+ * biggest stays within the page's 1 rem margin.
+ */
 @keyframes stamp-press {
   0% {
-    transform: rotate(var(--stamp-tilt, -8deg)) scale(1.18);
+    transform: scale(1.18);
   }
   70% {
-    transform: rotate(var(--stamp-tilt, -8deg)) scale(0.96);
+    transform: scale(0.96);
   }
   100% {
-    transform: rotate(var(--stamp-tilt, -8deg)) scale(1);
+    transform: scale(1);
   }
 }
 
 .life-stamp {
-  transform: rotate(var(--stamp-tilt, -8deg));
   animation: stamp-press 420ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+.life-stamp-text {
+  transform: rotate(var(--stamp-tilt, -8deg));
 }
 
 /* An audit entry's card rises into the details dock. */

@@ -66,7 +66,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
         <HashTargetFocus />
 
         <footer className="bg-brand text-brand-contrast">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-6 px-4 py-10 sm:px-6">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-6 px-4 py-10 sm:px-6 2xl:max-w-7xl">
             <div>
               <Link
                 href={`/${locale}`}
@@ -83,7 +83,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
             <div className="flex max-w-sm flex-col items-start gap-4">
               <Link
                 href={`/${locale}/catalogue`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-raised px-5 font-bold text-brand-text transition-colors hover:bg-brand-soft"
+                className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full bg-raised px-5 font-bold wrap-anywhere text-brand-text transition-colors hover:bg-brand-soft"
               >
                 {t('home.cta.catalogue')} <span aria-hidden="true">→</span>
               </Link>

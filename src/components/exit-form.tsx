@@ -186,7 +186,7 @@ export function ExitForm(props: ExitFormProps) {
         <fieldset className="space-y-3">
           <legend className="font-medium">{t('exit.report.title')}</legend>
           <p className="text-sm text-ink-muted">{t('exit.report.why')}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id={`${ids}-condition`} label={t('exit.condition')}>
               {(control) => (
                 <select

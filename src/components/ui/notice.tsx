@@ -23,7 +23,10 @@ type NoticeProps = {
 export function Notice({ tone = 'info', title, live = false, className, children }: NoticeProps) {
   const role = live ? (tone === 'error' ? 'alert' : 'status') : undefined;
   return (
-    <div role={role} className={cx('rounded-lg border-2 p-4', tones[tone], className)}>
+    <div
+      role={role}
+      className={cx('rounded-lg border-2 p-4 max-[20rem]:p-3', tones[tone], className)}
+    >
       {title ? <p className="font-semibold">{title}</p> : null}
       {children ? <div className={title ? 'mt-1' : undefined}>{children}</div> : null}
     </div>

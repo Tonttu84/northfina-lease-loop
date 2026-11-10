@@ -2,6 +2,10 @@
 // on keyboard focus and on a tap (a tap focuses the button). The text is the button's
 // description (aria-describedby), so a screen reader reads it with the button; it is only
 // hidden from sight, never from assistive technology. No JavaScript, so server pages use it.
+// The text opens from the button's left edge, 20 rem wide but never wider than the screen or than
+// the nearest `@container` around it (`100cqw`): a caller that puts the popover in a narrow
+// column makes that column a container, so the text, hidden or shown, stays inside it (a hidden
+// box still widens the page: the passport at 1280 px with 200 % text scrolled sideways).
 import type { ReactNode } from 'react';
 import { cx } from './cx';
 
@@ -38,7 +42,7 @@ export function InfoPopover({ id, label, children, className }: InfoPopoverProps
       <div
         id={id}
         role="tooltip"
-        className="invisible absolute bottom-full left-0 z-10 mb-3 w-80 max-w-[calc(100vw-4rem)] space-y-2 rounded-lg bg-raised p-4 text-sm font-normal text-ink opacity-0 shadow-panel transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+        className="invisible absolute bottom-full left-0 z-10 mb-3 w-80 max-w-[min(calc(100vw-4rem),100cqw)] space-y-2 rounded-lg bg-raised p-4 text-sm font-normal text-ink opacity-0 shadow-panel transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
       >
         {children}
       </div>

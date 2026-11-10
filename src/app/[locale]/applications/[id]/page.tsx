@@ -150,7 +150,7 @@ export default async function ApplicationPage({
         >
           {GLYPH[TONE[decision]]}
         </span>
-        <div>
+        <div className="min-w-0">
           <h2 className="font-heading text-2xl leading-tight font-semibold sm:text-3xl">
             {t(`decision.status.${decision}`)}
           </h2>

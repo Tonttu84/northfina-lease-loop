@@ -138,13 +138,14 @@ export default async function PassportPage({
         ) : null}
       </PageHeader>
 
-      <div className="mb-10 grid items-center gap-6 sm:grid-cols-[1fr_1fr]">
+      <div className="mb-10 grid grid-cols-1 items-center gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-muted px-6 pt-8 pb-2">
           <ItemArt category={asset.category} model={asset.model} />
         </div>
-        <div className="rounded-xl bg-brand-soft p-6">
+        {/* A container, so the "How is this calculated?" text stays inside this column. */}
+        <div className="@container rounded-xl bg-brand-soft p-6">
           <p className="font-bold text-success-ink">{t('passport.co2Total')}</p>
-          <p className="mt-1 font-heading text-5xl font-semibold text-brand-text tabular-nums">
+          <p className="mt-1 font-heading text-4xl font-semibold text-brand-text tabular-nums @min-[14rem]:text-5xl">
             {t('passport.kg', { kg: kg(co2.totalKg) })}
           </p>
           {lease && atLeaseEnd && atLeaseEnd.co2.totalKg !== co2.totalKg ? (
@@ -156,7 +157,7 @@ export default async function PassportPage({
             </p>
           ) : null}
           <p className="mt-4 font-bold text-success-ink">{t('passport.moneyTotal')}</p>
-          <p className="mt-1 font-heading text-3xl font-semibold text-brand-text tabular-nums">
+          <p className="mt-1 font-heading text-2xl font-semibold text-brand-text tabular-nums @min-[14rem]:text-3xl">
             {euro(money.totalCents)}
           </p>
           {moneyEstimated ? (
@@ -229,7 +230,7 @@ export default async function PassportPage({
                 <li key={`life-${life.index}`}>
                   <Card as="article" aria-labelledby={`life-${life.index}`}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
                         <LifeStamp
                           life={t('stamp.life', { n: life.index + 1 })}
                           note={life.index === 0 ? t('stamp.new') : t('stamp.checked')}

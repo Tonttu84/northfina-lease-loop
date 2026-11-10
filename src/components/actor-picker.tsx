@@ -92,6 +92,8 @@ export function ActorPicker({
         size="sm"
         pending={pending}
         disabled={!hydrated}
+        // The row does not wrap and the select gives way first: the label stays whole.
+        className="shrink-0"
       >
         {selected === '' && current !== 'anonymous' ? labels.clear : labels.submit}
       </Button>

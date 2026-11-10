@@ -23,7 +23,7 @@ export function VersionPicker({ versions, currentId, locale, t }: VersionPickerP
       <h2 id="versions-title" className="text-lg">
         {t('asset.versions.title')}
       </h2>
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {versions.map((version) => {
           const { asset } = version;
           const current = version.assetIds.includes(currentId);
@@ -40,12 +40,12 @@ export function VersionPicker({ versions, currentId, locale, t }: VersionPickerP
                 )}
               >
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="font-heading text-lg font-semibold whitespace-nowrap">
+                  <span className="min-w-0 font-heading text-lg font-semibold">
                     {asset.previous_lives === 0
                       ? t('asset.versions.new')
                       : t('asset.versions.used', { n: asset.previous_lives + 1 })}
                   </span>
-                  <span className="font-bold whitespace-nowrap text-brand-text tabular-nums">
+                  <span className="min-w-0 font-bold text-brand-text tabular-nums">
                     {version.monthlyCents === null
                       ? t('asset.versions.seeDetails')
                       : t('asset.versions.perMonth', {
