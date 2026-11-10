@@ -1,266 +1,290 @@
 # Security overview
 
-Lease Loop is a leasing demo. A customer prices an item, applies, signs a lease, pays invoices and returns the item for a second life; a back office reviews cases. It runs on Next.js with one SQLite file. This page lists every security feature on `main`: what it stops, where it lives, which test pins it, and how to show it in under a minute. Each feature's full rule is on its feature page under `docs/features/`.
+Lease Loop is a leasing demo on Next.js with one SQLite file: customers lease items and a back office reviews the cases. This page lists every security feature on `main`; the full rules are under [`docs/features/`](features/README.md).
 
-**Threat model.** The app is built to sit on a public URL. An anonymous visitor could try to act as another customer or as the back office, forge a session, make a signed-in visitor's browser write here, read other people's data in the public audit log, or flood the API. Someone with a copy of the database or SQL access could try to reuse sign-in or signing links, or quietly edit the audit log. The worst outcome is a lease signed or a case decided by someone without the right, with an audit log that hides it.
+Each section says what it stops, where it lives, which test pins it, what it does not cover, and how to show it in under a minute. The commands are for Git Bash against `npm run dev` on port 3000: in Windows PowerShell `curl` means `Invoke-WebRequest`, so use Git Bash or `curl.exe`.
 
-**What is demo-grade.** While the demo tools are on, the "Continue as" picker gives any visitor any identity, the admin included, and the demo outbox shows every sign-in link. That is on purpose, so judges can walk the scenario cards. One setting, `DEMO_TOOLS`, turns all of it off; a production build has it off by default, and the protections below are then the only way in.
+**Threat model.** The app is built for a public URL. A visitor could forge a session, act as another customer or the back office, read the public audit log, or flood the API. A hostile site could make a signed-in visitor's browser write here (cross-site request forgery, CSRF), or a script could be slipped into a page (cross-site scripting, XSS). Someone with a database copy or SQL access could reuse sign-in or signing links, or quietly edit the audit log.
+
+**What is demo-grade.** While the demo tools are on, the "Continue as" picker gives any visitor any identity, the admin included, and the demo outbox shows every sign-in link. That is on purpose, for walking the scenario cards, the demo's worked examples. One setting, `DEMO_TOOLS`, turns it all off. Left empty, it is off in a production build; an older `.env` can still turn it on (see [Demo mode as one switch](#demo-mode-as-one-switch)).
 
 ## Contents
 
-| Feature                                                                             | Threat it answers                                     | Open this file               |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------- |
-| [Signed session cookie](#signed-session-cookie-d92)                                 | Session forgery                                       | `src/server/session.ts`      |
-| [Cookie flags](#cookie-flags)                                                       | Cookie theft by script or over plain http             | `src/server/actor.ts`        |
-| [Sign-in by e-mail link](#sign-in-by-e-mail-link-d93-d94)                           | Token theft from a database copy, account enumeration | `src/server/accounts.ts`     |
-| [Cross-site writes and CSRF](#cross-site-writes-and-csrf)                           | CSRF and login CSRF                                   | `src/proxy.ts`               |
-| [Authorization policy](#authorization-policy-d73-d74)                               | Broken access control                                 | `src/domain/authz/policy.ts` |
-| [Company signing link](#company-signing-link-d46)                                   | A coordinator signing without the right, link reuse   | `src/server/signatories.ts`  |
-| [Security headers](#security-headers)                                               | Clickjacking, XSS impact, MIME sniffing, URL leaks    | `next.config.ts`             |
-| [Tamper-evident audit log](#tamper-evident-audit-log-d36-d81)                       | Audit tampering                                       | `src/server/audit.ts`        |
-| [Public audit log redaction](#public-audit-log-redaction)                           | Personal data leakage                                 | `src/domain/audit/redact.ts` |
-| [Rate limit and body cap](#rate-limit-and-body-cap)                                 | Abuse, flooding, oversized bodies                     | `src/server/rate-limit.ts`   |
-| [Input validation and the error envelope](#input-validation-and-the-error-envelope) | Bad input, mass assignment, error leaks               | `src/server/api-response.ts` |
-| [No raw SQL, no `dangerouslySetInnerHTML`](#no-raw-sql-no-dangerouslysetinnerhtml)  | SQL injection, XSS                                    | `src/server/` (Prisma only)  |
-| [Secrets](#secrets)                                                                 | Secret leakage                                        | `scripts/ensure-env.mjs`     |
-| [Demo mode as one switch](#demo-mode-as-one-switch-d74)                             | Demo shortcuts left on in production                  | `src/server/demo-tools.ts`   |
-| [Supply chain](#supply-chain)                                                       | A bad dependency, a leaky CI                          | `.github/workflows/ci.yml`   |
+| Feature                                                                             | Threat it answers                                        | Open this file               |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------- |
+| [Signed session cookie](#signed-session-cookie)                                     | Session forgery                                          | `src/server/session.ts`      |
+| [Cookie flags](#cookie-flags)                                                       | Cookie theft by script or over plain HTTP                | `src/server/cookie-flags.ts` |
+| [Sign-in by e-mail link](#sign-in-by-e-mail-link)                                   | Token theft from a database copy, account enumeration    | `src/server/accounts.ts`     |
+| [Cross-site writes and CSRF](#cross-site-writes-and-csrf)                           | CSRF and login CSRF                                      | `src/proxy.ts`               |
+| [Authorization policy](#authorization-policy)                                       | Broken access control                                    | `src/domain/authz/policy.ts` |
+| [Company signing link](#company-signing-link)                                       | Signing without the right, link reuse                    | `src/server/signatories.ts`  |
+| [Security headers](#security-headers)                                               | Clickjacking, injected scripts, type sniffing, URL leaks | `next.config.ts`             |
+| [Tamper-evident audit log](#tamper-evident-audit-log)                               | Audit tampering                                          | `src/server/audit.ts`        |
+| [Public audit log redaction](#public-audit-log-redaction)                           | Personal data leakage                                    | `src/domain/audit/redact.ts` |
+| [Rate limit and body cap](#rate-limit-and-body-cap)                                 | Flooding, oversized bodies                               | `src/server/rate-limit.ts`   |
+| [Input validation and the error envelope](#input-validation-and-the-error-envelope) | Bad input, mass assignment, error leaks                  | `src/server/api-response.ts` |
+| [No raw SQL, no `dangerouslySetInnerHTML`](#no-raw-sql-no-dangerouslysetinnerhtml)  | SQL injection, XSS                                       | `scripts/tamper-audit.mjs`   |
+| [Secrets](#secrets)                                                                 | Secret leakage                                           | `scripts/ensure-env.mjs`     |
+| [Demo mode as one switch](#demo-mode-as-one-switch)                                 | Demo shortcuts left on in production                     | `src/server/demo-tools.ts`   |
+| [Supply chain](#supply-chain)                                                       | A bad dependency, a leaky build                          | `.github/workflows/ci.yml`   |
 
-## Signed session cookie (D92)
+## Signed session cookie
 
-**Threat** A visitor edits the cookie to say `admin` or another customer's id (session forgery).
+**Threat.** A visitor edits the cookie to claim the admin's or another customer's identity (session forgery).
 
-**What we do** The `lease-loop-actor` cookie holds `base64url(actor).expires.signature`. The signature is HMAC-SHA256 over the first two parts under `SESSION_SECRET`, a 32-byte random secret; a secret under 32 characters counts as none. `verifySession` checks the shape, then the expiry (30 days, the cookie's `Max-Age`), then compares the signature with `timingSafeEqual`. Anything that fails, a missing secret included, reads as `anonymous`, and a valid actor must still be a customer in the database or `admin`.
+**What we do.** The `lease-loop-actor` cookie holds `base64url(actor).expires.signature`. The signature is an HMAC-SHA256 (a keyed hash only the secret's holder can make) under `SESSION_SECRET`. `verifySession` checks the shape, then the 30-day expiry, then the signature with `timingSafeEqual`. A failure reads as `anonymous`, as does every cookie while the secret is missing or under 32 characters. The generated secret is 32 random bytes, written as 43 base64url characters.
 
-**Where** `src/server/session.ts`, `src/server/actor.ts`.
+**Where.** `src/server/session.ts`, `src/server/actor.ts`; [`docs/features/security.md`](features/security.md).
 
-**Proof** `src/server/session.test.ts`: "refuses a value whose actor or expiry was edited after signing", "refuses a value signed with another secret", "refuses a session that has expired, on the second itself too", "refuses a plain actor id, the old unsigned cookie", "refuses another spelling of the same signature bytes (the last character's low bits)". `src/server/actor.test.ts`, "resolveActor".
+**Proof.** `src/server/session.test.ts`: "refuses a value whose actor or expiry was edited after signing".
 
-**Limits** One session cannot be ended before its 30 days; changing the secret signs everyone out. The actor is signed, not encrypted: it is a demo id. The expiry is real time, not the demo clock.
+**Limits.** One session cannot be revoked before its 30 days; changing the secret signs everyone out. The actor is signed, not encrypted.
 
-**Show it** Pick a customer in the header. In devtools, Application > Cookies, `lease-loop-actor` has three dot-separated parts. Change one character of the first part and reload: the header shows "Sign in" again.
+**Show it.** Pick a customer in the header, then in devtools (Application > Cookies) change one character in the first part of `lease-loop-actor`. Reload: the header shows "Sign in" again.
 
 ## Cookie flags
 
-**Threat** A script reads the session cookie (the payoff of XSS), or the cookie travels over plain http.
+**Threat.** A script in the page reads the session cookie, or the cookie travels unencrypted (cookie theft).
 
-**What we do** Both cookies, `lease-loop-actor` and the demo clock's `lease-loop-as-of`, are `HttpOnly; SameSite=Lax; Path=/`. A production build adds `Secure` (`secureFlag`), so the browser sends them over https only. The actor cookie lives 30 days; sign-out sends `Max-Age=0`.
+**What we do.** Both cookies, the session's and the demo clock's `lease-loop-as-of`, are `HttpOnly; SameSite=Lax; Path=/`. A production build adds `Secure`, so they travel over HTTPS only. Sign-out sends `Max-Age=0`.
 
-**Where** `src/server/cookie-flags.ts`, `src/server/actor.ts`, `src/server/demo-clock.ts`.
+**Where.** `src/server/cookie-flags.ts`, `src/server/actor.ts`, `src/server/demo-clock.ts`.
 
-**Proof** `src/server/cookie-flags.test.ts`: "marks the cookie Secure on a production build". `src/server/actor.test.ts`: "sets the actor cookie for the whole site, http only, for 30 days, as a signed session", "both headers add Secure, so the cookie travels over https only". `src/server/demo-clock.test.ts`: "is Secure on a production build".
+**Proof.** `src/server/actor.test.ts`: "both headers add Secure, so the cookie travels over https only".
 
-**Limits** `Secure` follows `NODE_ENV`, not the real scheme: a production build served over plain http on a LAN address gets no cookie back. No `__Host-` prefix.
+**Limits.** `HttpOnly` stops a script reading the cookie, not using the session from inside the page. `Secure` follows `NODE_ENV`, not the scheme, so a production build served over plain HTTP on a network address cannot keep anyone signed in. There is no `__Host-` prefix.
 
-**Show it** In devtools, Application > Cookies, the HttpOnly and SameSite columns. In the console, `document.cookie` does not list `lease-loop-actor`.
+**Show it.** In devtools, Application > Cookies shows the HttpOnly and SameSite columns. In the console, `document.cookie` does not list `lease-loop-actor`.
 
-## Sign-in by e-mail link (D93, D94)
+## Sign-in by e-mail link
 
-**Threat** A copy of the database yields usable sign-in links (token theft); a link works twice; the answer tells an attacker which e-mails have accounts (account enumeration); a mail scanner uses up the link.
+**Threat.** A database copy yields working sign-in links, a link works twice, or the answer reveals which e-mails have accounts (token theft, account enumeration).
 
-**What we do** `POST /api/login` makes a token of 24 random bytes (`randomBytes`, 32 base64url characters) and stores only its SHA-256 in `token_hash`; the lookup hashes what it is given. The link works on the day it is sent and the next, once: opening it marks it used with a conditional `updateMany` (`used_on: null`) as the transaction's first write, so of two opens at once one signs in and the other gets 409 `LOGIN_LINK_USED`. The answer is 202 `{ sent: true, demoLink }` whether or not the e-mail has an account. The link page signs in only when the visitor clicks the button, never on page load.
+**What we do.** `POST /api/login` makes a token of 24 random bytes and stores only its SHA-256. A link works once, on the day it is sent and the next. Opening it marks it used with a conditional `updateMany`, the transaction's first write. So of two opens at once, one signs in and the other gets 409 `LOGIN_LINK_USED`. Every valid request answers 202 Accepted, whether or not the e-mail has an account. The link page signs in only on a button click, so a mail scanner that fetches the link uses nothing up.
 
-**Where** `src/server/accounts.ts`, `src/domain/accounts/login-link.ts`, `src/app/api/login/route.ts`, `src/app/api/login/[token]/route.ts`, `src/app/[locale]/login/[token]/login-link-form.tsx`.
+**Where.** `src/server/accounts.ts`, `src/app/api/login/route.ts`, `src/app/[locale]/login/[token]/login-link-form.tsx`; [`docs/features/accounts.md`](features/accounts.md).
 
-**Proof** `src/server/accounts.test.ts`: "makes a link for the account with that e-mail: the token once, its hash stored, two days", "keeps no token in clear while the demo tools are off (D94)", "two opens of one link at once: exactly one signs in, one audit row, the other is used", "makes no row and no audit entry for an e-mail no account has". `src/app/api/login/route.test.ts`: "answers the same 202, without a link, for an e-mail no account has", "answers 409 LOGIN_LINK_USED the second time, with no cookie". `e2e/09-login-outbox.spec.ts`. The button-not-page-load rule has no automated test of its own.
+**Proof.** `src/server/accounts.test.ts`: "two opens of one link at once: exactly one signs in, one audit row, the other is used". The click-only rule has no automated test.
 
-**Limits** While the demo tools are on, the token is also kept in clear (`demo_token`) for the outbox, and `demoLink: null` tells that an e-mail is unknown, by design. An unknown e-mail answers faster (no hash, no write, no audit row): a timing side channel. A link lives in days on the demo clock, not minutes. There is no cap on links per account. The link page has the site-wide `strict-origin-when-cross-origin` referrer policy, not `no-referrer` as the signing page has.
+**Limits.** While the demo tools are on, the token is also kept in clear for the outbox, and an unknown e-mail gets `demoLink: null`. An unknown e-mail also answers faster: a timing side channel. Links live in days, not minutes, with no cap per account. The link page lacks the signing page's `no-referrer` rule.
 
-**Show it** On `/en/login`, type `aino.virtanen@example.com`. Open the link from the outbox on `/en/demo` and click Sign in. Open the same link again: it says the link was used. Then `curl -s -X POST http://localhost:3000/api/login -H 'content-type: application/json' -d '{"email":"nobody@example.com"}'` gives the same 202, with `demoLink: null`.
+**Show it.** On `/en/login`, ask for a link for `aino.virtanen@example.com`, open it from the outbox on `/en/demo` and click Sign in. Open the same link again: it says the link was used.
 
 ## Cross-site writes and CSRF
 
-**Threat** A page on another site makes a signed-in visitor's browser write here (CSRF), or signs the visitor in as the attacker through a link the attacker holds (login CSRF).
+**Threat.** A page on another site makes a signed-in visitor's browser write here, or signs the visitor in as the attacker with the attacker's link (CSRF, login CSRF).
 
-**What we do** The session cookie is `SameSite=Lax`, so a browser does not send it with a cross-site POST, PATCH or DELETE. The proxy refuses every write on `/api` (anything but GET, HEAD, OPTIONS) whose `Sec-Fetch-Site` header is `cross-site`, with 403 `CROSS_SITE`, before the rate limit counts it. That also closes `POST /api/login/[token]`, which has no body and sets the cookie on its answer, so a plain cross-site form could otherwise post it.
+**What we do.** The session cookie is `SameSite=Lax`, so the browser leaves it off a POST, PATCH or DELETE that another site starts. The proxy also refuses any write on `/api` whose `Sec-Fetch-Site` header says `cross-site`, with 403 `CROSS_SITE`. That closes `POST /api/login/[token]` too: it has no body and sets the cookie, so a plain form on another site could otherwise post it.
 
-**Where** `src/proxy.ts` (`isCrossSite`), `src/server/actor.ts` (the cookie).
+**Where.** `src/proxy.ts` (`isCrossSite`), `src/server/actor.ts`; [`docs/features/security.md`](features/security.md).
 
-**Proof** `src/proxy.test.ts`: "refuses a write a browser sends from another site with 403 CROSS_SITE, before the limit counts it".
+**Proof.** `src/proxy.test.ts`: "refuses a write a browser sends from another site with 403 CROSS_SITE, before the limit counts it".
 
-**Limits** There is no CSRF token. A request without `Sec-Fetch-Site` (curl, a script, an old browser) is not refused on it; such a client has no visitor's cookie to ride on. "A JSON body needs a preflight" does not hold on its own here: `readJsonBody` does not check `Content-Type`, so a `text/plain` body that parses as JSON goes through without one. SameSite and `Sec-Fetch-Site` are what stop it.
+**Limits.** There is no CSRF token. A request without `Sec-Fetch-Site`, such as curl, passes the check but carries no visitor's cookie. Another site can send a plain-text POST without asking this server first, and the server parses any body as JSON. So SameSite and `Sec-Fetch-Site` are what stop it. Both work per site, not per origin: a page on a sibling subdomain sends the cookie and is not refused. Deploy on a domain with no untrusted subdomains, or refuse `same-site` too.
 
-**Show it** `curl -i -X DELETE http://localhost:3000/api/actor -H 'Sec-Fetch-Site: cross-site'` answers 403 `CROSS_SITE`. The same command without the header answers 200.
+**Show it.** This sign-out, marked cross-site, answers 403 `CROSS_SITE`. Without the header it answers 200 OK: curl sends no cookie, so there is no session to ride on.
 
-## Authorization policy (D73, D74)
+```bash
+curl -i -X DELETE http://localhost:3000/api/actor -H 'Sec-Fetch-Site: cross-site'
+```
 
-**Threat** A customer reads or changes another customer's records, or does the back office's work (broken access control, IDOR, privilege escalation).
+## Authorization policy
 
-**What we do** One pure function, `can(actor, action, subject)`, decides every write and every private read. Anonymous is `not_signed_in`; a customer acts on its own records only (`not_owner`); deciding a case, assessing an asset, changing an asset's status and the second-life page are `admin_only`; a case awaiting the company's signatory is signed only through the signing link (`signatory_required`); the admin never signs a customer's lease (`customer_signs`). Routes call `authorize()`, which reads only the record's owner, before they act, and the services call it again at their top. `not_signed_in` answers 401 and any other refusal 403, both `FORBIDDEN` with the reason; another customer's application answers the same 404 as an unknown id.
+**Threat.** A customer reads or changes another customer's records, or does the back office's work (insecure direct object reference, IDOR, and privilege escalation).
 
-**Where** `src/domain/authz/policy.ts`, `src/server/authorize.ts`, `tests/meta-rules.test.ts`.
+**What we do.** One pure function, `can(actor, action, subject)`, decides every write on a customer's records or the back office's work, and every private read. The public routes (catalogue, quotes, sign-in, signing link, audit log, demo tools) are listed with their reason in `tests/meta-rules.test.ts`. The policy has five refusal codes, from `not_signed_in` to `customer_signs`. Routes call `authorize()` before they act, and the services call it again. A visitor not signed in gets 401, any other refusal 403, both `FORBIDDEN` with the reason. Another customer's application answers the same 404 `APPLICATION_NOT_FOUND` as an unknown id.
 
-**Proof** `src/domain/authz/policy.test.ts`: "can: every actor kind × every action". `src/app/api/authz.routes.test.ts`, for each write route: "anonymous is 401 FORBIDDEN not_signed_in and writes nothing", "the wrong customer is 403 FORBIDDEN and writes nothing". `src/server/authorize.test.ts`: "refuses anonymous before reading, so an unknown id answers the same". `tests/meta-rules.test.ts`: "every API route not on the public allowlist calls authorize".
+**Where.** `src/domain/authz/policy.ts`, `src/server/authorize.ts`, `tests/meta-rules.test.ts`; [`docs/features/authorization.md`](features/authorization.md).
 
-**Limits** The meta test looks for the text `authorize(` in each route file; it does not prove every handler calls it, and it does not cover pages. Some routes read and validate the body before they authorize (`POST /api/contracts`). While the demo tools are on, the picker makes anyone the admin.
+**Proof.** `src/app/api/authz.routes.test.ts`: "the wrong customer is 403 FORBIDDEN and writes nothing"; `tests/meta-rules.test.ts`: "every API route not on the public allowlist calls authorize".
 
-**Show it** `curl -i -X PATCH http://localhost:3000/api/assets/ebike-003/status -H 'content-type: application/json' -d '{"status":"reserved"}'` answers 401 `not_signed_in`. Pick Aino in the header and send the same request with `fetch` from the console: 403 `admin_only`.
+**Limits.** The meta test looks for the text `authorize(` in each route file; it proves no call path and skips pages. `POST /api/contracts` validates the body before it authorizes. `can()` lets anyone run a demo card; that route answers 404 `NOT_FOUND` while the demo tools are off.
 
-## Company signing link (D46)
+**Show it.** Pick Aino in the header and run this in the devtools console: it answers 403 `FORBIDDEN` with `admin_only` in its details. Signed out, the same call answers 401 `FORBIDDEN` with `not_signed_in`.
 
-**Threat** A company coordinator without signing rights approves their own case, or someone guesses, reuses or leaks a signing link.
+```js
+await (
+  await fetch('/api/assets/ebike-003/status', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: '{"status":"reserved"}',
+  })
+).json();
+```
 
-**What we do** When a company case needs its signatory, the server makes a `SignatureRequest` for the named e-mail with a token of 24 random bytes (192 bits, 32 base64url characters), valid 14 days. Only that link signs or declines the case; the coordinator and the admin get `signatory_required`. A use marks the request with a conditional `updateMany` inside the transaction, so a second use, even at the same instant, answers 409 `SIGNING_LINK_USED`, and an expired link 410. The token's format is checked, `GET /api/sign/[token]` leaves the token out of its answer, the decision page shows the link to the admin only, and the signing page sends `Referrer-Policy: no-referrer`.
+## Company signing link
 
-**Where** `src/server/signatories.ts` (`createSignatureRequest`, `decideByToken`), `src/domain/signatories/mandates.ts`, `src/app/api/sign/[token]/route.ts`, `next.config.ts` (`SIGN_PAGE_HEADERS`).
+**Threat.** A company coordinator without signing rights approves their own case, or someone guesses, reuses or leaks a signing link (privilege escalation, token reuse).
 
-**Proof** `src/server/applications.test.ts`: "the trap: a second use of the link answers already_used and writes nothing", "two uses at the same instant: exactly one wins", "an expired link and an unknown token sign nothing". `src/domain/authz/policy.test.ts`: "can: card 6, a case awaiting the company signatory (D46)". `src/domain/signatories/mandates.test.ts`. `tests/security-headers.test.ts`: "applies the build headers to every route and the referrer rule to the signing page". `e2e/04-card-6-signing-link.spec.ts`.
+**What we do.** A company case that needs its signatory gets a `SignatureRequest` for the named e-mail, with a token of 24 random bytes valid 14 days. Only that link signs or declines; the coordinator and the admin get `signatory_required`. A conditional `updateMany` marks the use, so a second use, even at the same instant, gets 409 `SIGNING_LINK_USED`; an expired link gets 410 `SIGNING_LINK_EXPIRED`. The API answer leaves the token out, and the signing page sends `Referrer-Policy: no-referrer`.
 
-**Limits** The signing token is stored in clear (`SignatureRequest.token`), unlike the sign-in token, so a database copy yields usable signing links (polish review finding S10, open). No e-mail is sent; whoever holds the link acts as the signatory. There is no strong identification (Suomi.fi in production).
+**Where.** `src/server/signatories.ts`, `src/app/api/sign/[token]/route.ts`, `next.config.ts` (`SIGN_PAGE_HEADERS`); [`docs/features/signatories.md`](features/signatories.md).
 
-**Show it** On `/en/demo`, run card 6. Pick Admin and open the application: the outbox shows the signing link. Open it, look at the `Referrer-Policy: no-referrer` response header in the Network tab, and sign. Open it again: the link says it was used.
+**Proof.** `src/server/applications.test.ts`: "two uses at the same instant: exactly one wins".
+
+**Limits.** The signing token is stored in clear, unlike the sign-in token, so a database copy yields working links. No e-mail is sent, and there is no strong identification such as Suomi.fi, Finland's public e-identification service.
+
+**Show it.** On `/en/demo`, run card 6 (a company case waiting for its signatory) and click "Open the page to compare". Pick Admin in the header and open the signing link from the page's outbox: the Network tab shows `Referrer-Policy: no-referrer` on its response.
 
 ## Security headers
 
-**Threat** Another site frames the app to trick clicks (clickjacking), an injected script loads code from elsewhere (XSS impact), a browser sniffs a file as another type, or a URL leaks through the `Referer` header.
+**Threat.** Another site frames the app, an injected script loads outside code, a browser guesses a file's type, or a URL leaks (clickjacking, XSS, MIME sniffing, referrer leaks).
 
-**What we do** Every response carries a Content-Security-Policy: `default-src 'self'`, scripts and styles from this origin plus `'unsafe-inline'`, `'unsafe-eval'` and `data:`/`blob:` images in development only, `connect-src 'self'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, `object-src 'none'`. It also carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy` that turns off camera, microphone, geolocation and payment; a production build adds `Strict-Transport-Security: max-age=31536000; includeSubDomains`. Clickjacking is stopped twice: `frame-ancestors 'none'` and `X-Frame-Options: DENY` both forbid any site to frame the app. `poweredByHeader: false` drops `X-Powered-By`.
+**What we do.** Every response carries a Content Security Policy (CSP) that allows this origin only (`default-src 'self'`) and forbids framing (`frame-ancestors 'none'`). Scripts and styles also allow `'unsafe-inline'` (Next's inline bootstrap, in every build); development adds `'unsafe-eval'` and `data:`/`blob:` images. Responses also carry `nosniff`, `X-Frame-Options: DENY`, a `strict-origin-when-cross-origin` referrer policy, and a `Permissions-Policy` that turns off camera, microphone, geolocation and payment. A production build adds HTTP Strict Transport Security (HSTS): HTTPS only, for a year.
 
-**Where** `next.config.ts`.
+**Where.** `next.config.ts`; [`docs/features/security.md`](features/security.md).
 
-**Proof** `tests/security-headers.test.ts`: "production=%s: the policy, nosniff, no framing, a referrer policy, a permissions policy", "a production build allows no eval and no data or blob images, and sends HSTS", "applies the build headers to every route and the referrer rule to the signing page".
+**Proof.** `tests/security-headers.test.ts`: "a production build allows no eval and no data or blob images, and sends HSTS".
 
-**Limits** `'unsafe-inline'` scripts (Next's inline bootstrap) mean the policy does not stop an injected inline script; there are no nonces. HSTS has no `preload`. The test reads the config; no test reads a live response.
+**Limits.** Inline scripts are allowed and there are no nonces, so the policy does not stop an injected inline script. HSTS has no `preload`. The test reads the config, not a live response.
 
-**Show it** `curl -sI http://localhost:3000/en` lists the headers. In devtools, Network, click the page request and read Response Headers.
+**Show it.** `curl -sI http://localhost:3000/en` lists the headers. Under `npm run dev` that is the development policy, without HSTS; `npm run build && npm start` shows the production one.
 
-## Tamper-evident audit log (D36, D81)
+## Tamper-evident audit log
 
-**Threat** Someone with SQL access edits, deletes or reorders audit rows, or rewrites the whole log with fresh hashes (audit tampering).
+**Threat.** Someone with SQL access edits, deletes or reorders audit rows, or rewrites the whole log with fresh hashes (audit tampering).
 
-**What we do** Every change writes its audit row in the same transaction (`withAudit`). Each row stores the previous row's hash and its own SHA-256 over that plus the canonical JSON of its content, time included; `prev_hash` and `hash` are unique, so the chain cannot fork. Each row hash and the head (`AuditHead`: length and hash) are signed with Ed25519 under `AUDIT_SIGNING_KEY`, which lives outside the database; `withAudit` refuses to write without it. After each commit the head is appended to an anchor file outside the database, `npm run audit:anchor` gets an RFC 3161 timestamp-authority receipt for the head, and a pure verifier names the first broken row on `/en/audit` and from `GET /api/audit-log/verify`.
+**What we do.** Every change writes its audit row in the same transaction (`withAudit`). Each row stores the previous row's hash and its own SHA-256 over that plus its content. Both hashes are unique, so the chain cannot fork. Row hashes and the head are signed with Ed25519 (a public-key signature scheme) under a key kept outside the database. After each commit the head is appended to an anchor file. `npm run audit:anchor`, run by hand, gets an RFC 3161 receipt: a timestamp authority's signed statement that it saw that head at that time. A pure verifier names the first broken row on `/en/audit`.
 
-**Where** `src/server/audit.ts`, `src/domain/audit/chain.ts`, `src/domain/audit/seal.ts`, `src/server/audit-signing.ts`, `src/server/audit-anchors.ts`, `scripts/tamper-audit.mjs`, `scripts/anchor-audit-tsa.mjs`.
+**Where.** `src/server/audit.ts`, `src/domain/audit/seal.ts`, `src/server/audit-anchors.ts`, `scripts/anchor-audit-tsa.mjs`; [`docs/features/audit-chain.md`](features/audit-chain.md).
 
-**Proof** `src/domain/audit/chain.test.ts`: "verifies a three-row chain and names its head". `src/domain/audit/seal.test.ts`: "catches a rewrite of both tables with fresh hashes: signature_mismatch at the first new hash", "catches the same rewrite with no key at all through the anchors outside the database". `src/server/audit.test.ts`: "reports the row whose details were edited behind the app", "refuses a second row chained to the same previous row (a fork)", "refuses to write without a key, before the change runs". `tests/meta-rules.test.ts`: "no app code updates or deletes audit rows". `e2e/06-audit-page.spec.ts`.
+**Proof.** `src/domain/audit/seal.test.ts`: "catches a rewrite of both tables with fresh hashes: signature_mismatch at the first new hash".
 
-**Limits** Tamper-evident, not tamper-proof. By default the key (`.env`), the anchor file and the receipts sit on the same disk as `dev.db`, so it stops someone with SQL access only; against someone with the disk, only a receipt copied off the machine counts. The verifier derives the public key from the private key in `.env`, so a key swap plus a rewrite reads as intact (review finding S11). There is no key rotation, and the database itself does not forbid `UPDATE` or `DELETE` on the table.
+**Limits.** Tamper-evident, not tamper-proof. By default the key, anchors and receipts sit on the database's disk; against someone with the disk, only a receipt copied elsewhere counts. A receipt covers the head when it was taken; later rows rest on the key and the anchor file. The verifier derives the public key from the private key, so a key swap plus a rewrite reads as intact. There is no key rotation.
 
-**Show it** After a few actions, open `/en/audit`: "Chain intact". Run `npm run demo:tamper` and reload: "Chain broken at entry #n". `npm run demo:tamper -- --rewrite` recomputes the hashes, and the signature still catches it. `npm run db:reset` gives a clean chain again.
+**Show it.** After a few actions, `/en/audit` says "Chain intact". Run `npm run demo:tamper` and reload: it says "Chain broken at entry #n" (`npm run db:reset` cleans up).
 
 ## Public audit log redaction
 
-**Threat** Anyone reading the public audit log sees the birth dates, incomes and e-mails people typed into the apply form (personal data leakage).
+**Threat.** Anyone reading the public audit log sees the birth dates, incomes and e-mails people typed in (personal data leakage).
 
-**What we do** The stored row keeps every detail, so the hash holds. For anyone but the admin, the audit page and `GET /api/audit-log` return a copy in which values under personal keys read `•••` at any depth: `birthDate`, `eighteenOn`, `monthlyNetIncomeCents`, `incomeCents`, `maxRentCents`, `revenueCents`, `businessId`, `country`, `email`, `signatoryEmail`, `signingLinkTo`. Any string shaped like an e-mail address is masked whatever its key, and a signatory actor reads `signatory:•••`.
+**What we do.** The stored row keeps every detail, so the hash holds. Anyone but the admin gets a copy with personal values masked as `•••` at any depth. The masked keys are `birthDate`, `eighteenOn`, `monthlyNetIncomeCents`, `incomeCents`, `maxRentCents`, `revenueCents`, `businessId`, `country`, `email`, `signatoryEmail` and `signingLinkTo`. Any string shaped like an e-mail is masked too, and a signatory actor reads `signatory:•••`.
 
-**Where** `src/domain/audit/redact.ts`, `src/app/api/audit-log/route.ts`, `src/app/[locale]/audit/page.tsx`.
+**Where.** `src/domain/audit/redact.ts`, `src/app/api/audit-log/route.ts`.
 
-**Proof** `src/domain/audit/redact.test.ts`: "masks a private key at any depth, the derived ones too, and leaves the rest as it is", "masks an e-mail address under any key and keeps an id under the same key". `src/app/api/audit-log/route.test.ts`: "masks the personal fields and the signatory actor for a visitor", "shows the admin the stored row".
+**Proof.** `src/app/api/audit-log/route.test.ts`: "masks the personal fields and the signatory actor for a visitor".
 
-**Limits** A deny-list by key name: personal data under a new key shows until the key is added. Customer ids stay visible. While the demo tools are on, the admin's view is one picker click away.
+**Limits.** A deny-list by key name: personal data under a new key shows until the key is added. Customer ids stay visible.
 
-**Show it** After an application, `curl -s http://localhost:3000/api/audit-log` shows `•••` in its details. Pick Admin and reload `/en/audit` to see the stored values.
+**Show it.** After an application, `curl -s http://localhost:3000/api/audit-log` shows `•••` in its details. As Admin, `/en/audit` shows the stored values.
 
 ## Rate limit and body cap
 
-**Threat** A script floods the API with writes, each one a signed audit row and an anchor line, or sends a huge body (abuse, resource exhaustion).
+**Threat.** A script floods the API with writes, each one a signed audit row, or sends a huge body (resource exhaustion).
 
-**What we do** The proxy counts writes on `/api` per client in a fixed one-minute window: at most 120, then 429 `RATE_LIMITED` with `Retry-After`, in the API envelope. The client is the first `X-Forwarded-For` address, and the map holds at most 10 000 clients. A body is capped at 64 kB: 413 `PAYLOAD_TOO_LARGE` before it is read when `Content-Length` says so, and after reading when it is chunked.
+**What we do.** The proxy counts writes on `/api` per client in a fixed 60-second window, and after 120 answers 429 `RATE_LIMITED` with `Retry-After`. The client is the first `X-Forwarded-For` address; the map holds at most 10,000 clients. A body over 64 KiB (65,536 bytes) gets 413 `PAYLOAD_TOO_LARGE`, checked before reading when declared and after reading when chunked.
 
-**Where** `src/proxy.ts`, `src/server/rate-limit.ts`, `src/server/api-response.ts` (`assertBodySize`, `readBodyText`).
+**Where.** `src/proxy.ts`, `src/server/rate-limit.ts`, `src/server/api-response.ts`.
 
-**Proof** `src/server/rate-limit.test.ts`: "lets `limit` requests through in a window and refuses the next with the seconds to wait", "never holds more clients than maxClients, even when no window has ended". `src/proxy.test.ts`: "refuses the write over the limit with 429, Retry-After and the API envelope". `src/server/api-response.test.ts`: "refuses a body over the cap with 413 before it is read", "a body without a declared length (chunked) is refused once read when it is over the cap".
+**Proof.** `src/proxy.test.ts`: "refuses the write over the limit with 429, Retry-After and the API envelope"; `src/server/api-response.test.ts`: "refuses a body over the cap with 413 before it is read".
 
-**Limits** Next fills `X-Forwarded-For` from the socket only when the request has none, so a client that sends the header picks its own bucket: a nuisance bar, not a guarantee. Reads are not limited. The count lives in one process's memory.
+**Limits.** Next keeps a client-sent `X-Forwarded-For`, so a client that sends one picks its own bucket: a nuisance bar, not a guarantee. Reads are not limited, and the count lives in one process's memory.
 
-**Show it** Body cap first: `head -c 70000 /dev/zero | curl -s -X POST http://localhost:3000/api/login -H 'content-type: application/json' --data-binary @-` answers 413. Then `for i in $(seq 121); do curl -s -o /dev/null -w '%{http_code}\n' -X DELETE http://localhost:3000/api/actor; done | sort | uniq -c` shows the 200s, then 429.
+**Show it.** After a minute with no writes, 121 sign-outs give about 120 × 200 OK, then 429 `RATE_LIMITED`.
+
+```bash
+for i in $(seq 121); do curl -s -o /dev/null -w '%{http_code}\n' -X DELETE http://localhost:3000/api/actor; done | sort | uniq -c
+```
 
 ## Input validation and the error envelope
 
-**Threat** Malformed or extra input reaches the database (mass assignment), or an error message leaks a stack trace, SQL or personal data.
+**Threat.** Malformed or extra input reaches the database, or an error message leaks a stack trace, SQL or personal data (mass assignment, information leakage).
 
-**What we do** Every JSON body is read through `readJsonBody` with a `z.strictObject` schema, so an unknown key is 400 `VALIDATION_ERROR` with the issues, and bad JSON is 400 `INVALID_JSON`. Rows are parsed by their Zod write schema (`parseRow`) right before the write; a row that breaks it is our bug and answers a generic 500. Every route is wrapped in `handleRoute`: an unknown error goes to the server log, and the client gets only `500 INTERNAL_ERROR` "Something went wrong". Today's date comes from the server (`todayForRequest`), never from the body.
+**What we do.** Every JSON body goes through `readJsonBody` with a `z.strictObject` schema. An unknown key is 400 `VALIDATION_ERROR`, and bad JSON is 400 `INVALID_JSON`. Each row is checked by its Zod write schema (`parseRow`) right before the write. Every route is wrapped in `handleRoute`: an unknown error is logged on the server, and the client gets only 500 `INTERNAL_ERROR`.
 
-**Where** `src/server/api-response.ts`, `src/server/row-rules.ts`, `src/domain/rows/`, the `*-schemas.ts` files in `src/server/`.
+**Where.** `src/server/api-response.ts`, `src/server/row-rules.ts`, the `*-schemas.ts` files in `src/server/`.
 
-**Proof** `src/server/api-response.test.ts`: "turns an unknown error into a generic 500 and never leaks its message", "turns a ZodError into 400 VALIDATION_ERROR with the issues as details". `src/server/actor.test.ts`: "accepts { actor } and nothing else". `tests/meta-rules.test.ts`: "every API route handler is wrapped in handleRoute". `tests/schema-columns.test.ts`. `src/app/api/id-params.routes.test.ts`.
+**Proof.** `src/server/api-response.test.ts`: "turns an unknown error into a generic 500 and never leaks its message".
 
-**Limits** Strict bodies are a convention: every body schema is strict today, but no test checks that. Some writes have no row schema yet (listed in `docs/features/row-schemas.md`). `Content-Type` is not checked.
+**Limits.** Strict bodies are a convention that no test checks. Some writes have no row schema yet, as [`docs/features/row-schemas.md`](features/row-schemas.md) lists. `Content-Type` is not checked.
 
-**Show it** `curl -s -X POST http://localhost:3000/api/login -H 'content-type: application/json' -d '{"email":"a@example.com","admin":true}'` answers 400 with an `unrecognized_keys` issue.
+**Show it.** A sign-in request with an extra key answers 400 `VALIDATION_ERROR` with an `unrecognized_keys` issue.
+
+```bash
+curl -s -X POST http://localhost:3000/api/login -H 'content-type: application/json' -d '{"email":"a@example.com","admin":true}'
+```
 
 ## No raw SQL, no `dangerouslySetInnerHTML`
 
-**Threat** SQL injection, or stored XSS through text a visitor typed.
+**Threat.** Text a visitor typed runs as SQL, or as a script in another visitor's page (SQL injection, stored XSS).
 
-**What we do** The app reaches the database through Prisma's query builder only: no `$queryRaw`, `$executeRaw` or their `Unsafe` forms under `src/` outside tests. The only raw SQL is the tamper demo (`scripts/tamper-audit.mjs`) and tests that play the attacker, all as parameterised tagged templates. React escapes every value it renders, and nothing in the repository uses `dangerouslySetInnerHTML`.
+**What we do.** The app reaches the database through Prisma's query builder only: no `$queryRaw` or `$executeRaw` under `src/` outside tests. The only raw SQL is the tamper demo (`scripts/tamper-audit.mjs`) and tests that play the attacker, all as parameterized tagged templates. React escapes what it renders, and nothing uses `dangerouslySetInnerHTML`.
 
-**Where** `src/server/` (every read and write), `scripts/tamper-audit.mjs`.
+**Where.** `src/server/` (every read and write), `scripts/tamper-audit.mjs`.
 
-**Proof** No automated test; the grep below is the check.
+**Proof.** No automated test; the grep below is the check.
 
-**Limits** Nothing stops a future change from adding either; a meta rule would. XSS through an `href` or a third-party script is not covered by this grep (the app loads no third-party script).
+**Limits.** Nothing stops a future change from adding either; a meta rule would. The grep does not cover XSS through an `href`.
 
-**Show it** `git grep -nF -e '$queryRaw' -e '$executeRaw' -e 'dangerouslySetInnerHTML' -- src` lists only test files.
+**Show it.** This grep lists only test files.
+
+```bash
+git grep -nF -e '$queryRaw' -e '$executeRaw' -e 'dangerouslySetInnerHTML' -- src
+```
 
 ## Secrets
 
-**Threat** A signing key or session secret is committed to git or shared between machines (secret leakage).
+**Threat.** A signing key or session secret is committed to git or shared between machines (secret leakage).
 
-**What we do** `SESSION_SECRET` (32 random bytes) and `AUDIT_SIGNING_KEY` (a fresh Ed25519 key) are generated per machine into `.env` by `scripts/ensure-env.mjs`, which `db:setup`, `db:reset`, `predev` and `prestart` run. It never overwrites a value and writes nothing a process environment already provides. `.env` is git-ignored, `.env.example` has empty lines, and the tests make their own per run (`vitest.config.ts`). Secretlint (the recommended preset) scans the staged files in the pre-commit hook and the whole tree in `npm run check:secrets`, which `check:all` and CI run.
+**What we do.** `scripts/ensure-env.mjs` generates `SESSION_SECRET` and an Ed25519 `AUDIT_SIGNING_KEY` into `.env` on each machine, and never overwrites a value. `.env` is git-ignored and `.env.example` leaves both empty. Secretlint scans the staged files in the pre-commit hook and the whole tree in `npm run check:secrets`, which continuous integration (CI) runs.
 
-**Where** `scripts/ensure-env.mjs`, `.env.example`, `.gitignore`, `.husky/pre-commit`, `.secretlintrc.json`, `.secretlintignore`, `.github/workflows/ci.yml`.
+**Where.** `scripts/ensure-env.mjs`, `.env.example`, `.husky/pre-commit`, `.secretlintrc.json`.
 
-**Proof** `scripts/ensure-env.test.mjs`: "never replaces a secret that is there", "generates 32 random bytes as base64url by default, different each time", "writes nothing when the process environment provides the variable". Secretlint itself runs as a check, not a test.
+**Proof.** `scripts/ensure-env.test.mjs`: "generates 32 random bytes as base64url by default, different each time".
 
-**Limits** The secrets sit in `.env` on the same disk as the database: no secret store, no rotation. Secretlint knows known key shapes only.
+**Limits.** The secrets sit in `.env` beside the database: no secret store, no rotation. Secretlint knows known key shapes only.
 
-**Show it** `git log --all --oneline -- .env` prints nothing. `npm run check:secrets` passes.
+**Show it.** `git log --all --oneline -- .env` prints nothing, and `npm run check:secrets` passes.
 
-## Demo mode as one switch (D74)
+## Demo mode as one switch
 
-**Threat** Demo shortcuts stay on in production: the picker hands out the admin, the demo clock defeats every date rule (link expiry, quote validity, the age at signing), the outbox shows sign-in links.
+**Threat.** Demo shortcuts stay on in production: the picker hands out the admin, the clock bends every date rule, the outbox shows sign-in links (debug features left on).
 
-**What we do** `demoToolsOn()` reads `DEMO_TOOLS`: `1` on, `0` off, empty on in development and tests and off in a production build. With the tools off, `POST /api/actor` (the picker), `POST /api/demo/clock` and `POST /api/demo/cards/[id]/run` answer 404, the clock cookie is ignored, and the header hides the picker. `POST /api/login` then returns no link and stores no token in clear, so the outbox is empty; sign-out (`DELETE /api/actor`) always works.
+**What we do.** `demoToolsOn()` reads `DEMO_TOOLS`: `1` is on and `0` off; empty is on in development and tests, off in a production build. With the tools off, the picker, the demo clock and the card runner answer 404 `NOT_FOUND`, and the clock cookie is ignored. `POST /api/login` then returns no link and keeps no token in clear, so the outbox is empty.
 
-**Where** `src/server/demo-tools.ts`, `src/server/demo-clock.ts`, `src/app/api/actor/route.ts`, `src/app/api/demo/`, `src/app/api/login/route.ts`, `src/components/site-header.tsx`.
+**Where.** `src/server/demo-tools.ts`, `src/app/api/actor/route.ts`, `src/app/api/demo/`, `src/components/site-header.tsx`.
 
-**Proof** `src/server/demo-tools.test.ts`. `src/app/api/actor/route.test.ts`: "answers 404 and sets no cookie: the sign-in link is the way in". `src/app/api/demo/clock/route.test.ts`: "answers 404 and sets nothing, as the card runner does". `src/server/demo-clock.test.ts`: "ignores the cookie while the demo tools are off (D74)". `src/app/api/demo/cards/[id]/run/route.test.ts`: "answers 404, sets no cookie and writes nothing". `src/app/api/login/route.test.ts`: "carries no link while the demo tools are off (D94), and stores none in clear".
+**Proof.** `src/app/api/actor/route.test.ts`: "answers 404 and sets no cookie: the sign-in link is the way in".
 
-**Limits** An `.env` made before 9 November 2026 may still say `DEMO_TOOLS="1"`, which keeps the tools on under `next start`. The demo page stays reachable; it says the tools are off.
+**Limits.** An `.env` made before 9 November 2026 may still say `DEMO_TOOLS="1"`, which keeps the tools on in a production build; empty it or set `0`.
 
-**Show it** Start with `DEMO_TOOLS=0 npm run dev`. `curl -i -X POST http://localhost:3000/api/demo/clock -H 'content-type: application/json' -d '{"asOf":"2028-01-01"}'` answers 404, and the header has no picker.
+**Show it.** Start with `DEMO_TOOLS=0 npm run dev`: the header has no picker, and setting the clock answers 404 `NOT_FOUND`.
+
+```bash
+curl -i -X POST http://localhost:3000/api/demo/clock -H 'content-type: application/json' -d '{"asOf":"2028-01-01"}'
+```
 
 ## Supply chain
 
-**Threat** A compromised or vulnerable dependency, or a CI run that leaks a token.
+**Threat.** A dependency is compromised or vulnerable, or a build leaks a token (supply-chain attack).
 
-**What we do** `package-lock.json` pins every dependency, and CI installs with `npm ci`. Dependabot opens one grouped npm PR and one GitHub Actions PR a week. CI runs on every push and pull request with `permissions: contents: read`, `persist-credentials: false` and a 20-minute timeout: formatting, lint, typecheck, file size, no-AI, secrets, tests with coverage, the build and the browser tests. Every change reaches `main` through a reviewed pull request (`AGENTS.md`, rules 10 and 13).
+**What we do.** `package-lock.json` pins every dependency, and CI installs with `npm ci`. Dependabot sends one grouped npm update and one GitHub Actions update a week. CI runs on every push and pull request with read-only permissions, no persisted credentials and a 20-minute timeout. A ruleset on `main` forbids direct and force pushes, and requires a pull request, squash merges and a green `ci` check. The review itself is a team rule ([`AGENTS.md`](../AGENTS.md), rule 13), since GitHub requires no approval.
 
-**Where** `package-lock.json`, `.github/dependabot.yml`, `.github/workflows/ci.yml`, `.npmrc`.
+**Where.** `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.npmrc`, the "Protect main" ruleset in the repository settings.
 
-**Proof** No automated test; CI is the check.
+**Proof.** No automated test; CI is the check.
 
-**Limits** `.npmrc` sets `audit=false`, so Dependabot is the only alert path. Actions are pinned by major tag (`@v7`), not by commit SHA. Dependabot skips TypeScript and `@types/node` majors.
+**Limits.** `.npmrc` sets `audit=false`, so Dependabot is the only alert path. Actions are pinned by major tag, not by commit SHA. The ruleset requires no approving review.
 
-**Show it** Open a pull request's checks on GitHub, then `.github/dependabot.yml`.
+**Show it.** Open a pull request's checks on GitHub, then `.github/dependabot.yml`.
 
 ## Known gaps and next steps
 
-- No revocation of one session; changing `SESSION_SECRET` signs everyone out.
-- `POST /api/login` answers an unknown e-mail faster than a known one (a timing side channel).
-- No per-account cap on sign-in links; links live in days on the demo clock, not minutes.
-- Signing tokens are stored in clear (review S10); hash them as the sign-in tokens are.
-- The sign-in link page (`/[locale]/login/[token]`) has no `no-referrer` rule, though its token is in the path.
-- The rate limiter trusts a client-sent `X-Forwarded-For`; key it on the reverse proxy's header and keep the count outside one process.
-- No CSP nonces: scripts allow `'unsafe-inline'`.
-- JSON bodies are parsed without a `Content-Type` check.
-- The audit key, anchors and receipts share a disk with the database; the public key is not pinned (review S11); no key rotation; no database trigger against `UPDATE`/`DELETE`.
-- No encryption at rest: the SQLite file and the stored audit details are plain.
-- No real e-mail and no strong identification for signatories or accounts.
-- The back office e-mail is fixed in code (`ADMIN_ACCOUNT_EMAIL`).
-- Strict body schemas and the absence of raw SQL are conventions with no meta test.
-- CI actions are pinned by tag, not SHA; `npm audit` is off.
+- Keys, anchors and receipts share the database's disk; move keys to a secret store, anchors off the host ([audit log](#tamper-evident-audit-log)).
+- Signing tokens are stored in clear; hash them as the sign-in tokens are ([signing link](#company-signing-link)).
+- The rate limit trusts a client-sent `X-Forwarded-For`; key it on the reverse proxy's header ([rate limit](#rate-limit-and-body-cap)).
+- One session cannot be revoked before it expires; add a revocation list ([session](#signed-session-cookie)).
+- Scripts allow `'unsafe-inline'`; move to CSP nonces ([headers](#security-headers)).
+- No real e-mail and no strong identification for accounts or signatories ([sign-in](#sign-in-by-e-mail-link)).
 
 ## If they ask
 
-**Why HMAC and not JWT?** The session needs one thing: an actor and an expiry the browser cannot change. One HMAC-SHA256 with a constant-time compare does that in a short file with no library and no algorithm field to get wrong.
+**Why HMAC and not a JSON Web Token (JWT)?** The session needs one thing: an actor and an expiry the browser cannot change. One HMAC-SHA256 with a constant-time compare does that with no library and no algorithm field to get wrong; the price is that one session cannot be revoked before it expires.
 
-**Why hash the login token?** So a copy of the database yields no usable sign-in links: the database keeps the SHA-256, and the lookup hashes what the visitor brings. A plain fast hash is enough because the token is 192 random bits, so there is nothing to guess.
+**Why hash the login token?** So a database copy yields no usable sign-in links: only the SHA-256 is stored. A fast hash is enough, since a 192-bit random token leaves nothing to guess.
 
-**What stops CSRF?** The session cookie is `SameSite=Lax`, so the browser leaves it off a cross-site POST. On top, the proxy refuses any API write whose `Sec-Fetch-Site` says `cross-site`, which also stops login CSRF on the sign-in link, whose answer sets the cookie.
+**What stops CSRF?** `SameSite=Lax` keeps the session cookie off a cross-site POST, and the proxy refuses any API write marked `Sec-Fetch-Site: cross-site`, sign-in links included. Both work per site, not per origin, so the app needs a domain with no untrusted subdomains.
 
-**How would you know if someone edited the database?** Every audit row is chained to the one before it by SHA-256, signed with Ed25519 under a key outside the database, and its head is copied to an anchor file; the audit page names the first broken row, and `npm run demo:tamper` shows it live. A rewrite by someone who also holds the key and the anchor file is caught only by a timestamp receipt kept off the machine.
+**How would you know if someone edited the database?** Each audit row is chained to the one before by SHA-256 and signed under a key outside the database; the audit page names the first broken row. Someone who also holds the key and the anchor file is caught only by an off-machine timestamp receipt, for rows up to it.
 
-**What would you change before production?** Move the keys to a secret store and the anchors and receipts to another host, hash the signing tokens, and key the rate limit on the reverse proxy's header. Then add session revocation, real e-mail with strong identification, CSP nonces, and a database that enforces append-only on the audit table.
+**What would you fix first before production?** Move the keys to a secret store and the anchors off the host, hash the signing tokens, and key the rate limit on the proxy's header. Then add session revocation, CSP nonces, and real e-mail with strong identification.
