@@ -57,18 +57,18 @@ Every other command, and a code tour of the files to read first: [docs/team-note
 
 One row per scenario card of the brief ([CHALLENGE.md](CHALLENGE.md) section 4), amounts in euro cents unless marked €; how the cards are tested, every test that proves them, the D31 assumption, the traps, the surprise drills and the smart problems: [docs/scenarios.md](docs/scenarios.md).
 
-| Card               | What the judges compare                                                                        | Works | Proved by                              |
-| ------------------ | ---------------------------------------------------------------------------------------------- | ----- | -------------------------------------- |
-| 1 Happy path       | `ebike-003`, 36 months: band B, net 10 730, gross 13 466; buyout 58 350; total 486 612         | yes   | `card-01-happy-path.test.ts`           |
-| 2 The price lock   | `laptop-004`: v1 349 000 (rent 9 627) stays locked under v2 321 100 (rent 8 857)               | yes   | `card-02-price-lock.test.ts`           |
-| 3 Tax is not price | `ebike-001` from 15 Sep 2026: net 6 957; December gross 8 731, January 8 766                   | yes   | `card-03-tax-is-not-price.test.ts`     |
-| 4 Calendar traps   | `laptop-001` from 31 Jan 2026: net 3 432; due 28 Feb 2026 and 29 Feb 2028                      | yes   | `card-04-calendar-traps.test.ts`       |
-| 5 Too young        | Mikko (17), `laptop-008`: too young until 10 Mar 2027                                          | yes   | `card-05-too-young.test.ts`            |
-| 6 Who can sign?    | Norvi, `ebike-004`: 549 000, band B, rent 15 144; `awaiting_signatory`                         | yes   | `card-06-who-can-sign.test.ts`         |
-| 7 Big ticket       | `farm-002`, 48 months, 2 000 000 down: band D, rent 272 038; buyout 1 000 000; manual review   | yes   | `card-07-big-ticket.test.ts`           |
-| 8 Early exit       | Card 1 in month 7: market value 311 200 (D31); buy 330 675, return 75 945                      | yes   | `card-08-early-exit.test.ts`           |
-| 9 Second life      | `ebike-007`: battery and inspection only; `wait-02` wins; relisted at 115 976, rent 6 497      | yes   | `card-09-second-life.test.ts`          |
-| 10 Third life      | `ebike-008`: leased at 1 194; its passport: 58 kg CO₂ and 665,60 € saved after this third life | yes   | `src/server/scenarios/card-10.test.ts` |
+| Card               | What the judges compare                                                                                       | Works | Proved by                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
+| 1 Happy path       | `ebike-003`, 36 months: band B, rent 10 730 net, 13 466 gross; buyout 58 350; total 486 612                   | yes   | [`card-01-happy-path.test.ts`](src/domain/scenarios/card-01-happy-path.test.ts)             |
+| 2 The price lock   | `laptop-004`: v1 349 000 (rent 9 627 net) stays locked under v2 321 100 (rent 8 857 net)                      | yes   | [`card-02-price-lock.test.ts`](src/domain/scenarios/card-02-price-lock.test.ts)             |
+| 3 Tax is not price | `ebike-001` from 15 Sep 2026: rent 6 957 net; 8 731 gross in December, 8 766 in January                       | yes   | [`card-03-tax-is-not-price.test.ts`](src/domain/scenarios/card-03-tax-is-not-price.test.ts) |
+| 4 Calendar traps   | `laptop-001` from 31 Jan 2026: rent 3 432 net; due 28 Feb 2026 and 29 Feb 2028                                | yes   | [`card-04-calendar-traps.test.ts`](src/domain/scenarios/card-04-calendar-traps.test.ts)     |
+| 5 Too young        | Mikko (17), `laptop-008`: too young until 10 Mar 2027                                                         | yes   | [`card-05-too-young.test.ts`](src/domain/scenarios/card-05-too-young.test.ts)               |
+| 6 Who can sign?    | Norvi, `ebike-004`: 549 000 financed, band B, rent 15 144 net; `awaiting_signatory`                           | yes   | [`card-06-who-can-sign.test.ts`](src/domain/scenarios/card-06-who-can-sign.test.ts)         |
+| 7 Big ticket       | `farm-002`, 48 months, 2 000 000 down: band D, rent 272 038 net; buyout 1 000 000; manual review              | yes   | [`card-07-big-ticket.test.ts`](src/domain/scenarios/card-07-big-ticket.test.ts)             |
+| 8 Early exit       | Card 1 in month 7: market value 311 200 ([D31](docs/scenarios.md#assumption-d31)); buy 330 675, return 75 945 | yes   | [`card-08-early-exit.test.ts`](src/domain/scenarios/card-08-early-exit.test.ts)             |
+| 9 Second life      | `ebike-007`: battery and inspection only; `wait-02` wins; relisted at 115 976, rent 6 497 net                 | yes   | [`card-09-second-life.test.ts`](src/domain/scenarios/card-09-second-life.test.ts)           |
+| 10 Third life      | `ebike-008`: rent 1 194 net; its passport: 58 kg CO₂ and 665,60 € saved after this third life                 | yes   | [`card-10-third-life.test.ts`](src/domain/scenarios/card-10-third-life.test.ts)             |
 
 ## Features
 
