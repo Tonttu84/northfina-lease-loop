@@ -2,39 +2,42 @@
 
 ## What it does
 
-One pure rule decides who may take each action on whose record, and every route that is not public asks it first, before it reads the body or touches the record; the services ask again at their top, so a direct call without the route is refused too. A refusal is one family of codes: 401 for a visitor who has not picked who they are, 403 `FORBIDDEN` with the reason for everyone else, and nothing is written.
+One pure rule decides who may take each action on whose record, and every route that is not public asks it first, before it touches the record; the services ask again at their top, so a direct call without the route is refused too. A refusal is one family of codes: 401 for a visitor who has not picked who they are, 403 `FORBIDDEN` with the reason for everyone else, and nothing is written. Most routes ask before they read any body; `POST /api/contracts` and `POST /api/applications` read and validate the body first, because the record they act on (the application, the customer) is named in it, so an invalid body there is refused with 400 before the rule is asked.
 
 ## The rule
 
 `can(actor, action, subject)`, in this order:
 
-1. `run_demo_card` is open to every visitor while the demo tools are on (D74); the runner acts as each card's own customer through the services, which check again.
+1. `run_demo_card` is allowed to everyone; its route answers 404 while the demo tools are off (D74), so it is open to every visitor while they are on; the runner acts as each card's own customer through the services, which check again.
 2. A case awaiting the company's signatory (`awaiting_signatory`) is signed or decided only through the signing link by an e-mail with an active mandate on the day (`canSign`, D46); the coordinator and the admin are `signatory_required`.
-3. `anonymous` is `not_signed_in`.
-4. The admin may do everything else.
+3. `anonymous` (or an empty actor) is `not_signed_in`.
+4. The admin may do everything else but sign: `sign_contract` is `customer_signs`, the customer signs their own lease (D88).
 5. `decide_application`, `assess_asset`, `read_second_life` and `set_asset_status` are the admin's: a customer is `admin_only`.
-6. A customer acts on its own records only: anyone else is `not_owner`.
-7. A company's account changes its own signatory list only while its e-mail is an active signatory (`signatory_required` otherwise; the admin checks the register instead).
+6. A customer acts on its own records only: another customer's record, or one that belongs to no customer, is `not_owner`.
+7. A company's account changes its own signatory list only while its e-mail is an active signatory (`signatory_required` otherwise; the admin checks the register instead, so this step never reaches the admin).
 
-The actor × action table, as `src/domain/authz/policy.test.ts` pins it (owner = the record's customer, other = any other customer):
+The first rule that answers decides. The actor × action table, every action of `AUTHZ_ACTIONS` in its order, as `src/domain/authz/policy.test.ts` pins it (owner = the record's customer, other = any other customer; no case awaiting a signatory, no signatory list in the subject):
 
-| Action               | anonymous     | owner      | other      | admin |
-| -------------------- | ------------- | ---------- | ---------- | ----- |
-| `read_application`   | not_signed_in | ok         | not_owner  | ok    |
-| `apply`              | not_signed_in | ok         | not_owner  | ok    |
-| `decide_application` | not_signed_in | admin_only | admin_only | ok    |
-| `sign_contract`      | not_signed_in | ok         | not_owner  | ok    |
-| `read_contract`      | not_signed_in | ok         | not_owner  | ok    |
-| `pay_invoice`        | not_signed_in | ok         | not_owner  | ok    |
-| `exit_contract`      | not_signed_in | ok         | not_owner  | ok    |
-| `read_leases`        | not_signed_in | ok         | not_owner  | ok    |
-| `read_account`       | not_signed_in | ok         | not_owner  | ok    |
-| `manage_signatories` | not_signed_in | ok         | not_owner  | ok    |
-| `read_signatories`   | not_signed_in | ok         | not_owner  | ok    |
-| `assess_asset`       | not_signed_in | admin_only | admin_only | ok    |
-| `read_second_life`   | not_signed_in | admin_only | admin_only | ok    |
-| `set_asset_status`   | not_signed_in | admin_only | admin_only | ok    |
-| `run_demo_card`      | ok            | ok         | ok         | ok    |
+| Action                 | anonymous     | owner      | other      | admin          |
+| ---------------------- | ------------- | ---------- | ---------- | -------------- |
+| `read_application`     | not_signed_in | ok         | not_owner  | ok             |
+| `apply`                | not_signed_in | ok         | not_owner  | ok             |
+| `decide_application`   | not_signed_in | admin_only | admin_only | ok             |
+| `sign_contract`        | not_signed_in | ok         | not_owner  | customer_signs |
+| `withdraw_application` | not_signed_in | ok         | not_owner  | ok             |
+| `read_contract`        | not_signed_in | ok         | not_owner  | ok             |
+| `pay_invoice`          | not_signed_in | ok         | not_owner  | ok             |
+| `exit_contract`        | not_signed_in | ok         | not_owner  | ok             |
+| `read_leases`          | not_signed_in | ok         | not_owner  | ok             |
+| `manage_signatories`   | not_signed_in | ok         | not_owner  | ok             |
+| `read_signatories`     | not_signed_in | ok         | not_owner  | ok             |
+| `assess_asset`         | not_signed_in | admin_only | admin_only | ok             |
+| `read_second_life`     | not_signed_in | admin_only | admin_only | ok             |
+| `set_asset_status`     | not_signed_in | admin_only | admin_only | ok             |
+| `run_demo_card`        | ok            | ok         | ok         | ok             |
+| `read_account`         | not_signed_in | ok         | not_owner  | ok             |
+
+With a case awaiting the company's signatory (rule 2), `sign_contract` and `decide_application` are `signatory_required` for every actor, the admin and anonymous included, unless the subject names an e-mail with an active mandate on the day (at a route, `authorize` refuses anonymous before it reads the record, so anonymous gets 401 `not_signed_in` there); with the company's signatory list in the subject (rule 7), `manage_signatories` is `signatory_required` for the owner whose e-mail holds no active mandate.
 
 Worked example, card 6: Norvi's coordinator (`cust-norvi`) applies for one `ebike-004` (15 144 a month) and the case waits for the signatory. `POST /api/contracts` as `cust-norvi` and as `admin` both answer 403 `FORBIDDEN` with `{ code: 'signatory_required', params: { action: 'sign_contract' } }`; with no actor picked it is 401 `not_signed_in`. Only the link the demo outbox shows to the admin signs it, as the named signatory.
 
@@ -56,7 +59,7 @@ Public, with no `authorize`: the catalogue, the price preview and the stored quo
 ## Pure functions
 
 - `can(actor: string, action: AuthzAction, subject: AuthzSubject) → { ok: true } | { ok: false, reason: { code, params: { action } } }`. `subject` is `{ customerId: string | null, awaitingSignatory?, mandates?, signerEmail?, onDate? }`: only what a rule needs.
-- `isAuthzRefusal(reason) → boolean`: whether a service's refusal is one of the four codes.
+- `isAuthzRefusal(reason) → boolean`: whether a service's refusal is one of the five codes (`not_signed_in`, `not_owner`, `admin_only`, `signatory_required`, `customer_signs`).
 
 The server side, not pure: `authorize(db, actor, action, ref)` with `ref` one of `{ application }`, `{ contract }`, `{ invoice }`, `{ customer }`, `{ none: true }` reads only the owner through the owning slice (`applicationOwner`, `contractCustomerId`, `invoiceCustomerId`, `getCustomer`), refuses anonymous before any read, and answers `{ ok: true, ownerId }`, the refusal, or `not_found`. `forbiddenResponse(reason)` and `refusalResponse(reason, notFound)` turn it into the envelope.
 
@@ -65,8 +68,8 @@ The server side, not pure: `authorize(db, actor, action, ref)` with `ref` one of
 - `src/domain/authz/policy.ts`, `policy.test.ts`: the rule and the actor × action table.
 - `src/server/authorize.ts`, `authorize.test.ts`: the owner read and the HTTP mapping.
 - `src/server/demo-tools.ts`, `demo-tools.test.ts`: the `DEMO_TOOLS` switch.
-- The routes under `src/app/api/` (every write and private read), the tops of `signContract`, `exitContract`, `decideApplication`, `createApplication`, `payInvoice`, `addSignatory`, `revokeSignatory`, `assessAsset`, `changeAssetStatus`.
-- The pages `applications/[id]` (and its signing outbox), `contracts/[id]`, `customers/[id]/signatories`, `assets/[id]/second-life` (through `src/server/second-life-page.ts`, D85).
+- The routes under `src/app/api/` (every write and private read), the tops of `signContract`, `exitContract`, `decideApplication`, `createApplication`, `withdrawApplication`, `payInvoice`, `addSignatory`, `revokeSignatory`, `assessAsset`, `changeAssetStatus`.
+- The pages `applications/[id]` (and its signing outbox), `contracts/[id]`, `leases` and `customers/[id]` (`read_leases`), `customers/[id]/signatories`, `account` (`read_account`), `assets/[id]/second-life` (through `src/server/second-life-page.ts`, D85).
 - `src/components/authz-refusal.ts`: the message key of a refusal; the `authz.refusal.*` keys in the four message files.
 
 ## Tests that pin the numbers
@@ -80,6 +83,5 @@ The server side, not pure: `authorize(db, actor, action, ref)` with `ref` one of
 
 ## Open questions
 
-- Follow-up for the coordinator after `feat/user-portal` merges: add `authorize` (`read_leases`, `read_contract`) to `src/app/[locale]/leases/*` and `src/app/[locale]/customers/[id]/page.tsx`, owned by the portal session this morning.
 - `decideByToken` keeps its own `signingCheck` (it also brings a waiting entry into force on its first opening, which `canSign` does not); the policy's mandate path mirrors it rather than replacing it.
 - While the demo tools are on (D74) anyone can still pick "Admin" in the picker, by design; with them off only the back office account's sign-in link sets that actor (D93).
