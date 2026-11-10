@@ -23,3 +23,28 @@ Branch `test/responsive-layout` from `origin/main` at `f58503b`, worktree `.clau
 - The layout findings themselves (the page's open questions list them): fixing them is the next step, the user's decision.
 - A pass with every `<details>` opened (the header menu spills when open at 150 % and 200 % text).
 - The review (AGENTS.md rule 13), the push and the pull request.
+
+## Session 2: the fixes, issue 19 (2026-11-10)
+
+Branch `fix/responsive-layout` from `test/responsive-layout`, `origin/main` merged in (`9b24799`, no conflict), worktree `.claude/worktrees/agent-ac221473361db2557`. The owner's rule of 2026-11-10: the spec lands only once it passes in full; fix the layout, never the checks. No check was changed.
+
+- 11:59 worktree, branch, merge, `npm run setup` (the `node_modules` copy timed out at its 5-minute limit once; the second run finished it).
+- 12:10 to 12:23 run 6 on the merged branch, with the build: 19 of 19 pages failed, 889 findings (150 `pageScroll`, 414 `outOfViewport`, 241 `textOverflow`, 84 `animatedOverflow`: the same groups as runs 4 and 5, whose "739" left out the 150 `pageScroll` lines). The two new tests ran in it and failed as intended: the header 170 px signed in against 126 px signed out at 768 px in en, fi, sv and et; the catalogue 3 columns at 1920 and 2560 px, the catalogue 1152 px and my leases 896 px at 2560 px.
+- 12:24 `test(e2e)` commit: the header and wide-screen tests, written before any fix (the decision row is D98: D96 and D97 are taken by PRs 22 and 23).
+- 12:25 to 12:44 the fixes, iterated against `next dev` on `e2e.db` with a throwaway Playwright config: dev run 1 (12:34 to 12:44, code changing during it) 16 of 21 passed, 67 findings left, all at 390 px with 200 % text (the catalogue's price amounts, the second-life plan's amounts, the how-it-works steps, the passport's lives, the version picker in `qps-long`, the category chips); dev run 2 (12:45 to 12:47) on those five pages: 0.
+- 12:47 screenshots of the old build (before) for comparison.
+- 12:48 run 7 could not start: the dev server still held `e2e.db` (EPERM); stopped it. 12:49 to 12:56 run 7 with the build: 21 of 21 passed, 0 findings.
+- 12:57 to 13:01 screenshots of the new build, read one by one: three things looked worse and were changed. `wrap-anywhere` on every button let the staff strip squeeze "Continue" / "Jatka" to one letter a line; the catalogue's "Sähköpyörät" chip broke its word because the count shrank with it; the hero and page headings broke words at 200 % text. Fixes: the actor picker's button `shrink-0`, the chip's count `shrink-0` and a smaller padding under 20 rem, the biggest headings one size smaller under 20 rem, cards and notices `p-3` under 20 rem.
+- 13:02 to 13:08 run 8: 2 tests failed, 4 findings: with `wrap-anywhere` taken off the buttons, "Avaa allekirjoituslinkki" (fi) and the account's button in `qps-long` ran past a 390 px phone at 200 % text. Put back on every button (`max-w-full wrap-anywhere`), with `shrink-0` where a row must not squeeze one (the actor picker).
+- 13:09 to 13:14 run 9 with the build: 21 of 21 passed, 0 findings. 13:14 to 13:16 screenshots again (staff strip whole, chips, hero, contract, 1280 px catalogue unchanged against the old build, 2560 px catalogue with four columns) and the badge measured for the worked example.
+- 13:16 to 13:17 commits `cc873af` (`fix(layout)`), `0258903` (`fix(header)`), `626e4ca` (`feat(layout)`, D98).
+- 13:17 the whole browser suite (`npm run test:e2e`) and the docs: the feature page (passes, the fixes by root cause, the two tests, open questions shrunk), `STATUS.md`, `e2e-tests.md`, this log.
+- 13:17 to 13:24 `npm run test:e2e` with the build: 34 passed in 6.4 min (the nine other specs and the 21 tests of this one).
+- 13:24 to 13:26 `npm run check:all` green at the first try: 171 files, 2 020 tests, coverage 96.35 % statements, build.
+- 13:27 `docs(responsive)` commit, push, pull request; then D95 and D98 decided with the PR's number.
+
+## Left undone (session 2)
+
+- A pass with every `<details>` opened, and browsers other than Chromium (the feature page's open questions).
+- Hyphenation in the test browser: none, so a long word breaks without a hyphen there; real browsers with the language's dictionary hyphenate the headings.
+- The review (AGENTS.md rule 13): a fresh session reviews the pull request; the author does not.
