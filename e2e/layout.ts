@@ -12,11 +12,12 @@
 //   a line of it reaching past the box of the block it sits in.
 // - `overlap`: two controls or texts that sit in the page's flow cross each other (a select drawn
 //   over a link). Boxes in a layer of their own (absolute, fixed, sticky) and a box inside the
-//   other do not count; an inline text counts by its lines, one line-height tall each.
+//   other do not count; transformed boxes are measured untransformed; an inline text counts by
+//   its lines, one line-height tall each.
 // - `brokenWord`: a word of a language (letters only: no e-mail address, number or id) broken
-//   across two lines although it would fit on one line of its column: the width its text could
-//   have, the nearest box whose width does not come from its content, less the padding of the
-//   boxes in between. A word longer than that must break and is not listed.
+//   across two lines although it would fit on one line of its column: the widest line it could
+//   have had, the viewport less the padding, borders and fixed side margins of every box around
+//   it. A word longer than that must break and is not listed; a soft hyphen may break.
 // - `textOverlapsBelow` / `textClipped`: text taller than its box by more than half a line (a fixed
 //   height it outgrew), running over what follows or cut off. Less is the glyphs' ink above and
 //   below a tight line height, which every large heading has and nobody sees.
@@ -241,23 +242,21 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       }
       return false;
     };
-    // Every transform off for the measuring (an inline `!important` beats an animation's fill),
-    // put back afterwards. An identity matrix (an animation's settled `scale(1)`) is no transform.
-    const TRANSFORMS = ['transform', 'rotate', 'scale', 'translate'];
+    // Every transform off for the measuring, its transition first (an inline `!important` beats
+    // an animation's fill, not a transition), and put back in reverse order, even on a throw. An
+    // identity matrix (an animation's settled `scale(1)`) is no transform.
+    const OFF = ['transition', 'transform', 'rotate', 'scale', 'translate'];
     const moved = [...document.body.querySelectorAll('*')].filter((element) => {
       const style = getComputedStyle(element);
       if (style.transform !== 'none' && !new DOMMatrix(style.transform).isIdentity) return true;
       return [style.rotate, style.scale, style.translate].some((value) => value !== 'none');
     }) as (HTMLElement | SVGElement)[];
     const saved = moved.map((element) =>
-      TRANSFORMS.map((name) => [
+      OFF.map((name) => [
         element.style.getPropertyValue(name),
         element.style.getPropertyPriority(name),
       ])
     );
-    for (const element of moved) {
-      for (const name of TRANSFORMS) element.style.setProperty(name, 'none', 'important');
-    }
     const boxesOf = (element: Element) => {
       const style = getComputedStyle(element);
       if (style.display !== 'inline') return [element.getBoundingClientRect()];
@@ -272,16 +271,23 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
           return new DOMRect(line.left, middle - half, line.width, 2 * half);
         });
     };
-    const placed = elements
-      .filter((element) => (element.matches(CONTROL) || hasOwnText(element)) && !inLayer(element))
-      .map((element) => ({ element, boxes: boxesOf(element) }));
-    moved.forEach((element, index) => {
-      TRANSFORMS.forEach((name, at) => {
-        const [value, priority] = saved[index]![at]!;
-        if (value) element.style.setProperty(name, value, priority);
-        else element.style.removeProperty(name);
+    let placed: { element: Element; boxes: DOMRect[] }[];
+    try {
+      for (const element of moved) {
+        for (const name of OFF) element.style.setProperty(name, 'none', 'important');
+      }
+      placed = elements
+        .filter((element) => (element.matches(CONTROL) || hasOwnText(element)) && !inLayer(element))
+        .map((element) => ({ element, boxes: boxesOf(element) }));
+    } finally {
+      moved.forEach((element, index) => {
+        for (let at = OFF.length - 1; at >= 0; at--) {
+          const [value, priority] = saved[index]![at]!;
+          if (value) element.style.setProperty(OFF[at]!, value, priority);
+          else element.style.removeProperty(OFF[at]!);
+        }
       });
-    });
+    }
     for (const [index, a] of placed.entries()) {
       for (const b of placed.slice(index + 1)) {
         if (a.element.contains(b.element) || b.element.contains(a.element)) continue;
@@ -307,20 +313,26 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
     // padding and borders of every box around the text. Every width chosen in between (a flex
     // item squeezed by its neighbour, a grid track, a fixed width, a max-width, an inline-block)
     // is a choice the layout could make differently, as a squeezed label did before its value
-    // learned to move under it; padding is the design's. A word longer than the column has to
-    // break and is not listed; e-mail addresses, numbers and ids (anything but letters) are not
-    // words here, a soft hyphen (U+00AD) marks a place a word may break, and `break-all` text
-    // breaks by design.
+    // learned to move under it; padding is the design's, and so is a fixed side margin (not an
+    // `auto` one: a box capped by a max-width, centred by `mx-auto`, or a flex item pushed by
+    // `ml-auto`). A word longer than the column has to break and is not listed; e-mail addresses,
+    // numbers and ids (anything but letters) are not words here, a soft hyphen (U+00AD) marks a
+    // place a word may break, and `break-all` text breaks by design.
     const columnOf = (start: Element) => {
       let inset = 0;
       for (let node: Element | null = start; node && node !== document.body;) {
         const style = getComputedStyle(node);
         if (style.display !== 'inline') {
+          const parent = node.parentElement;
+          const fixedMargin =
+            style.maxWidth === 'none' &&
+            !/flex|grid/.test(parent ? getComputedStyle(parent).display : '');
           inset +=
             parseFloat(style.paddingLeft) +
             parseFloat(style.paddingRight) +
             parseFloat(style.borderLeftWidth) +
-            parseFloat(style.borderRightWidth);
+            parseFloat(style.borderRightWidth) +
+            (fixedMargin ? parseFloat(style.marginLeft) + parseFloat(style.marginRight) : 0);
         }
         node = node.parentElement;
       }
@@ -337,7 +349,7 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
       if (style.wordBreak === 'break-all' || style.whiteSpace.startsWith('nowrap')) continue;
       if (parent.closest('script, style, noscript')) continue;
       const content = text.textContent ?? '';
-      for (const match of content.matchAll(/[^\s\-‐‑–—/­]+/gu)) {
+      for (const match of content.matchAll(/[^\s\-‐‑–—/\u00AD]+/gu)) {
         // Punctuation glued to either end ("[Catalogue", "lõpus?") is not part of the word; a
         // digit is, so a hash ("37ce…22") or an id is no word of a language.
         const word = match[0].replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}'’]+$/gu, '');
@@ -349,7 +361,7 @@ export async function checkLayout(page: Page, options: { phone: boolean }): Prom
         const lines = [...range.getClientRects()].filter((line) => line.width > 0);
         // After a soft hyphen the browser draws its hyphen at the end of the line before and
         // counts it in the next word's first rectangle: that is the break, not part of the word.
-        if (content[match.index - 1] === '­' && lines.length > 1) lines.shift();
+        if (content[match.index - 1] === '\u00AD' && lines.length > 1) lines.shift();
         const tops = new Set(lines.map((line) => Math.round(line.top / 2)));
         if (tops.size < 2) continue;
         const width = lines.reduce((sum, line) => sum + line.width, 0);
