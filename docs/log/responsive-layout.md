@@ -70,3 +70,19 @@ The rule-13 review of PR 27 at `a1c342f` (approve with fixes, ten findings) and 
 
 - Browsers other than Chromium; an animation that ends without a fill before the check (`price-flip`, `audit-card-in`): the feature page's open questions.
 - A second review of the fixed head (AGENTS.md rule 13: a fix beyond a finding is reviewed again).
+
+## Session 4: the merge of PR 31 and the re-review's findings (2026-11-10)
+
+- 18:19 merged `main` (PR 31, the README front page, D100): `docs/decisions.md` (main's D96, D97, D100 kept, D95, D98, D99 added in order) and `README.md` (main's front page; the responsive layout page in the Features group "The app" and in the "Since the hackathon" sentence). 18:19 to 18:21 `npm run check:all` green (173 files, 2 047 tests); merge `a31b0cb`, pushed; CI green.
+- 18:31 read the re-review at `833d2d0` (approve with fixes; findings A to E). Each check change proven both ways with a throwaway spec of planted faults on the same build: 18:32 the plants pass the old checks (a 6 rem heading "Kunnostussuunnitelma", a `dt` squeezed to 0 with its text in a `div`, a 3 rem grid track, the life stamp moved onto the item's `h1` with and without its animation: 5 of 5 missed); 18:34 and 18:35 after the fixes all 5 caught, with messages such as `"Kunnostussuunnitelma" breaks across 2 lines though it is 161 px and its column has 324 px` and `h1 "Urban 1" crosses span "ELÄMÄ 3"`. The plant spec deleted.
+- 18:36 to 18:42 run 15 (the stricter checks, the old build): 4 of 21 failed, 76 `brokenWord` findings: text squeezed beside an icon (the how-it-works steps, the decision panel, the passport card). Fixed (rows wrap, text takes 10 rem and its longest word), with the catalogue card's padding ("KUUKAUDESSA", finding C), smaller card titles under 20 rem and soft hyphens in three Finnish titles (finding D), and the nits (E).
+- 18:46 to 18:51 run 16 with the build: 2 of 21 failed, 5 findings, all on the soft-hyphenated titles: a probe showed Chromium counts the drawn hyphen in the next word's first rectangle; that rectangle is now dropped (`121bd65`). 18:53 to 18:58 run 17 (`E2E_SKIP_BUILD=1`): 21 of 21 passed, 0 findings.
+- 18:59 to 19:00 screenshots: "KUUKAUDESSA" whole at 390 px with 200 % text, the how-it-works steps under their numbers at 200 % and unchanged at 100 %, the passport card's text under its booklet, "Aino Virtanen" whole at 320 px, "Hinta, lukittu alle- / kirjoitettaessa" at 320 px, the plan at 200 %. Worse: "Turvallisuustarkast / us" still without a hyphen; soft hyphens added there too, in Finnish and Swedish (`f199a86`).
+- 19:00 to 19:06 run 18 with the build: 21 of 21 passed, 0 findings. 19:06 to 19:12 `npm run test:e2e` with the build: 34 passed in 6.2 min.
+- 19:12 to 19:14 `npm run check:all` green at the first try: 173 files, 2 047 tests, coverage 96.35 % statements, build. Then the `docs(responsive)` commit, push, the PR body's **Reviewed:** line with the re-review.
+
+## Left undone (session 4)
+
+- Browsers other than Chromium; `price-flip`, which ends without a fill and is missed if it finished before the check (the feature page's open questions).
+- More soft hyphens: only five compounds have one; other Finnish words longer than a phone's line at 200 % text break without a hyphen.
+- A third review of the fixes after the re-review, if the team wants one.
