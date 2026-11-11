@@ -1,4 +1,4 @@
-> Northfina's engineering rules for the Lease Loop hackathon (35 % of the score), kept as the organiser wrote them in [etufillari/northfina-lease-loop](https://github.com/etufillari/northfina-lease-loop) (tag `v1.0-kickoff`). This repository still checks itself against them: `tests/meta-rules.test.ts` and `npm run check:all`.
+> Northfina's engineering rules for the Lease Loop hackathon (35 % of the score), kept as the organiser wrote them in [etufillari/northfina-lease-loop](https://github.com/etufillari/northfina-lease-loop) (tag `v1.0-kickoff`), except that rule 2 no longer lists the `style` type, which the shared commit hook rejects (`docs/decisions.md` D106). This repository still checks itself against them: `tests/meta-rules.test.ts` and `npm run check:all`.
 
 # Engineering rules
 
@@ -24,7 +24,7 @@ fix(invoices): due date on the last day of short months
 test(question-flow): drop answers that no longer apply
 ```
 
-Types: `feat`, `fix`, `test`, `refactor`, `docs`, `style`, `chore`, `ci`, `perf`. The `commit-msg` hook checks it, and CI checks every commit in your PR. Small, frequent commits tell the judges your story.
+Types: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `ci`, `perf`. The `commit-msg` hook checks it, and CI checks every commit in your PR. Small, frequent commits tell the judges your story.
 
 ## 3. Hooks stay on
 
