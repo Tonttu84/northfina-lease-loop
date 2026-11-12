@@ -6,9 +6,11 @@ import { createTestDb } from '../../tests/helpers/test-db';
 import { resetDb } from '../../tests/helpers/reset-db';
 import {
   createBlankConsumer,
+  customerExists,
   fillCustomerRecord,
   getCustomer,
   listCustomers,
+  listPersonas,
   newCustomerId,
   seedCustomers,
   toCustomer,
@@ -172,6 +174,17 @@ describe('fillCustomerRecord (D107)', () => {
     expect(read).not.toHaveProperty('country');
   });
 
+  it('review finding 2: the PEP flag latches to true once, and only from false', async () => {
+    await createBlankConsumer(db, blank);
+    expect(await fillCustomerRecord(db, seen, { is_pep: true })).toBe(true);
+    expect((await getCustomer(db, blank.id))?.is_pep).toBe(true);
+    // Another change set it first: this one writes nothing.
+    expect(await fillCustomerRecord(db, seen, { is_pep: true, birth_date: '1990-04-12' })).toBe(
+      false
+    );
+    expect(await getCustomer(db, blank.id)).not.toHaveProperty('birth_date');
+  });
+
   it('an empty fill writes nothing and is fine; a bad one never reaches the database', async () => {
     await createBlankConsumer(db, blank);
     expect(await fillCustomerRecord(db, seen, {})).toBe(true);
@@ -179,5 +192,48 @@ describe('fillCustomerRecord (D107)', () => {
       /customer row breaks its write schema/
     );
     expect(await getCustomer(db, blank.id)).not.toHaveProperty('birth_date');
+  });
+});
+
+describe('customerExists and listPersonas (review findings 3 and 6)', () => {
+  const signUp = { id: 'cust-0123456789abcdef', email: 'new@example.com', today: '2026-11-05' };
+
+  it('finds a customer by id without reading the table: a persona, a sign-up, nobody', async () => {
+    await seedCustomers(db, dataPack);
+    await createBlankConsumer(db, signUp);
+    expect(await customerExists(db, 'cust-aino')).toBe(true);
+    expect(await customerExists(db, signUp.id)).toBe(true);
+    expect(await customerExists(db, 'cust-nobody')).toBe(false);
+  });
+
+  it('the trap: lists the data pack’s customers by name and never a sign-up, named or not', async () => {
+    await seedCustomers(db, dataPack);
+    await createBlankConsumer(db, signUp);
+    await createBlankConsumer(db, {
+      ...signUp,
+      id: 'cust-fedcba9876543210',
+      email: 'b@example.com',
+    });
+    await fillCustomerRecord(db, { id: signUp.id, name: signUp.email }, { name: 'Nea Person' });
+    const personas = await listPersonas(db);
+    expect(personas).toEqual([...dataPack].sort((a, b) => a.name.localeCompare(b.name)));
+    expect(JSON.stringify(personas)).not.toMatch(/new@example\.com|Nea Person|b@example\.com/);
+  });
+
+  it('adds the one customer asked for, so a signed-in sign-up sees itself and nobody else', async () => {
+    await seedCustomers(db, dataPack);
+    await createBlankConsumer(db, signUp);
+    await createBlankConsumer(db, {
+      ...signUp,
+      id: 'cust-fedcba9876543210',
+      email: 'b@example.com',
+    });
+    const ids = (await listPersonas(db, signUp.id)).map((customer) => customer.id);
+    expect(ids).toHaveLength(dataPack.length + 1);
+    expect(ids).toContain(signUp.id);
+    expect(ids).not.toContain('cust-fedcba9876543210');
+    // A persona asked for is not listed twice; admin and anonymous are nobody to add.
+    expect(await listPersonas(db, 'cust-aino')).toHaveLength(dataPack.length);
+    expect(await listPersonas(db, 'admin')).toHaveLength(dataPack.length);
   });
 });

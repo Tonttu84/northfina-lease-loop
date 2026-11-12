@@ -6,7 +6,7 @@
 // "yes, I can sign".
 import { recordHoldsName, type CustomerRecord } from '@/domain/customers/record';
 import type { Answer, Answers } from './engine';
-import { ALLOWED_COUNTRIES } from './eligibility';
+import { countryChoice } from './eligibility';
 
 const text = (answer: Answer | undefined): string | undefined =>
   typeof answer === 'string' && answer.trim() !== '' ? answer.trim() : undefined;
@@ -30,10 +30,6 @@ export function nameWords(name: string): string {
     .join(' ');
 }
 
-/** The record's country as the flow's choice: itself in FI, SE and EE, otherwise "other". */
-const answeredCountry = (country: string | undefined): string | undefined =>
-  country === undefined || ALLOWED_COUNTRIES.includes(country) ? country : 'other';
-
 type Recorded = { value: string | undefined; same?: (answer: string, recorded: string) => boolean };
 
 /**
@@ -55,7 +51,7 @@ export function recordMismatches(record: CustomerRecord, answers: Answers): stri
     },
     q_birth_date: { value: 'birth_date' in record ? record.birth_date : undefined },
     q_email: { value: record.email, same: (a, r) => a.toLowerCase() === r.toLowerCase() },
-    q_country: { value: answeredCountry(record.country) },
+    q_country: { value: countryChoice(record.country) },
     q_monthly_income: {
       value:
         'monthly_net_income_cents' in record && record.monthly_net_income_cents !== undefined

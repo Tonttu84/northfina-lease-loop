@@ -2,7 +2,7 @@
 
 // Asking for the sign-in link (D93): the e-mail, POST /api/login, then the "sent" notice. An
 // e-mail no account has signs up with the same request (D107), and the answer and this notice
-// are the same either way: nothing says whether the address already had an account. While the
+// are the same either way: neither says whether the address already had an account. While the
 // demo tools are on the answer carries the link itself (D94): the form shows it, and points
 // at the demo page's outbox.
 import Link from 'next/link';

@@ -6,6 +6,7 @@
 // are written here.
 import { randomBytes } from 'node:crypto';
 import type { Customer as CustomerRow, PrismaClient } from '@/generated/prisma/client';
+import { loadCustomers } from '@/data/load';
 import type { Customer } from '@/data/schemas';
 import {
   blankConsumerRow,
@@ -96,6 +97,33 @@ export async function listCustomers(
   return rows.map(toCustomer);
 }
 
+/**
+ * The data pack's customers, by name: the demo's personas, the only customers ever listed to
+ * someone else (the "Continue as" picker, the pass-on form). A sign-up is a real visitor and
+ * is never in a list another visitor sees (D107); `alsoId` adds one customer, for the
+ * signed-in sign-up's own picker. The ids come from data/customers.json, so no row has to
+ * say which kind it is.
+ */
+export async function listPersonas(
+  db: PrismaClient | TransactionClient,
+  alsoId?: string
+): Promise<CustomerRecord[]> {
+  const ids = (await loadCustomers()).map((customer) => customer.id);
+  const rows = await db.customer.findMany({
+    where: { id: { in: alsoId === undefined ? ids : [...ids, alsoId] } },
+    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+  });
+  return rows.map(toCustomer);
+}
+
+/** Whether a customer has that id: one indexed lookup, no row read (every request asks). */
+export async function customerExists(
+  db: PrismaClient | TransactionClient,
+  id: string
+): Promise<boolean> {
+  return (await db.customer.count({ where: { id } })) === 1;
+}
+
 /** One customer, or null when there is no customer with that id. */
 export async function getCustomer(
   db: PrismaClient | TransactionClient,
@@ -140,12 +168,12 @@ export async function createBlankConsumer(
 }
 
 /**
- * Writes a first application's answers into the columns the record `seen` by the caller did
- * not hold (`recordFillFromAnswers`, D107), with the caller's `tx`. The write is conditional
- * on those columns still being as seen (null, or the e-mail standing in for the name): false
- * when another application filled one of them first, and then nothing is written, so the
- * caller can compare its answers with the record as it now is. An empty fill writes nothing
- * and is true.
+ * Writes an application's answers into the columns the record `seen` by the caller did not
+ * hold (`recordFillFromAnswers`, D107), with the caller's `tx`. The write is conditional on
+ * those columns still being as seen (null, the e-mail standing in for the name, a PEP flag
+ * still false): false when another application filled one of them first, and then nothing is
+ * written, so the caller can compare its answers with the record as it now is. An empty fill
+ * writes nothing and is true.
  */
 export async function fillCustomerRecord(
   tx: TransactionClient,
@@ -154,8 +182,9 @@ export async function fillCustomerRecord(
 ): Promise<boolean> {
   if (Object.keys(fill).length === 0) return true;
   const data = parseRow('customer', customerRecordFillSchema, fill);
+  const asSeen: Record<string, string | false | null> = { name: seen.name, is_pep: false };
   const unfilled = Object.fromEntries(
-    Object.keys(data).map((column) => [column, column === 'name' ? seen.name : null])
+    Object.keys(data).map((column) => [column, asSeen[column] ?? null])
   );
   const { count } = await tx.customer.updateMany({ where: { id: seen.id, ...unfilled }, data });
   return count === 1;

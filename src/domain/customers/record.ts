@@ -7,6 +7,7 @@
 // unchanged: only a sign-up can lack fields, and a sign-up is a consumer.
 import { z } from 'zod';
 import { companySchema, consumerSchema, soleTraderSchema } from '@/data/schemas';
+import { accountEmailSchema } from '@/domain/rows/account';
 
 /**
  * The country a consumer record holds: a two-letter code, or `other` when the first
@@ -16,6 +17,9 @@ import { companySchema, consumerSchema, soleTraderSchema } from '@/data/schemas'
 export const recordCountrySchema = z.union([consumerSchema.shape.country, z.literal('other')]);
 
 export const consumerRecordSchema = consumerSchema.extend({
+  // The account's rule for an e-mail, not the pack's stricter `z.email()`: whatever the
+  // sign-in form takes and stores on the account must read back on its customer.
+  email: accountEmailSchema,
   birth_date: consumerSchema.shape.birth_date.optional(),
   country: recordCountrySchema.optional(),
   city: consumerSchema.shape.city.optional(),
@@ -40,8 +44,20 @@ export function recordHoldsName(record: Pick<CustomerRecord, 'name' | 'email'>):
   return record.name.trim().toLowerCase() !== record.email.trim().toLowerCase();
 }
 
-/** How a sign-up's `story` starts; the day follows. The pack's stories say why a test customer exists. */
-export const SIGNED_UP_STORY_PREFIX = 'Signed up in the app with this e-mail on';
+/**
+ * Whether the record holds anything about the person beyond the type and the e-mail: a name,
+ * or, for a consumer, a birth date, country, employment or income. A sign-up holds none
+ * until an application fills one in; a sole trader's and a company's record always does.
+ */
+export function recordHoldsDetails(record: CustomerRecord): boolean {
+  if (record.type !== 'consumer' || recordHoldsName(record)) return true;
+  return [
+    record.birth_date,
+    record.country,
+    record.employment,
+    record.monthly_net_income_cents,
+  ].some((field) => field !== undefined);
+}
 
 /**
  * The row of a new sign-up: a consumer that holds the e-mail and nothing else. `is_pep` is
@@ -66,7 +82,8 @@ export function blankConsumerRow(input: { id: string; email: string; today: stri
     applicant_can_sign: null,
     beneficial_owners_json: null,
     is_pep: false,
-    story: `${SIGNED_UP_STORY_PREFIX} ${input.today}.`,
+    // The pack's stories say why a test customer exists; this one says where the row came from.
+    story: `Signed up in the app with this e-mail on ${input.today}.`,
     preferred_locale: null,
   };
 }

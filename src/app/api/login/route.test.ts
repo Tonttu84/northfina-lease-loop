@@ -113,6 +113,14 @@ describe('POST /api/login', () => {
     expect(account?.customer).toMatchObject({ type: 'consumer', name: 'new.person@example.com' });
   });
 
+  it('review finding 1: an e-mail the body takes never answers 500 at the sign-up', async () => {
+    for (const email of ['päivi@example.fi', 'matti@äkäs.fi', 'a@b.c']) {
+      const { status, body } = await ask({ email });
+      expect(status, email).toBe(202);
+      expect((await open(body.data.demoLink.token)).status, email).toBe(200);
+    }
+  });
+
   it('signs a new e-mail up while the demo tools are off too, with the same linkless answer', async () => {
     vi.stubEnv('DEMO_TOOLS', '0');
     const { status, body } = await ask({ email: 'new.person@example.com' });

@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { employmentSchema } from '@/data/schemas';
 import { recordCountrySchema } from '@/domain/customers/record';
+import { accountEmailSchema } from './account';
 import { centsSchema, idSchema, isoDateSchema, jsonText, ON_VALID_FIELDS } from './fields';
 
 export const customerTypeSchema = z.enum(['consumer', 'sole_trader', 'company']);
@@ -25,7 +26,8 @@ const columns = {
   birth_date: isoDateSchema.nullable(),
   country: recordCountrySchema.nullable(),
   city: z.string().nullable(),
-  email: z.email(),
+  /** The same rule as the account's e-mail: trimmed, lower case, something@something.tld. */
+  email: accountEmailSchema,
   employment: employmentSchema.nullable(),
   monthly_net_income_cents: centsSchema.nullable(),
   business_id: z.string().min(1).nullable(),
@@ -97,9 +99,11 @@ export const customerRowSchema = z.strictObject(columns).superRefine((row, ctx) 
 }, ON_VALID_FIELDS);
 
 /**
- * The columns a consumer's first application fills when the record does not hold them
- * (`recordFillFromAnswers`): any of these, at least one, never a null and nothing else. The
- * type, the e-mail and the PEP flag are not among them: an answer never rewrites those.
+ * The columns an application's answers write to the record (`recordFillFromAnswers`): for a
+ * consumer, any of the name, birth date, country, employment and income the record does not
+ * hold yet; for anyone, the PEP flag, which only ever goes to true (a "yes" is remembered, a
+ * fill never clears it). At least one column, never a null and nothing else: an answer never
+ * rewrites the type or the e-mail.
  */
 export const customerRecordFillSchema = z
   .strictObject({
@@ -108,6 +112,7 @@ export const customerRecordFillSchema = z
     country: recordCountrySchema,
     employment: employmentSchema,
     monthly_net_income_cents: centsSchema,
+    is_pep: z.literal(true),
   })
   .partial()
   .refine((fill) => Object.keys(fill).length > 0, { message: 'a fill sets at least one column' });

@@ -3,7 +3,7 @@ import type { ConsumerLimits, Question } from '@/data/schemas';
 import { recordHoldsName, type CustomerRecord } from '@/domain/customers/record';
 import { splitVat } from '@/domain/money-math';
 import type { Answer, Answers, FlowContext } from './engine';
-import type { EligibilityInput } from './eligibility';
+import { countryChoice, type EligibilityInput } from './eligibility';
 import { sameEmail } from './signatory';
 
 const text = (answer: Answer | undefined): string | undefined =>
@@ -88,7 +88,8 @@ export type AnswerProblem =
  * Why an answer cannot be taken, as a code for the page, or null when it can. First the
  * shape (`validateAnswer`), then the checks that need the day or the other answers: a birth
  * date from the future or more than 120 years back (D37), and a signatory e-mail that is the
- * applicant's own (D39), since the applicant would then sign for themself. "Own" is the
+ * applicant's own (D39), since the applicant would then sign for themself, and a full name
+ * that is the applicant's record e-mail (D107), which is no name. "Own" is the
  * e-mail answered (`q_email`) and the one on the customer record (`applicantEmail`): with
  * the answer alone, another `q_email` would let the applicant name their record address.
  */
@@ -104,6 +105,10 @@ export function answerProblem(
     if (value < range.earliest || value > range.latest) {
       return { code: 'birth_date_out_of_range', params: range };
     }
+  }
+  // D107: a sign-up's record shows its e-mail as the name, so that e-mail is never a name.
+  if (question.id === 'q_full_name' && sameEmail(value, flow.applicantEmail)) {
+    return { code: 'invalid', params: {} };
   }
   if (
     question.id === 'q_signatory_email' &&
@@ -190,10 +195,6 @@ export function eligibilityInputFromAnswers(args: InputFromAnswers): Eligibility
 type Person = Extract<CustomerRecord, { type: 'consumer' | 'sole_trader' }>;
 type Company = Extract<CustomerRecord, { type: 'company' }>;
 type Prefill = Record<string, Answer | undefined>;
-
-/** The record's country as the flow's choice: itself in FI, SE and EE, otherwise "other". */
-const countryChoice = (country: string | undefined) =>
-  country === undefined || ['FI', 'SE', 'EE'].includes(country) ? country : 'other';
 
 const yesNo = (value: boolean) => (value ? 'yes' : 'no');
 

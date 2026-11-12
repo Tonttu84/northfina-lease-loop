@@ -165,6 +165,27 @@ describe('answersFromCustomer', () => {
   });
 });
 
+describe('answerProblem: the full name (D107, review finding 4)', () => {
+  const q = (id: string) => bank.find((x) => x.id === id)!;
+  const flow = { today: '2026-11-05', applicantEmail: 'new.person@example.com' };
+
+  it('the trap: the applicant’s own e-mail typed as the name is not a name', () => {
+    for (const typed of ['new.person@example.com', ' New.Person@Example.com ']) {
+      expect(answerProblem(q('q_full_name'), typed, flow), typed).toEqual({
+        code: 'invalid',
+        params: {},
+      });
+    }
+  });
+
+  it('a name is taken, and so is anything when no record e-mail is known', () => {
+    expect(answerProblem(q('q_full_name'), 'Nea Person', flow)).toBeNull();
+    expect(
+      answerProblem(q('q_full_name'), 'new.person@example.com', { today: '2026-11-05' })
+    ).toBeNull();
+  });
+});
+
 describe('answersFromCustomer for a signed-up record (D107)', () => {
   const blank = {
     id: 'cust-0123456789abcdef',

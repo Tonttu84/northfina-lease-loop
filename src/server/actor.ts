@@ -5,7 +5,7 @@
 // that names nobody we know reads as `anonymous`.
 import { cookies } from 'next/headers';
 import { secureFlag } from './cookie-flags';
-import { listCustomers } from './customers';
+import { customerExists } from './customers';
 import type { PrismaClient } from './prisma-client';
 import {
   newSession,
@@ -80,12 +80,13 @@ export async function resolveKnownActor(
   db: PrismaClient,
   value: string | undefined
 ): Promise<Actor> {
-  // Through the customers slice's read (team rule 3, review finding 13).
-  const customers = await listCustomers(db);
-  return actorFromCookieValue(
-    value,
-    customers.map((customer) => customer.id)
-  );
+  // Through the customers slice's read (team rule 3, review finding 13): one lookup by id,
+  // not the whole table, since anyone can add customers now (D107).
+  const known =
+    value !== undefined && value !== ADMIN_ACTOR && (await customerExists(db, value))
+      ? [value]
+      : [];
+  return actorFromCookieValue(value, known);
 }
 
 /** The actor of the current request. Call it in a page or a route, once, and pass it down. */

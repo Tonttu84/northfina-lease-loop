@@ -109,9 +109,8 @@ export async function accountOfActor(db: Db, actor: Actor): Promise<AccountView 
 }
 
 export type LoginLinkRequested = {
+  /** The same shape whether the account was there or this request made it (D107). */
   link: { token: string; expiresOn: string; accountId: string };
-  /** True when this request made the account (D107). The route's answer never says so. */
-  signedUp: boolean;
 };
 
 /** P2002 on the unique `Account.email`: another request signed the same e-mail up first. */
@@ -125,7 +124,7 @@ function isUniqueViolation(error: unknown): boolean {
  * while `demoTools` is on (D94). An e-mail no account has signs up (D107), with the tools on
  * or off: a blank consumer customer, its unconfirmed account and the link are made in one
  * transaction with one audit row (`account.signed_up`), and the caller's answer does not
- * differ. Two requests at once for one new e-mail: the unique e-mail refuses the second
+ * differ (the public audit log does: it names the action, with the e-mail masked). Two requests at once for one new e-mail: the unique e-mail refuses the second
  * sign-up whole, and that request then finds the account and sends it a plain link.
  */
 export async function requestLoginLink(
@@ -134,14 +133,14 @@ export async function requestLoginLink(
 ): Promise<LoginLinkRequested> {
   const email = accountEmailSchema.parse(input.email);
   const existing = await db.account.findUnique({ where: { email } });
-  if (existing) return { link: await sendLoginLink(db, existing, input), signedUp: false };
+  if (existing) return { link: await sendLoginLink(db, existing, input) };
   try {
-    return { link: await signUp(db, email, input), signedUp: true };
+    return { link: await signUp(db, email, input) };
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     const winner = await db.account.findUnique({ where: { email } });
     if (!winner) throw error;
-    return { link: await sendLoginLink(db, winner, input), signedUp: false };
+    return { link: await sendLoginLink(db, winner, input) };
   }
 }
 

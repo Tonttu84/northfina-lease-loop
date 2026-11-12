@@ -221,6 +221,37 @@ describe('a sign-up’s first application (D107)', () => {
     expect(await getCustomer(db, nea)).not.toHaveProperty('birth_date');
   });
 
+  it('the trap (review finding 2): a PEP "yes" goes on record, so "no" the next time is held (D58)', async () => {
+    const nea = await signUp();
+    // 12 000 € financed: above the 10 000 € where the PEP question is asked (D82).
+    const big = () => insertQuote('ebike-004', 1_200_000, 33_101);
+    const first = await apply(await big(), nea, neaAnswers({ q_pep: 'yes', q_pep_details: 'MP' }));
+    expect(first.ok && first.application).toMatchObject({
+      decision: 'manual_review',
+      reasons: [{ code: 'pep', params: {} }],
+    });
+    expect((await getCustomer(db, nea))?.is_pep).toBe(true);
+    if (!first.ok) return;
+    expect((await createdDetails(first.application.id)).recordFilled).toContain('is_pep');
+
+    const second = await apply(await big(), nea, neaAnswers({ q_pep: 'no' }));
+    expect(second.ok && second.application).toMatchObject({
+      decision: 'manual_review',
+      reasons: [{ code: 'answer_differs_from_record', params: { question: 'q_pep' } }],
+    });
+    expect((await getCustomer(db, nea))?.is_pep).toBe(true);
+  });
+
+  it('review finding 4: the sign-up’s own e-mail is refused as the full name, so a name always sticks', async () => {
+    const nea = await signUp();
+    expect(await apply(await insertQuote(), nea, neaAnswers({ q_full_name: NEW }))).toMatchObject({
+      ok: false,
+      reason: 'invalid_answer',
+      questionId: 'q_full_name',
+    });
+    expect(await getCustomer(db, nea)).not.toHaveProperty('birth_date');
+  });
+
   it('two first applications at once with different birth dates: one sticks, the other is held', async () => {
     const nea = await signUp();
     const [quoteA, quoteB] = [await insertQuote(), await insertQuote('ebike-004')];
@@ -259,6 +290,22 @@ describe('a sign-up’s first application (D107)', () => {
 });
 
 describe('a data-pack customer’s application', () => {
+  it('review finding 2: Aino answering PEP "yes" once is remembered too; a later "no" is held', async () => {
+    const big = () => insertQuote('ebike-004', 1_200_000, 33_101);
+    const yes = { ...answersOf('cust-aino'), q_pep: 'yes', q_pep_details: 'MP' };
+    const first = await apply(await big(), 'cust-aino', yes);
+    expect(first.ok && first.application.reasons).toEqual([{ code: 'pep', params: {} }]);
+    expect((await getCustomer(db, 'cust-aino'))?.is_pep).toBe(true);
+    const second = await apply(await big(), 'cust-aino', {
+      ...answersOf('cust-aino'),
+      q_pep: 'no',
+    });
+    expect(second.ok && second.application).toMatchObject({
+      decision: 'manual_review',
+      reasons: [{ code: 'answer_differs_from_record', params: { question: 'q_pep' } }],
+    });
+  });
+
   it('fills nothing: the record already holds every field, and the audit row says nothing of it', async () => {
     const before = await getCustomer(db, 'cust-aino');
     const result = await apply(await insertQuote(), 'cust-aino', answersOf('cust-aino'));

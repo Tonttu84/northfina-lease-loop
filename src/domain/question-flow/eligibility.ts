@@ -59,6 +59,10 @@ export type EligibilityInput = {
 
 export const MIN_AGE_YEARS = 18;
 export const ALLOWED_COUNTRIES: readonly string[] = ['FI', 'SE', 'EE'];
+
+/** A record's country as the flow's choice: itself in FI, SE and EE, otherwise "other". */
+export const countryChoice = (country: string | undefined): string | undefined =>
+  country === undefined || ALLOWED_COUNTRIES.includes(country) ? country : 'other';
 /** Rent incl. VAT may be at most this percentage of monthly net income. */
 export const AFFORDABILITY_PERCENT = 30;
 

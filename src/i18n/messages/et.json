@@ -840,7 +840,7 @@
   "login.form.invalidEmail": "See ei ole e-posti aadress.",
   "login.sent.title": "Sisselogimislink on teel",
   "login.sent.body": "Link töötab täna ja homme, ühe korra.",
-  "login.sent.signUp": "Uus siin? Aadressil on nüüd konto ning lingi avamine logib sind sisse ja kinnitab sinu e-posti. Miski siin ei ütle, kas aadressil oli konto juba varem.",
+  "login.sent.signUp": "Oled siin uus? Aadressil on nüüd konto ning lingi avamine logib sind sisse ja kinnitab sinu e-posti. Miski siin ei ütle, kas aadressil oli konto juba varem.",
   "login.demo.title": "Demo: e-kirja ei saadeta",
   "login.demo.body": "Toodangus saabuks link e-postiga. Siin näidatakse seda sulle ja demolehe väljuvate kast loetleb kõik ootel lingid.",
   "login.demo.open": "Ava sisselogimislink",

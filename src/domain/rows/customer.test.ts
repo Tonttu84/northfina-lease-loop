@@ -19,6 +19,17 @@ describe('customerRowSchema (D107)', () => {
     expect(customerRowSchema.parse(blank())).toEqual(blank());
   });
 
+  it('review finding 1: takes every e-mail an account takes, stored trimmed and in lower case', () => {
+    for (const email of ['päivi@example.fi', 'matti@äkäs.fi', 'a@b.c', 'a..b@example.com']) {
+      expect(customerRowSchema.safeParse({ ...blank(), name: email, email }).success, email).toBe(
+        true
+      );
+    }
+    expect(customerRowSchema.parse({ ...blank(), email: ' New@Example.COM ' }).email).toBe(
+      'new@example.com'
+    );
+  });
+
   it('a consumer has no company columns', () => {
     for (const column of [
       { business_id: '0737546-2' },
@@ -107,6 +118,7 @@ describe('customerRecordFillSchema', () => {
       country: 'other',
       employment: 'employed',
       monthly_net_income_cents: 320_000,
+      is_pep: true,
     };
     expect(customerRecordFillSchema.parse(fill)).toEqual(fill);
     expect(customerRecordFillSchema.parse({ birth_date: '1990-04-12' })).toEqual({
@@ -118,7 +130,8 @@ describe('customerRecordFillSchema', () => {
     expect(customerRecordFillSchema.safeParse({}).success).toBe(false);
     expect(customerRecordFillSchema.safeParse({ birth_date: null }).success).toBe(false);
     expect(customerRecordFillSchema.safeParse({ type: 'company' }).success).toBe(false);
-    expect(customerRecordFillSchema.safeParse({ is_pep: true }).success).toBe(false);
+    // The PEP flag latches one way (review finding 2): a fill never clears it.
+    expect(customerRecordFillSchema.safeParse({ is_pep: false }).success).toBe(false);
     expect(customerRecordFillSchema.safeParse({ email: 'other@example.com' }).success).toBe(false);
     expect(customerRecordFillSchema.safeParse({ name: ' ' }).success).toBe(false);
     expect(customerRecordFillSchema.safeParse({ monthly_net_income_cents: -5 }).success).toBe(

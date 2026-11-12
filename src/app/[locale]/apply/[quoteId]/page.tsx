@@ -7,7 +7,7 @@ import { QuestionFlow } from '@/components/question-flow';
 import { LinkButton, Money, Notice, PageHeader, PriceTag } from '@/components/ui';
 import { loadPriceLists, loadQuestions } from '@/data/load';
 import { formatEuro } from '@/domain/money';
-import { recordHoldsName } from '@/domain/customers/record';
+import { recordHoldsDetails } from '@/domain/customers/record';
 import { answersFromCustomer } from '@/domain/question-flow/answers';
 import { whyWeAsk } from '@/domain/question-flow/engine';
 import { getT, messages, type MessageKey } from '@/i18n/get-t';
@@ -102,7 +102,7 @@ export default async function ApplyPage({ params }: PageProps<'/[locale]/apply/[
   );
   const raw = (key: MessageKey) => messages[locale][key];
   // A sign-up before its first application has no details to fill the form in with (D107).
-  const hasDetails = recordHoldsName(customer);
+  const hasDetails = recordHoldsDetails(customer);
 
   return page(
     <>

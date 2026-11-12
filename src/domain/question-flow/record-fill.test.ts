@@ -3,7 +3,7 @@ import { loadCustomers } from '@/data/load';
 import type { Customer } from '@/data/schemas';
 import { customerRecordSchema, type CustomerRecord } from '@/domain/customers/record';
 import { answersFromCustomer } from './answers';
-import { applyRecordFill, recordFillFromAnswers } from './record-fill';
+import { recordFillFromAnswers } from './record-fill';
 import { recordMismatches } from './record-check';
 
 let pack: Customer[];
@@ -54,7 +54,7 @@ describe('recordFillFromAnswers (D107)', () => {
   });
 
   it('the trap: a field the record already holds is never overwritten by a later answer', () => {
-    const held = applyRecordFill(blank(), recordFillFromAnswers(blank(), consumerAnswers));
+    const held = { ...blank(), ...recordFillFromAnswers(blank(), consumerAnswers) };
     const later = { ...consumerAnswers, q_birth_date: '2001-01-01', q_monthly_income: '900000' };
     expect(recordFillFromAnswers(held, later)).toEqual({});
   });
@@ -65,7 +65,7 @@ describe('recordFillFromAnswers (D107)', () => {
       q_country: 'other',
     });
     expect(first).toEqual({ birth_date: '1990-04-12', country: 'other' });
-    const held = applyRecordFill(blank(), first);
+    const held = { ...blank(), ...first };
     expect(recordFillFromAnswers(held, consumerAnswers)).toEqual({
       name: 'Nea Person',
       employment: 'employed',
@@ -116,9 +116,35 @@ describe('recordFillFromAnswers (D107)', () => {
   });
 });
 
-describe('applyRecordFill', () => {
-  it('the filled record is compared like any other: the first answers stick (D38)', () => {
-    const held = applyRecordFill(blank(), recordFillFromAnswers(blank(), consumerAnswers));
+describe('the PEP answer latches (review finding 2)', () => {
+  it('a "yes" goes on a record that says no: a sign-up’s, and a data-pack customer’s', () => {
+    expect(recordFillFromAnswers(blank(), { q_pep: 'yes' })).toEqual({ is_pep: true });
+    const aino = pack.find((c) => c.id === 'cust-aino')!;
+    expect(recordFillFromAnswers(aino, { ...answersFromCustomer(aino), q_pep: 'yes' })).toEqual({
+      is_pep: true,
+    });
+    const company = pack.find((c) => c.type === 'company' && !c.is_pep)!;
+    expect(recordFillFromAnswers(company, { q_pep: 'yes' })).toEqual({ is_pep: true });
+  });
+
+  it('a "no", no answer, or a record that already says yes fills nothing', () => {
+    expect(recordFillFromAnswers(blank(), { q_pep: 'no' })).toEqual({});
+    expect(recordFillFromAnswers(blank(), {})).toEqual({});
+    const pep = pack.find((c) => c.is_pep)!;
+    expect(recordFillFromAnswers(pep, { q_pep: 'yes' })).toEqual({});
+    expect(recordFillFromAnswers(pep, { q_pep: 'no' })).toEqual({});
+  });
+
+  it('the trap: after the "yes" is on record, a later "no" differs from it (D58)', () => {
+    const held = { ...blank(), ...recordFillFromAnswers(blank(), { q_pep: 'yes' }) };
+    expect(recordMismatches(held, { q_pep: 'no' })).toEqual(['q_pep']);
+    expect(recordMismatches(held, { q_pep: 'yes' })).toEqual([]);
+  });
+});
+
+describe('a filled record', () => {
+  it('is compared like any other: the first answers stick (D38)', () => {
+    const held = { ...blank(), ...recordFillFromAnswers(blank(), consumerAnswers) };
     expect(recordMismatches(held, consumerAnswers)).toEqual([]);
     expect(
       recordMismatches(held, {
@@ -129,14 +155,5 @@ describe('applyRecordFill', () => {
         q_monthly_income: '900000',
       })
     ).toEqual(['q_full_name', 'q_birth_date', 'q_country', 'q_monthly_income']);
-  });
-
-  it('an empty fill leaves the record as it was', () => {
-    expect(applyRecordFill(blank(), {})).toEqual(blank());
-  });
-
-  it('never changes a sole trader or a company', () => {
-    const company = pack.find((c) => c.type === 'company')!;
-    expect(applyRecordFill(company, { birth_date: '1990-04-12' })).toEqual(company);
   });
 });

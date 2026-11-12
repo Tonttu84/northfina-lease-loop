@@ -1,9 +1,10 @@
-// What a first application adds to a customer record that does not hold it yet (D107). A
+// What an application's answers add to a customer record that does not hold them yet (D107). A
 // sign-up's record holds only the e-mail, so `recordMismatches` (D38) has nothing to compare
 // the first answers with; without this, a rejected applicant could apply again with another
 // birth date or income and never be held. The first answers are written to the record in the
 // application's own transaction, whatever the rules decided, so they stick: the next
-// application is compared with them and a difference goes to a person.
+// application is compared with them and a difference goes to a person. The PEP answer works
+// the same way on every record: a "yes" is remembered, so "no" the next time is a difference.
 import { z } from 'zod';
 import { employmentSchema, isoDateSchema } from '@/data/schemas';
 import {
@@ -41,20 +42,23 @@ function answeredName(email: string, answer: Answer | undefined): string | undef
 }
 
 /**
- * The columns to fill: for a consumer record, each of the full name, the birth date, the
+ * The columns to fill. For a consumer record: each of the full name, the birth date, the
  * country (FI, SE, EE or `other`, as answered), the employment and the monthly net income
  * that the record lacks and the answers give. A field on record is never touched, an
  * unanswered or malformed answer fills nothing, and a sole trader's or a company's record
  * has no absent fields. A name that is the record's e-mail is not a name. The answers are
  * the flow's pruned ones, so a sign-up who answers "company" (asked for the company's name,
  * not the person's) fills nothing, and one who answers "sole trader" fills the person's
- * fields that flow asks.
+ * fields that flow asks. For every record: a "yes" to the PEP question while the record says
+ * no sets the flag, one way, so a later "no" differs from the record (D58).
  */
 export function recordFillFromAnswers(
   record: CustomerRecord,
   answers: Answers
 ): CustomerRecordFill {
-  if (record.type !== 'consumer') return {};
+  const pep: CustomerRecordFill =
+    !record.is_pep && text(answers.q_pep) === 'yes' ? { is_pep: true } : {};
+  if (record.type !== 'consumer') return pep;
   const answered = {
     name: answeredName(record.email, answers.q_full_name),
     birth_date: held(isoDateSchema, answers.q_birth_date),
@@ -62,7 +66,7 @@ export function recordFillFromAnswers(
     employment: held(employmentSchema, answers.q_employment),
     monthly_net_income_cents: held(centsAnswerSchema, answers.q_monthly_income),
   };
-  const lacks: Record<keyof CustomerRecordFill, boolean> = {
+  const lacks: Record<keyof typeof answered, boolean> = {
     name: !recordHoldsName(record),
     birth_date: record.birth_date === undefined,
     country: record.country === undefined,
@@ -70,14 +74,10 @@ export function recordFillFromAnswers(
     monthly_net_income_cents: record.monthly_net_income_cents === undefined,
   };
   // Each kept value was parsed by its column's own schema above.
-  return Object.fromEntries(
+  const person = Object.fromEntries(
     Object.entries(answered).filter(
       ([column, value]) => value !== undefined && lacks[column as keyof typeof lacks]
     )
   ) as CustomerRecordFill;
-}
-
-/** The record with a fill applied, as the database reads it afterwards. Consumers only. */
-export function applyRecordFill(record: CustomerRecord, fill: CustomerRecordFill): CustomerRecord {
-  return record.type === 'consumer' ? { ...record, ...fill } : record;
+  return { ...person, ...pep };
 }

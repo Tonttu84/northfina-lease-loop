@@ -143,8 +143,7 @@ describe('requestLoginLink for an e-mail no account has: the sign-up (D107)', ()
 
   it('makes a blank consumer customer, its unconfirmed account and the link, in one audited change', async () => {
     const audits = await db.auditLog.count();
-    const { link, signedUp } = await request(NEW);
-    expect(signedUp).toBe(true);
+    const { link } = await request(NEW);
     const account = await db.account.findUniqueOrThrow({ where: { email: NEW } });
     expect(account).toMatchObject({
       id: link.accountId,
@@ -187,8 +186,8 @@ describe('requestLoginLink for an e-mail no account has: the sign-up (D107)', ()
   });
 
   it('signs up with the demo tools off too, keeping no token in clear', async () => {
-    const { link, signedUp } = await request(NEW, false);
-    expect(signedUp).toBe(true);
+    const { link } = await request(NEW, false);
+    expect(await db.auditLog.count({ where: { action: 'account.signed_up' } })).toBe(1);
     expect(await db.customer.count({ where: { email: NEW } })).toBe(1);
     expect(
       (await db.loginToken.findUnique({ where: { token_hash: hashLoginToken(link.token) } }))
@@ -203,10 +202,10 @@ describe('requestLoginLink for an e-mail no account has: the sign-up (D107)', ()
   });
 
   it('a known e-mail is not a sign-up, and a second request for the new one is a plain link', async () => {
-    expect((await request(AINO)).signedUp).toBe(false);
+    await request(AINO);
+    expect(await db.auditLog.count({ where: { action: 'account.signed_up' } })).toBe(0);
     const first = await request(NEW);
     const second = await request(NEW);
-    expect(second.signedUp).toBe(false);
     expect(second.link.accountId).toBe(first.link.accountId);
     expect(await db.customer.count({ where: { email: NEW } })).toBe(1);
     expect(await db.auditLog.count({ where: { action: 'account.signed_up' } })).toBe(1);
@@ -215,7 +214,6 @@ describe('requestLoginLink for an e-mail no account has: the sign-up (D107)', ()
 
   it('two requests at once for one new e-mail: one customer, one account, two links', async () => {
     const results = await Promise.all([request(NEW), request(NEW)]);
-    expect(results.filter((result) => result.signedUp)).toHaveLength(1);
     expect(results[0]!.link.accountId).toBe(results[1]!.link.accountId);
     expect(results[0]!.link.token).not.toBe(results[1]!.link.token);
     expect(await db.customer.count({ where: { email: NEW } })).toBe(1);
@@ -263,6 +261,19 @@ describe('requestLoginLink for an e-mail no account has: the sign-up (D107)', ()
       email: NEW,
       customerName: NEW,
     });
+  });
+
+  it('review finding 1: every e-mail the account takes signs up and reads back', async () => {
+    for (const email of ['päivi@example.fi', 'matti@äkäs.fi', 'a@b.c', 'a..b@example.com']) {
+      const { link } = await request(email);
+      const account = await db.account.findUniqueOrThrow({ where: { id: link.accountId } });
+      expect(await getCustomer(db, account.customer_id!), email).toMatchObject({
+        name: email,
+        email,
+      });
+    }
+    // Every page lists or resolves customers: none of the new rows may break the read.
+    expect(await listCustomers(db)).toHaveLength((await loadCustomers()).length + 4);
   });
 
   it('refuses what is not an e-mail and makes nothing', async () => {

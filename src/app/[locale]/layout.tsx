@@ -10,8 +10,9 @@ import { HashTargetFocus } from '@/components/ui';
 import { getT } from '@/i18n/get-t';
 import { isLocale } from '@/i18n/locales';
 import { readActor } from '@/server/actor';
-import { listCustomers } from '@/server/customers';
+import { listPersonas } from '@/server/customers';
 import { db } from '@/server/db';
+import { demoToolsOn } from '@/server/demo-tools';
 import '../globals.css';
 
 // The look's fonts (D21): Nunito for text and numbers, Fredoka for headings. next/font
@@ -41,7 +42,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
   if (!isLocale(locale)) notFound();
   const t = getT(locale);
   // Read once per request here; pages that need the actor call readActor() themselves.
-  const [customers, actor] = await Promise.all([listCustomers(db), readActor(db)]);
+  const actor = await readActor(db);
+  // The "Continue as" picker (a demo tool) lists the data pack's personas, plus the visitor's
+  // own customer when a sign-up is signed in: never another visitor's sign-up (D107).
+  const customers = demoToolsOn() ? await listPersonas(db, actor) : [];
 
   return (
     <html lang={locale} className={`${nunito.variable} ${fredoka.variable}`}>

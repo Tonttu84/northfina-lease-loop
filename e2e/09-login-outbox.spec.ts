@@ -116,4 +116,14 @@ test('a new e-mail signs up, signs in by its link, is confirmed, and its first a
   await expect(
     page.getByRole('button', { name: "Fill in with Nea Person's details" })
   ).toBeVisible();
+
+  // The "Continue as" picker lists her to herself only: signed out, nobody else sees a sign-up.
+  const picker = page.getByLabel('Continue as');
+  await expect(picker.locator('option', { hasText: 'Nea Person' })).toHaveCount(1);
+  await page.goto('/en/account');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(header.getByRole('link', { name: 'Sign in' })).toBeVisible();
+  await expect(picker.locator('option', { hasText: 'Aino Virtanen' })).toHaveCount(1);
+  await expect(picker.locator('option', { hasText: 'Nea Person' })).toHaveCount(0);
+  await expect(picker.locator('option', { hasText: email })).toHaveCount(0);
 });

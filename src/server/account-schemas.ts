@@ -15,8 +15,8 @@ export const loginTokenParamsSchema = z.object({ token: loginTokenValueSchema })
 
 /**
  * `POST /api/login` always answers this, whether the e-mail had an account or the request just
- * made one (D107: an unknown e-mail signs up), so nothing tells a visitor which e-mails had
- * accounts. `demoLink` is the link itself, only while the demo tools are on: the demo's
+ * made one (D107: an unknown e-mail signs up), so the answer does not tell a visitor which
+ * e-mails had accounts. `demoLink` is the link itself, only while the demo tools are on: the demo's
  * stand-in for the e-mail (D94).
  */
 export const loginRequestedSchema = z.object({

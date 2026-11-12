@@ -11,7 +11,7 @@ import { formatIsoDate } from '@/i18n/format';
 import type { Translate } from '@/i18n/get-t';
 import type { Locale } from '@/i18n/locales';
 import type { ContractView } from '@/server/contracts';
-import { listCustomers } from '@/server/customers';
+import { listPersonas } from '@/server/customers';
 import { db } from '@/server/db';
 import { nextQuoteIdOf, previewExit } from '@/server/exits';
 import { ExitForm } from './exit-form';
@@ -78,7 +78,9 @@ export async function ContractExit({
       </Card>
     );
   }
-  const customers = (await listCustomers(db))
+  // Whom the lessee may pass the item on to: the data pack's personas. A sign-up is a real
+  // visitor, and neither its e-mail nor its name is shown to another customer (D107).
+  const customers = (await listPersonas(db))
     .filter((customer) => customer.id !== contract.customerId)
     .map((customer) => ({ id: customer.id, name: customer.name }));
 

@@ -4,8 +4,8 @@ import { customerSchema, type Customer } from '@/data/schemas';
 import {
   blankConsumerRow,
   customerRecordSchema,
+  recordHoldsDetails,
   recordHoldsName,
-  SIGNED_UP_STORY_PREFIX,
   type CustomerRecord,
 } from './record';
 
@@ -21,7 +21,7 @@ const blank = (): CustomerRecord =>
     name: 'new.person@example.com',
     email: 'new.person@example.com',
     is_pep: false,
-    story: `${SIGNED_UP_STORY_PREFIX} 2026-11-05.`,
+    story: 'Signed up in the app with this e-mail on 2026-11-05.',
   });
 
 describe('customerRecordSchema (D107)', () => {
@@ -45,6 +45,19 @@ describe('customerRecordSchema (D107)', () => {
       'other'
     );
     expect(customerRecordSchema.safeParse({ ...blank(), country: 'Finland' }).success).toBe(false);
+  });
+
+  it('review finding 1: a consumer’s e-mail follows the account’s rule, not the pack’s stricter one', () => {
+    // What `POST /api/login` accepts and stores on the account must read back on its customer.
+    for (const email of ['päivi@example.fi', 'matti@äkäs.fi', 'a@b.c', 'a..b@example.com']) {
+      expect(customerRecordSchema.parse({ ...blank(), name: email, email }), email).toMatchObject({
+        email,
+      });
+    }
+    expect(customerRecordSchema.safeParse({ ...blank(), email: 'not an e-mail' }).success).toBe(
+      false
+    );
+    expect(customerRecordSchema.safeParse({ ...blank(), email: 'a@b' }).success).toBe(false);
   });
 
   it('the trap: only a consumer may lack fields; a sole trader and a company stay strict', () => {
@@ -80,6 +93,23 @@ describe('recordHoldsName', () => {
     expect(recordHoldsName(blank())).toBe(false);
     expect(recordHoldsName({ ...blank(), name: ' New.Person@Example.com ' })).toBe(false);
     expect(recordHoldsName({ ...blank(), name: 'Nea Person' })).toBe(true);
+  });
+});
+
+describe('recordHoldsDetails', () => {
+  it('a data-pack customer has details; a sign-up has none until one field is on record', () => {
+    for (const customer of pack) expect(recordHoldsDetails(customer), customer.id).toBe(true);
+    expect(recordHoldsDetails(blank())).toBe(false);
+    expect(recordHoldsDetails({ ...blank(), is_pep: true })).toBe(false);
+    for (const field of [
+      { name: 'Nea Person' },
+      { birth_date: '1990-04-12' },
+      { country: 'other' },
+      { employment: 'employed' as const },
+      { monthly_net_income_cents: 0 },
+    ]) {
+      expect(recordHoldsDetails({ ...blank(), ...field }), JSON.stringify(field)).toBe(true);
+    }
   });
 });
 
