@@ -341,6 +341,27 @@ describe('meta rules', { timeout: 30_000 }, () => {
     expect(findings, formatFindings(findings)).toEqual([]);
   });
 
+  // D107: a sign-up is a real visitor and is never listed to another one. Lists other visitors
+  // see (the "Continue as" picker, the pass-on form) read `listPersonas`; the whole customer
+  // table is read only by the back office's view of the leases page and by the table's owner.
+  it('only the back office’s leases page reads every customer', () => {
+    const allowed = new Set(['src/server/customers.ts', 'src/app/[locale]/leases/page.tsx']);
+    const readers = listFiles('src', /\.tsx?$/).filter(
+      (file) =>
+        !isTest(file) &&
+        !file.startsWith('src/generated/') &&
+        !allowed.has(file) &&
+        /\blistCustomers\b/.test(read(file))
+    );
+    expect(readers, `read listPersonas instead of listCustomers in: ${readers.join(', ')}`).toEqual(
+      []
+    );
+    // The page that may read them shows the names to the admin only.
+    expect(read('src/app/[locale]/leases/page.tsx')).toMatch(
+      /if \(!isAdmin\) \{[\s\S]*?return[\s\S]*listCustomers\(db\)/
+    );
+  });
+
   // RULES.md §9 "Four languages". Same keys in all four: src/i18n/messages.test.ts.
   it('the UI has message files for exactly en, fi, sv and et', () => {
     const files = readdirSync(path.join(repoRoot, 'src/i18n/messages')).sort();

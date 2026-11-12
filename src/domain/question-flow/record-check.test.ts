@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { loadCustomers } from '@/data/load';
 import type { Customer } from '@/data/schemas';
+import { customerRecordSchema, type CustomerRecord } from '@/domain/customers/record';
 import { answersFromCustomer } from './answers';
 import { nameWords, recordMismatches } from './record-check';
 
@@ -148,6 +149,58 @@ describe('recordMismatches (D38)', () => {
   it('a company’s record name is a company, never compared with a person’s name', () => {
     const answers = { q_customer_type: 'company', q_full_name: 'Anyone' };
     expect(recordMismatches(customer('cust-kettukoodi'), answers)).toEqual([]);
+  });
+});
+
+describe('recordMismatches against a signed-up record (D107)', () => {
+  const blank = (): CustomerRecord =>
+    customerRecordSchema.parse({
+      id: 'cust-0123456789abcdef',
+      type: 'consumer',
+      name: 'new.person@example.com',
+      email: 'new.person@example.com',
+      is_pep: false,
+      story: 'Signed up in the app with this e-mail on 2026-11-05.',
+    });
+  const answers = {
+    q_customer_type: 'consumer',
+    q_full_name: 'Nea Person',
+    q_birth_date: '1990-04-12',
+    q_email: 'new.person@example.com',
+    q_country: 'FI',
+    q_employment: 'employed',
+    q_monthly_income: '320000',
+    q_pep: 'no',
+  };
+
+  it('a record that holds only the e-mail has nothing else to differ from', () => {
+    expect(recordMismatches(blank(), answers)).toEqual([]);
+    expect(recordMismatches(blank(), { ...answers, q_country: 'other' })).toEqual([]);
+  });
+
+  it('the trap: the e-mail shown as the name is not a name to compare with', () => {
+    expect(recordMismatches(blank(), { q_full_name: 'Anyone At All' })).toEqual([]);
+  });
+
+  it('what it does hold is compared: the type (consumer) and the e-mail', () => {
+    expect(
+      recordMismatches(blank(), {
+        ...answers,
+        q_customer_type: 'company',
+        q_email: 'x@example.com',
+      })
+    ).toEqual(['q_customer_type', 'q_email']);
+  });
+
+  it('once a field is on record it is compared, the others still are not', () => {
+    const held = { ...blank(), name: 'Nea Person', birth_date: '1990-04-12', country: 'other' };
+    expect(recordMismatches(held, answers)).toEqual(['q_country']);
+    expect(
+      recordMismatches(held, { ...answers, q_country: 'other', q_birth_date: '2001-01-01' })
+    ).toEqual(['q_birth_date']);
+    expect(
+      recordMismatches(held, { ...answers, q_country: 'other', q_full_name: 'Somebody Else' })
+    ).toEqual(['q_full_name']);
   });
 });
 

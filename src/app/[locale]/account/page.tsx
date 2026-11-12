@@ -1,10 +1,12 @@
 // The account page (D93): who is signed in, their e-mail and whether it is confirmed, a new
-// confirmation link, sign out, and the way to their leases. Nobody signed in: a pointer to the
+// confirmation link, sign out, and the way to their leases. A sign-up has no name on record
+// until its first application (D107), and the page says so. Nobody signed in: a pointer to the
 // login page. `read_account` (D73): one's own account, or the back office's for the admin.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { Badge, Card, DefinitionList, LinkButton, Notice, PageHeader } from '@/components/ui';
+import { recordHoldsName } from '@/domain/customers/record';
 import { formatIsoDate } from '@/i18n/format';
 import { getT } from '@/i18n/get-t';
 import { isLocale } from '@/i18n/locales';
@@ -69,9 +71,11 @@ export default async function AccountPage({
   }
   const { welcome } = await searchParams;
   const name = isAdmin ? t('account.backOffice') : (customer?.name ?? actor);
+  // A sign-up's record shows its e-mail as the name until an application names the person (D107).
+  const nameOnRecord = isAdmin || !customer || recordHoldsName(customer);
 
   const items = [
-    { label: t('account.name'), value: name },
+    { label: t('account.name'), value: nameOnRecord ? name : t('account.nameMissing') },
     { label: t('account.email'), value: account.email },
     {
       label: t('account.emailStatus'),

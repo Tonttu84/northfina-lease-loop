@@ -42,18 +42,21 @@ model Asset {
   @@index([category])
 }
 
-// A test applicant from data/customers.json. One table for the three types: the fields a
-// type does not have are null (see `customerSchema` in src/data/schemas.ts).
+// A customer: a test applicant from data/customers.json, or someone who signed up with an
+// e-mail (D107). One table for the three types: the fields a type does not have are null (see
+// `customerRecordSchema` in src/domain/customers/record.ts). A signed-up consumer starts with
+// the e-mail only: `name` holds the e-mail until the first application names the person, and
+// the columns marked "null until answered" are filled from that application's answers.
 model Customer {
   id                       String   @id
   type                     String // consumer | sole_trader | company
   name                     String
-  birth_date               String? // consumer, sole_trader
-  country                  String
-  city                     String
+  birth_date               String? // consumer, sole_trader; null until answered after a sign-up
+  country                  String? // a country code, or `other` as answered; null until answered after a sign-up
+  city                     String? // null after a sign-up: the question flow never asks
   email                    String
-  employment               String? // consumer
-  monthly_net_income_cents Int? // consumer
+  employment               String? // consumer; null until answered after a sign-up
+  monthly_net_income_cents Int? // consumer; null until answered after a sign-up
   business_id              String? // sole_trader, company
   vat_registered           Boolean? // sole_trader, company
   annual_revenue_cents     Int? // company

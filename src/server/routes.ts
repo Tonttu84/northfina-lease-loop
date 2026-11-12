@@ -255,7 +255,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     method: 'POST',
     path: '/api/login',
     summary:
-      'Ask for a sign-in link for an e-mail (D93); 202 and the same answer whether or not an account has it; the link itself only while DEMO_TOOLS is on (D94)',
+      'Ask for a sign-in link for an e-mail (D93); an e-mail with no account signs up: a blank consumer customer and its account are made first (D107); 202 and the same answer either way; the link itself only while DEMO_TOOLS is on (D94)',
     tag: 'login',
     body: loginBodySchema,
     response: loginRequestedSchema,

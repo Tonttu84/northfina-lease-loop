@@ -77,7 +77,7 @@ A pass-on hands the item straight to the named person, so no refurbishment is ch
 
 - **D31** (decided 2026-11-06 as an assumption, stated in [scenarios.md](../scenarios.md#assumption-d31)): the curve age of a first-life item from its lease start; **D11** (`ageInMonths`, from the model year) for an item with previous lives. `curveAgeInMonths` picks the rule.
 - **D14**: the balance by amortisation, buy = balance, return = max(0, balance − market value) + refurbishment, shown line by line.
-- **D16** (superseded in part by D90): pass on names the next person (a picker of the customers, the leaving customer left out), and the new contract carries `previous_contract_id` (D66, PR #53). Its "assessed and costed like a return" no longer holds.
+- **D16** (superseded in part by D90): pass on names the next person (a picker of the data pack's customers, the leaving customer left out; a sign-up is never listed, D107), and the new contract carries `previous_contract_id` (D66, PR #53). Its "assessed and costed like a return" no longer holds.
 - **D90** (decided 2026-11-06, Johannes; review of PR #89): a pass-on charges no refurbishment and is refused below `good`; it starts the next person's quote at the market value in the same transaction, named for them, writes `repriced`, and holds the item `reserved` for them until they sign.
 - **D22**: `CONTRACT_BOUGHT_OUT` sets the asset `sold`; `UNIT_RETURNED` and `UNIT_PASSED_ON` set it `returned`, on the bus (`src/server/catalogue-handlers.ts`), each a conditional write on `leased`.
 - **D23**: every status (the contract's, the invoice's, the asset's), mode, condition, reason and invoice kind is parsed with its schema before use or write; a bad value throws.

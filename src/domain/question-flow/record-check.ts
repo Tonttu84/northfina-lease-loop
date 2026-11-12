@@ -4,9 +4,9 @@
 // consumer could answer "company" and the age question would never be asked, a consumer could
 // type a bigger income to pass affordability, and a coordinator who may not sign could answer
 // "yes, I can sign".
-import type { Customer } from '@/data/schemas';
+import { recordHoldsName, type CustomerRecord } from '@/domain/customers/record';
 import type { Answer, Answers } from './engine';
-import { ALLOWED_COUNTRIES } from './eligibility';
+import { countryChoice } from './eligibility';
 
 const text = (answer: Answer | undefined): string | undefined =>
   typeof answer === 'string' && answer.trim() !== '' ? answer.trim() : undefined;
@@ -34,25 +34,29 @@ type Recorded = { value: string | undefined; same?: (answer: string, recorded: s
 
 /**
  * The question ids whose answer differs from the record, in the bank's order: the customer
- * type, the full name (a person's, not a company's; see `nameWords`), the birth date, the e-mail (case ignored), the country (a country outside FI, SE and
- * EE is answered "other"), the monthly net income, the business id, whether the applicant can
- * sign, the annual revenue, and a PEP on record who answers "no" (D58). A question not answered, or a field the record does not have,
- * is not compared.
+ * type, the full name (a person's, not a company's; see `nameWords`), the birth date, the
+ * e-mail (case ignored), the country (a country outside FI, SE and EE is answered "other"),
+ * the monthly net income, the business id, whether the applicant can sign, the annual revenue,
+ * and a PEP on record who answers "no" (D58). A question not answered, or a field the record
+ * does not have, is not compared: a sign-up's record holds only the type and the e-mail until
+ * its first application fills it (D107), and the e-mail it shows as the name is not a name.
  */
-export function recordMismatches(record: Customer, answers: Answers): string[] {
+export function recordMismatches(record: CustomerRecord, answers: Answers): string[] {
   const recorded: Record<string, Recorded> = {
     q_customer_type: { value: record.type },
     // Asked of consumers and sole traders; a company's record name is the company's.
     q_full_name: {
-      value: record.type === 'company' ? undefined : record.name,
+      value: record.type === 'company' || !recordHoldsName(record) ? undefined : record.name,
       same: (a, r) => nameWords(a) === nameWords(r),
     },
     q_birth_date: { value: 'birth_date' in record ? record.birth_date : undefined },
     q_email: { value: record.email, same: (a, r) => a.toLowerCase() === r.toLowerCase() },
-    q_country: { value: ALLOWED_COUNTRIES.includes(record.country) ? record.country : 'other' },
+    q_country: { value: countryChoice(record.country) },
     q_monthly_income: {
       value:
-        'monthly_net_income_cents' in record ? String(record.monthly_net_income_cents) : undefined,
+        'monthly_net_income_cents' in record && record.monthly_net_income_cents !== undefined
+          ? String(record.monthly_net_income_cents)
+          : undefined,
       same: sameCents,
     },
     q_business_id: { value: 'business_id' in record ? record.business_id : undefined },

@@ -4,7 +4,7 @@
 // APPLICATION_NOT_WITHDRAWABLE with `{ code, params }` when it is signed or already final.
 import { readActor } from '@/server/actor';
 import { fail, handleRoute, ok } from '@/server/api-response';
-import { withdrawApplication } from '@/server/applications';
+import { withdrawApplication } from '@/server/withdraw';
 import { authorize, forbiddenResponse, refusalResponse } from '@/server/authorize';
 import { db } from '@/server/db';
 import { todayForRequest } from '@/server/demo-clock';

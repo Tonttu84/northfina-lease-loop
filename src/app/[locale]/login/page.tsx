@@ -1,6 +1,7 @@
-// Sign in (D93): type the e-mail of an account, get a sign-in link. No password: the link is
-// the proof the e-mail is the visitor's, and opening it confirms the e-mail. Someone already
-// signed in is pointed at their account page.
+// Sign in or sign up (D93, D107): type an e-mail, get a sign-in link; an e-mail no account has
+// gets a new account with it. No password: the link is the proof the e-mail is the visitor's,
+// and opening it confirms the e-mail. Someone already signed in is pointed at their account
+// page.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
@@ -51,11 +52,11 @@ export default async function LoginPage({ params }: PageProps<'/[locale]/login'>
             pending: t('login.form.pending'),
             sentTitle: t('login.sent.title'),
             sentBody: t('login.sent.body'),
+            sentSignUp: t('login.sent.signUp'),
             demoTitle: t('login.demo.title'),
             demoBody: t('login.demo.body'),
             demoOpen: t('login.demo.open'),
             demoOutbox: t('login.demo.outbox'),
-            demoNone: t('login.demo.none'),
           }}
           failures={{
             error: t('login.form.error'),

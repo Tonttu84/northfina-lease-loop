@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { Application as ApplicationRow } from '@/generated/prisma/client';
 import { loadCoefficientTable, loadConsumerLimits, loadQuestions } from '@/data/load';
 import { applicationDecisionSchema, type ApplicationDecision } from '@/domain/statuses';
-import type { Customer } from '@/data/schemas';
+import type { CustomerRecord } from '@/domain/customers/record';
 import {
   answerProblem,
   eligibilityInputFromAnswers,
@@ -14,13 +14,12 @@ import {
 } from '@/domain/question-flow/answers';
 import { evaluate } from '@/domain/question-flow/eligibility';
 import { recordMismatches } from '@/domain/question-flow/record-check';
+import { recordFillFromAnswers } from '@/domain/question-flow/record-fill';
 import { whoDecides } from '@/domain/question-flow/signatory';
-import { withdrawalCheck, type WithdrawRefusal } from '@/domain/question-flow/withdraw';
 import {
   answersSchema,
   applicationDecisionUpdateSchema,
   applicationRowSchema,
-  applicationWithdrawalSchema,
   reasonsSchema,
 } from '@/domain/rows/application';
 import {
@@ -34,8 +33,7 @@ import { ADMIN_ACTOR } from './actor';
 import { listAssets } from './assets';
 import { withAudit, type TransactionClient } from './audit';
 import { authorize } from './authorize';
-import { contractIdOfApplication } from './contracts';
-import { getCustomer } from './customers';
+import { fillCustomerRecord, getCustomer } from './customers';
 import type { PrismaClient } from './prisma-client';
 import { parseRow, parseStoredJson } from './row-rules';
 import { getQuote } from './quotes';
@@ -90,7 +88,7 @@ export async function flowSetupFor(
       ok: true;
       setup: FlowSetup;
       quote: { monthlyNetCents: number; vatRateBp: number; quantity: number };
-      customer: Customer;
+      customer: CustomerRecord;
       /** D90: the named next customer the quote is held for, or null for anyone. */
       reservedFor: string | null;
     }
@@ -185,14 +183,64 @@ class QuoteInUse extends Error {
 }
 
 /**
+ * What the `application.created` audit row says: the deal, the decision, whom the admin acted
+ * for (D47), where the signing link went (D46) and which record columns the answers filled
+ * (D107: the names, never the values).
+ */
+function createdDetails(
+  input: CreateApplicationInput,
+  result: { decision: ApplicationDecision; reasons: readonly StoredReason[] },
+  extra: { signingLinkTo: string | undefined; recordFilled: string[] }
+) {
+  return {
+    quoteId: input.quoteId,
+    customerId: input.customerId,
+    decision: result.decision,
+    reasons: result.reasons,
+    ...(input.onBehalfOf === undefined ? {} : { onBehalfOf: input.onBehalfOf }),
+    ...(extra.signingLinkTo ? { signingLinkTo: extra.signingLinkTo } : {}),
+    ...(extra.recordFilled.length > 0 ? { recordFilled: extra.recordFilled } : {}),
+  };
+}
+
+/** Thrown inside the transaction when another application filled the record first (D107). */
+class RecordFilledElsewhere extends Error {
+  constructor() {
+    super('the customer record kept changing while the application was evaluated');
+  }
+}
+
+/** How often an application is evaluated again when the record changed under it (rule 11). */
+const RECORD_ATTEMPTS = 3;
+
+/**
  * Only the customer who is acting applies, in their own name (D40): not another customer, not
  * anonymous; the admin only with `onBehalfOf` naming the customer, written into the audit
  * (D47). Then it prunes the answers to the questions that apply, checks that every one is answered and
  * valid on the day (D37, D39), compares them with the customer record (D38), evaluates the
  * eligibility rules and writes the application with its audit row, unless the quote is already
  * held by a pending or approved application (`quote_in_use`, checked inside the transaction).
+ * A record that lacks fields (a sign-up's, D107) gets them from these answers in the same
+ * transaction, whatever the decision, and a PEP "yes" is set on any record, so the next
+ * application is compared with them. Two first applications at once: the fill is conditional
+ * on the record being as it was read, so the loser writes nothing and is evaluated again,
+ * against the record the winner filled; after `RECORD_ATTEMPTS` evaluations it fails with a
+ * message (a 500: three other fills between three reads is a bug, not a request to refuse).
  */
 export async function createApplication(
+  db: PrismaClient,
+  input: CreateApplicationInput
+): Promise<CreateApplicationResult> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await createApplicationOnce(db, input);
+    } catch (error) {
+      if (!(error instanceof RecordFilledElsewhere) || attempt >= RECORD_ATTEMPTS) throw error;
+    }
+  }
+}
+
+async function createApplicationOnce(
   db: PrismaClient,
   input: CreateApplicationInput
 ): Promise<CreateApplicationResult> {
@@ -251,6 +299,7 @@ export async function createApplication(
 
   const id = randomUUID();
   const signatoryEmail = stringAnswer(answers.q_signatory_email);
+  const recordFill = recordFillFromAnswers(found.customer, answers);
   let row: ApplicationRow;
   try {
     row = await withAudit(
@@ -260,16 +309,10 @@ export async function createApplication(
         action: 'application.created',
         entityType: 'application',
         entityId: id,
-        details: {
-          quoteId: input.quoteId,
-          customerId: input.customerId,
-          decision: result.decision,
-          reasons: result.reasons,
-          ...(input.onBehalfOf === undefined ? {} : { onBehalfOf: input.onBehalfOf }),
-          ...(result.decision === 'awaiting_signatory' && signatoryEmail
-            ? { signingLinkTo: signatoryEmail }
-            : {}),
-        },
+        details: createdDetails(input, result, {
+          signingLinkTo: result.decision === 'awaiting_signatory' ? signatoryEmail : undefined,
+          recordFilled: Object.keys(recordFill),
+        }),
       },
       async (tx) => {
         // Inside the transaction, so two applications at the same instant cannot both pass.
@@ -278,6 +321,9 @@ export async function createApplication(
           select: { id: true },
         });
         if (holder) throw new QuoteInUse(holder.id);
+        if (!(await fillCustomerRecord(tx, found.customer, recordFill))) {
+          throw new RecordFilledElsewhere();
+        }
         const created = await tx.application.create({
           data: parseRow('application', applicationRowSchema, {
             id,
@@ -470,90 +516,4 @@ export async function recordSignatoryDecision(
   });
   if (count === 0) return null;
   return toApplicationView(await tx.application.findUniqueOrThrow({ where: { id: input.id } }));
-}
-
-export type WithdrawApplicationResult =
-  | { ok: true; application: ApplicationView }
-  | { ok: false; reason: 'not_found' }
-  | { ok: false; reason: 'forbidden'; refusal: AuthzRefusal }
-  | { ok: false; reason: 'refused'; refusal: WithdrawRefusal };
-
-/** Thrown inside the withdrawal's transaction when the case moved on, so nothing is written. */
-class LostWithdrawalRace extends Error {
-  constructor(readonly refusal: WithdrawRefusal) {
-    super(refusal.code);
-  }
-}
-
-/**
- * D87. The applicant (or the admin for them) withdraws an application that is not a lease yet:
- * an approved one not signed, a manual review or a company case waiting for its signatory
- * (`withdrawalCheck`). Authorized first (D73). The row becomes `withdrawn` with a `withdrawn`
- * reason, in one transaction with its audit row; the update only applies to a row still in the
- * state read and with no contract, so a signing at the same instant leaves one winner (signing
- * re-reads the decision in its own transaction, `signContract`).
- */
-export async function withdrawApplication(
-  db: PrismaClient,
-  input: { id: string; actor: string; today: string }
-): Promise<WithdrawApplicationResult> {
-  const auth = await authorize(db, input.actor, 'withdraw_application', {
-    application: input.id,
-  });
-  if (!auth.ok) {
-    return auth.reason.code === 'not_found'
-      ? { ok: false, reason: 'not_found' }
-      : { ok: false, reason: 'forbidden', refusal: auth.reason };
-  }
-  const current = await getApplication(db, input.id);
-  if (!current) return { ok: false, reason: 'not_found' };
-  const check = withdrawalCheck(
-    current.decision,
-    (await contractIdOfApplication(db, input.id)) !== null
-  );
-  if (!check.ok) return { ok: false, reason: 'refused', refusal: check.reason };
-
-  const reason: StoredReason = { code: 'withdrawn', params: { by: input.actor, on: input.today } };
-  const data = parseRow('application', applicationWithdrawalSchema, {
-    decision: 'withdrawn',
-    reasons_json: JSON.stringify([...current.reasons, reason]),
-    decided_on: input.today,
-  });
-  try {
-    const row = await withAudit(
-      db,
-      {
-        actor: input.actor,
-        action: 'application.withdrawn',
-        entityType: 'application',
-        entityId: input.id,
-        details: { from: current.decision, by: input.actor },
-      },
-      async (tx) => {
-        if ((await contractIdOfApplication(tx, input.id)) !== null) {
-          throw new LostWithdrawalRace({
-            code: 'already_signed',
-            params: { decision: current.decision },
-          });
-        }
-        const { count } = await tx.application.updateMany({
-          where: { id: input.id, decision: current.decision },
-          data,
-        });
-        if (count === 0) {
-          throw new LostWithdrawalRace({
-            code: 'not_withdrawable',
-            params: { decision: current.decision },
-          });
-        }
-        return tx.application.findUniqueOrThrow({ where: { id: input.id } });
-      }
-    );
-    return { ok: true, application: toApplicationView(row) };
-  } catch (error) {
-    if (error instanceof LostWithdrawalRace) {
-      return { ok: false, reason: 'refused', refusal: error.refusal };
-    }
-    throw error;
-  }
 }

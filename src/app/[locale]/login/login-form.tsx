@@ -1,8 +1,10 @@
 'use client';
 
-// Asking for the sign-in link (D93): the e-mail, POST /api/login, then the "sent" notice. The
-// answer never says whether an account has that e-mail. While the demo tools are on the answer
-// carries the link itself (D94): the form shows it, and points at the demo page's outbox.
+// Asking for the sign-in link (D93): the e-mail, POST /api/login, then the "sent" notice. An
+// e-mail no account has signs up with the same request (D107), and the answer and this notice
+// are the same either way: neither says whether the address already had an account. While the
+// demo tools are on the answer carries the link itself (D94): the form shows it, and points
+// at the demo page's outbox.
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { responseFailureText, type FailureLabels } from '@/components/api-failure';
@@ -17,11 +19,11 @@ export type LoginFormLabels = {
   pending: string;
   sentTitle: string;
   sentBody: string;
+  sentSignUp: string;
   demoTitle: string;
   demoBody: string;
   demoOpen: string;
   demoOutbox: string;
-  demoNone: string;
 };
 
 type Sent = { demoLink: { token: string; expiresOn: string } | null };
@@ -77,7 +79,8 @@ export function LoginForm({
     return (
       <div className="space-y-4">
         <Notice tone="success" live title={labels.sentTitle}>
-          {labels.sentBody}
+          <p>{labels.sentBody}</p>
+          <p className="mt-2">{labels.sentSignUp}</p>
         </Notice>
         {demoTools ? (
           <Notice tone="info" title={labels.demoTitle}>
@@ -87,9 +90,7 @@ export function LoginForm({
                 <LinkButton href={`/${locale}/login/${sent.demoLink.token}`} size="sm">
                   {labels.demoOpen}
                 </LinkButton>
-              ) : (
-                <p className="text-sm">{labels.demoNone}</p>
-              )}
+              ) : null}
               <Link
                 href={`/${locale}/demo#demo-outbox`}
                 className="font-semibold underline decoration-2 underline-offset-4"

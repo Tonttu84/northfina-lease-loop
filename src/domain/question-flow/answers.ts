@@ -1,8 +1,9 @@
 // From the applicant's answers to the eligibility input, and the small conversions around it.
-import type { ConsumerLimits, Customer, Question } from '@/data/schemas';
+import type { ConsumerLimits, Question } from '@/data/schemas';
+import { recordHoldsName, type CustomerRecord } from '@/domain/customers/record';
 import { splitVat } from '@/domain/money-math';
 import type { Answer, Answers, FlowContext } from './engine';
-import type { EligibilityInput } from './eligibility';
+import { countryChoice, type EligibilityInput } from './eligibility';
 import { sameEmail } from './signatory';
 
 const text = (answer: Answer | undefined): string | undefined =>
@@ -87,7 +88,8 @@ export type AnswerProblem =
  * Why an answer cannot be taken, as a code for the page, or null when it can. First the
  * shape (`validateAnswer`), then the checks that need the day or the other answers: a birth
  * date from the future or more than 120 years back (D37), and a signatory e-mail that is the
- * applicant's own (D39), since the applicant would then sign for themself. "Own" is the
+ * applicant's own (D39), since the applicant would then sign for themself, and a full name
+ * that is the applicant's record e-mail (D107), which is no name. "Own" is the
  * e-mail answered (`q_email`) and the one on the customer record (`applicantEmail`): with
  * the answer alone, another `q_email` would let the applicant name their record address.
  */
@@ -103,6 +105,10 @@ export function answerProblem(
     if (value < range.earliest || value > range.latest) {
       return { code: 'birth_date_out_of_range', params: range };
     }
+  }
+  // D107: a sign-up's record shows its e-mail as the name, so that e-mail is never a name.
+  if (question.id === 'q_full_name' && sameEmail(value, flow.applicantEmail)) {
+    return { code: 'invalid', params: {} };
   }
   if (
     question.id === 'q_signatory_email' &&
@@ -186,40 +192,62 @@ export function eligibilityInputFromAnswers(args: InputFromAnswers): Eligibility
   };
 }
 
+type Person = Extract<CustomerRecord, { type: 'consumer' | 'sole_trader' }>;
+type Company = Extract<CustomerRecord, { type: 'company' }>;
+type Prefill = Record<string, Answer | undefined>;
+
+const yesNo = (value: boolean) => (value ? 'yes' : 'no');
+
+function personAnswers(customer: Person): Prefill {
+  const own: Prefill =
+    customer.type === 'consumer'
+      ? {
+          q_employment: customer.employment,
+          q_monthly_income:
+            customer.monthly_net_income_cents === undefined
+              ? undefined
+              : String(customer.monthly_net_income_cents),
+        }
+      : { q_business_id: customer.business_id, q_vat_registered: yesNo(customer.vat_registered) };
+  return {
+    q_full_name: recordHoldsName(customer) ? customer.name : undefined,
+    q_birth_date: customer.birth_date,
+    q_country: countryChoice(customer.country),
+    ...own,
+  };
+}
+
+function companyAnswers(customer: Company): Prefill {
+  return {
+    q_business_id: customer.business_id,
+    q_vat_registered: yesNo(customer.vat_registered),
+    q_company_name: customer.name,
+    q_can_sign: yesNo(customer.applicant_can_sign),
+    q_signatory_email: customer.applicant_can_sign
+      ? undefined
+      : `signatory@${customer.email.split('@')[1]}`,
+    q_annual_revenue: String(customer.annual_revenue_cents),
+    q_beneficial_owners: customer.beneficial_owners ?? ['-'],
+  };
+}
+
 /**
- * The answers a data-pack customer would give, so a demo can pre-fill the flow and the tests
+ * The answers a customer on record would give, so a demo can pre-fill the flow and the tests
  * can run every persona. Fields the pack does not know (usage purpose, farm registry, PEP
- * details) get a neutral placeholder.
+ * details) get a neutral placeholder; a field a sign-up's record does not hold yet (D107)
+ * gets no answer, and the e-mail it shows as its name is never offered as the name.
  */
-export function answersFromCustomer(customer: Customer): Record<string, Answer> {
-  const answers: Record<string, Answer> = {
+export function answersFromCustomer(customer: CustomerRecord): Record<string, Answer> {
+  const answers: Prefill = {
     q_customer_type: customer.type,
     q_email: customer.email,
     q_usage_purpose: 'commuting',
     q_farm_registry: '123-456-789',
-    q_pep: customer.is_pep ? 'yes' : 'no',
+    q_pep: yesNo(customer.is_pep),
+    q_pep_details: customer.is_pep ? '-' : undefined,
+    ...(customer.type === 'company' ? companyAnswers(customer) : personAnswers(customer)),
   };
-  if (customer.is_pep) answers.q_pep_details = '-';
-  if (customer.type === 'consumer' || customer.type === 'sole_trader') {
-    answers.q_full_name = customer.name;
-    answers.q_birth_date = customer.birth_date;
-    answers.q_country = ['FI', 'SE', 'EE'].includes(customer.country) ? customer.country : 'other';
-  }
-  if (customer.type === 'consumer') {
-    answers.q_employment = customer.employment;
-    answers.q_monthly_income = String(customer.monthly_net_income_cents);
-  }
-  if (customer.type === 'sole_trader' || customer.type === 'company') {
-    answers.q_business_id = customer.business_id;
-    answers.q_vat_registered = customer.vat_registered ? 'yes' : 'no';
-  }
-  if (customer.type === 'company') {
-    answers.q_company_name = customer.name;
-    answers.q_can_sign = customer.applicant_can_sign ? 'yes' : 'no';
-    if (!customer.applicant_can_sign)
-      answers.q_signatory_email = `signatory@${customer.email.split('@')[1]}`;
-    answers.q_annual_revenue = String(customer.annual_revenue_cents);
-    answers.q_beneficial_owners = customer.beneficial_owners ?? ['-'];
-  }
-  return answers;
+  return Object.fromEntries(
+    Object.entries(answers).filter((entry): entry is [string, Answer] => entry[1] !== undefined)
+  );
 }
