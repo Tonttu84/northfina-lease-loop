@@ -5,8 +5,11 @@ import type { Customer } from '@/data/schemas';
 import { createTestDb } from '../../tests/helpers/test-db';
 import { resetDb } from '../../tests/helpers/reset-db';
 import {
+  createBlankConsumer,
+  fillCustomerRecord,
   getCustomer,
   listCustomers,
+  newCustomerId,
   seedCustomers,
   toCustomer,
   toCustomerRowData,
@@ -85,9 +88,96 @@ describe('getCustomer', () => {
 describe('toCustomer', () => {
   it('throws on a row that breaks the schema, so a bad hand edit is caught', async () => {
     const aino = dataPack.find((customer) => customer.id === 'cust-aino');
+    const pekka = dataPack.find((customer) => customer.type === 'sole_trader');
+    if (!aino || !pekka) throw new Error('cust-aino or a sole trader missing from the data pack');
+    const row = await db.customer.create({ data: toCustomerRowData(aino) });
+    expect(() => toCustomer({ ...row, employment: 'astronaut' })).toThrow();
+    expect(() => toCustomer({ ...row, type: 'robot' })).toThrow();
+    expect(() => toCustomer({ ...row, business_id: '0737546-2' })).toThrow();
+    // Only a consumer may lack fields (D107): a sole trader without a birth date is a bad row.
+    const trader = await db.customer.create({ data: toCustomerRowData(pekka) });
+    expect(() => toCustomer({ ...trader, birth_date: null })).toThrow();
+  });
+
+  it('reads a consumer row with null columns as a record without those fields (D107)', async () => {
+    const aino = dataPack.find((customer) => customer.id === 'cust-aino');
     if (!aino) throw new Error('cust-aino missing from the data pack');
     const row = await db.customer.create({ data: toCustomerRowData(aino) });
-    expect(() => toCustomer({ ...row, employment: null })).toThrow();
-    expect(() => toCustomer({ ...row, type: 'robot' })).toThrow();
+    const read = toCustomer({ ...row, employment: null, country: null, city: null });
+    expect(read).not.toHaveProperty('employment');
+    expect(read).not.toHaveProperty('country');
+    expect(read).toMatchObject({ id: 'cust-aino', birth_date: '1997-04-12' });
+  });
+});
+
+describe('createBlankConsumer (D107)', () => {
+  const blank = { id: 'cust-0123456789abcdef', email: 'new@example.com', today: '2026-11-05' };
+
+  it('writes a consumer that holds the e-mail and nothing else, and reads back so', async () => {
+    await createBlankConsumer(db, blank);
+    expect(await getCustomer(db, blank.id)).toEqual({
+      id: blank.id,
+      type: 'consumer',
+      name: 'new@example.com',
+      email: 'new@example.com',
+      is_pep: false,
+      story: 'Signed up in the app with this e-mail on 2026-11-05.',
+    });
+  });
+
+  it('refuses a row that breaks the write schema before it reaches the database', async () => {
+    await expect(createBlankConsumer(db, { ...blank, email: 'new' })).rejects.toThrow(
+      /customer row breaks its write schema/
+    );
+    expect(await db.customer.count()).toBe(0);
+  });
+
+  it('makes ids of the pack’s shape that do not repeat', () => {
+    const ids = new Set(Array.from({ length: 50 }, () => newCustomerId()));
+    expect(ids.size).toBe(50);
+    for (const id of ids) expect(id).toMatch(/^cust-[0-9a-f]{16}$/);
+  });
+});
+
+describe('fillCustomerRecord (D107)', () => {
+  const blank = { id: 'cust-0123456789abcdef', email: 'new@example.com', today: '2026-11-05' };
+  const seen = { id: blank.id, name: blank.email };
+
+  it('fills the columns the record did not hold, and only those', async () => {
+    await createBlankConsumer(db, blank);
+    expect(
+      await fillCustomerRecord(db, seen, { name: 'Nea Person', birth_date: '1990-04-12' })
+    ).toBe(true);
+    expect(await getCustomer(db, blank.id)).toEqual({
+      id: blank.id,
+      type: 'consumer',
+      name: 'Nea Person',
+      birth_date: '1990-04-12',
+      email: 'new@example.com',
+      is_pep: false,
+      story: 'Signed up in the app with this e-mail on 2026-11-05.',
+    });
+  });
+
+  it('the trap: writes nothing once another change filled one of the columns first', async () => {
+    await createBlankConsumer(db, blank);
+    await fillCustomerRecord(db, seen, { birth_date: '1990-04-12' });
+    expect(await fillCustomerRecord(db, seen, { birth_date: '2001-01-01', country: 'FI' })).toBe(
+      false
+    );
+    expect(await fillCustomerRecord(db, seen, { name: 'Nea Person' })).toBe(true);
+    expect(await fillCustomerRecord(db, seen, { name: 'Somebody Else' })).toBe(false);
+    const read = await getCustomer(db, blank.id);
+    expect(read).toMatchObject({ name: 'Nea Person', birth_date: '1990-04-12' });
+    expect(read).not.toHaveProperty('country');
+  });
+
+  it('an empty fill writes nothing and is fine; a bad one never reaches the database', async () => {
+    await createBlankConsumer(db, blank);
+    expect(await fillCustomerRecord(db, seen, {})).toBe(true);
+    await expect(fillCustomerRecord(db, seen, { birth_date: '12.4.1990' })).rejects.toThrow(
+      /customer row breaks its write schema/
+    );
+    expect(await getCustomer(db, blank.id)).not.toHaveProperty('birth_date');
   });
 });

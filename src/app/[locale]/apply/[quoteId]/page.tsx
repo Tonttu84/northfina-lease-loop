@@ -7,6 +7,7 @@ import { QuestionFlow } from '@/components/question-flow';
 import { LinkButton, Money, Notice, PageHeader, PriceTag } from '@/components/ui';
 import { loadPriceLists, loadQuestions } from '@/data/load';
 import { formatEuro } from '@/domain/money';
+import { recordHoldsName } from '@/domain/customers/record';
 import { answersFromCustomer } from '@/domain/question-flow/answers';
 import { whyWeAsk } from '@/domain/question-flow/engine';
 import { getT, messages, type MessageKey } from '@/i18n/get-t';
@@ -100,6 +101,8 @@ export default async function ApplyPage({ params }: PageProps<'/[locale]/apply/[
     bank.flatMap((q) => q.options ?? []).map((o) => [o, dictionary[`question.option.${o}`] ?? o])
   );
   const raw = (key: MessageKey) => messages[locale][key];
+  // A sign-up before its first application has no details to fill the form in with (D107).
+  const hasDetails = recordHoldsName(customer);
 
   return page(
     <>
@@ -131,7 +134,7 @@ export default async function ApplyPage({ params }: PageProps<'/[locale]/apply/[
         context={context}
         texts={texts}
         options={options}
-        prefill={answersFromCustomer(customer)}
+        prefill={hasDetails ? answersFromCustomer(customer) : undefined}
         applicantEmail={customer.email}
         labels={{
           progress: raw('apply.progress'),
@@ -154,7 +157,7 @@ export default async function ApplyPage({ params }: PageProps<'/[locale]/apply/[
           moneyHint: t('apply.moneyHint'),
           listHint: t('apply.listHint'),
           formatHints: { finnish_business_id: t('apply.hint.finnish_business_id') },
-          prefill: t('apply.prefill', { name: customer.name }),
+          prefill: hasDetails ? t('apply.prefill', { name: customer.name }) : undefined,
         }}
       />
     </>

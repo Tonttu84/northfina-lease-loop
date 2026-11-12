@@ -1,12 +1,13 @@
 // POST /api/login and the link routes (D93, D94) against a real, migrated SQLite database:
-// asking for a link answers the same for a known and an unknown e-mail (the link itself only
-// while the demo tools are on), the link's state, and opening it sets the signed cookie.
+// asking for a link answers the same for a known e-mail and for a new one, which signs up
+// (D107; the link itself only while the demo tools are on), the link's state, and opening it
+// sets the signed cookie.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadCustomers } from '@/data/load';
 import { createTestDb } from '../../../../tests/helpers/test-db';
 import { resetDb } from '../../../../tests/helpers/reset-db';
 import { seedAccounts } from '@/server/accounts';
-import { ACTOR_COOKIE } from '@/server/actor';
+import { ACTOR_COOKIE, resolveActor } from '@/server/actor';
 import { seedCustomers } from '@/server/customers';
 import { DEMO_CLOCK_COOKIE } from '@/server/demo-clock';
 import type { PrismaClient } from '@/server/prisma-client';
@@ -95,11 +96,30 @@ describe('POST /api/login', () => {
     });
   });
 
-  it('answers the same 202, without a link, for an e-mail no account has', async () => {
-    const { status, body } = await ask({ email: 'nobody@example.com' });
+  it('answers the same 202 with a link for an e-mail no account has, which signs up (D107)', async () => {
+    const known = await ask({ email: AINO });
+    const fresh = await ask({ email: 'New.Person@example.com' });
+    expect(fresh.status).toBe(202);
+    expect(fresh.body.data).toEqual({
+      sent: true,
+      demoLink: { token: expect.stringMatching(/^[A-Za-z0-9_-]{32}$/), expiresOn: '2026-11-07' },
+    });
+    expect(Object.keys(fresh.body.data)).toEqual(Object.keys(known.body.data));
+    expect(Object.keys(fresh.body)).toEqual(Object.keys(known.body));
+    const account = await holder.db.account.findUnique({
+      where: { email: 'new.person@example.com' },
+      include: { customer: true },
+    });
+    expect(account?.customer).toMatchObject({ type: 'consumer', name: 'new.person@example.com' });
+  });
+
+  it('signs a new e-mail up while the demo tools are off too, with the same linkless answer', async () => {
+    vi.stubEnv('DEMO_TOOLS', '0');
+    const { status, body } = await ask({ email: 'new.person@example.com' });
     expect(status).toBe(202);
     expect(body.data).toEqual({ sent: true, demoLink: null });
-    expect(await holder.db.loginToken.count()).toBe(0);
+    expect(await holder.db.account.count({ where: { email: 'new.person@example.com' } })).toBe(1);
+    expect((await holder.db.loginToken.findFirst())?.demo_token).toBeNull();
   });
 
   it('carries no link while the demo tools are off (D94), and stores none in clear', async () => {
@@ -146,6 +166,27 @@ describe('GET and POST /api/login/[token]', () => {
       'cust-aino'
     );
     expect((await read(token)).body.data.outcome).toBe('used');
+  });
+
+  it('a sign-up’s link signs in as the new customer and confirms the e-mail (D107)', async () => {
+    const { token } = (await ask({ email: 'new.person@example.com' })).body.data.demoLink;
+    expect((await read(token)).body.data).toMatchObject({
+      outcome: 'valid',
+      emailMasked: 'n•••@example.com',
+    });
+    const { status, cookies, body } = await open(token);
+    expect(status).toBe(200);
+    const account = await holder.db.account.findUniqueOrThrow({
+      where: { email: 'new.person@example.com' },
+    });
+    expect(body.data).toEqual({
+      actor: account.customer_id,
+      emailConfirmed: true,
+      confirmedNow: true,
+    });
+    expect(account).toMatchObject({ email_confirmed: true, confirmed_on: TODAY });
+    const signed = decodeURIComponent(cookies[0]!.split(';')[0]!.slice(ACTOR_COOKIE.length + 1));
+    expect(await resolveActor(holder.db, signed)).toBe(account.customer_id);
   });
 
   it('answers 409 LOGIN_LINK_USED the second time, with no cookie', async () => {

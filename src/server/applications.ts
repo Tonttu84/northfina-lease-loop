@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { Application as ApplicationRow } from '@/generated/prisma/client';
 import { loadCoefficientTable, loadConsumerLimits, loadQuestions } from '@/data/load';
 import { applicationDecisionSchema, type ApplicationDecision } from '@/domain/statuses';
-import type { Customer } from '@/data/schemas';
+import type { CustomerRecord } from '@/domain/customers/record';
 import {
   answerProblem,
   eligibilityInputFromAnswers,
@@ -14,6 +14,7 @@ import {
 } from '@/domain/question-flow/answers';
 import { evaluate } from '@/domain/question-flow/eligibility';
 import { recordMismatches } from '@/domain/question-flow/record-check';
+import { recordFillFromAnswers } from '@/domain/question-flow/record-fill';
 import { whoDecides } from '@/domain/question-flow/signatory';
 import { withdrawalCheck, type WithdrawRefusal } from '@/domain/question-flow/withdraw';
 import {
@@ -35,7 +36,7 @@ import { listAssets } from './assets';
 import { withAudit, type TransactionClient } from './audit';
 import { authorize } from './authorize';
 import { contractIdOfApplication } from './contracts';
-import { getCustomer } from './customers';
+import { fillCustomerRecord, getCustomer } from './customers';
 import type { PrismaClient } from './prisma-client';
 import { parseRow, parseStoredJson } from './row-rules';
 import { getQuote } from './quotes';
@@ -90,7 +91,7 @@ export async function flowSetupFor(
       ok: true;
       setup: FlowSetup;
       quote: { monthlyNetCents: number; vatRateBp: number; quantity: number };
-      customer: Customer;
+      customer: CustomerRecord;
       /** D90: the named next customer the quote is held for, or null for anyone. */
       reservedFor: string | null;
     }
@@ -184,6 +185,12 @@ class QuoteInUse extends Error {
   }
 }
 
+/** Thrown inside the transaction when another application filled the record first (D107). */
+class RecordFilledElsewhere extends Error {}
+
+/** How often an application is evaluated again when the record changed under it (rule 11). */
+const RECORD_ATTEMPTS = 3;
+
 /**
  * Only the customer who is acting applies, in their own name (D40): not another customer, not
  * anonymous; the admin only with `onBehalfOf` naming the customer, written into the audit
@@ -191,8 +198,26 @@ class QuoteInUse extends Error {
  * valid on the day (D37, D39), compares them with the customer record (D38), evaluates the
  * eligibility rules and writes the application with its audit row, unless the quote is already
  * held by a pending or approved application (`quote_in_use`, checked inside the transaction).
+ * A record that lacks fields (a sign-up's, D107) gets them from these answers in the same
+ * transaction, whatever the decision, so the next application is compared with them. Two first
+ * applications at once: the fill is conditional on the record being as it was read, so the
+ * loser writes nothing and is evaluated again, against the record the winner filled; after
+ * `RECORD_ATTEMPTS` evaluations it fails.
  */
 export async function createApplication(
+  db: PrismaClient,
+  input: CreateApplicationInput
+): Promise<CreateApplicationResult> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await createApplicationOnce(db, input);
+    } catch (error) {
+      if (!(error instanceof RecordFilledElsewhere) || attempt >= RECORD_ATTEMPTS) throw error;
+    }
+  }
+}
+
+async function createApplicationOnce(
   db: PrismaClient,
   input: CreateApplicationInput
 ): Promise<CreateApplicationResult> {
@@ -251,6 +276,7 @@ export async function createApplication(
 
   const id = randomUUID();
   const signatoryEmail = stringAnswer(answers.q_signatory_email);
+  const recordFill = recordFillFromAnswers(found.customer, answers);
   let row: ApplicationRow;
   try {
     row = await withAudit(
@@ -269,6 +295,7 @@ export async function createApplication(
           ...(result.decision === 'awaiting_signatory' && signatoryEmail
             ? { signingLinkTo: signatoryEmail }
             : {}),
+          ...(Object.keys(recordFill).length > 0 ? { recordFilled: Object.keys(recordFill) } : {}),
         },
       },
       async (tx) => {
@@ -278,6 +305,9 @@ export async function createApplication(
           select: { id: true },
         });
         if (holder) throw new QuoteInUse(holder.id);
+        if (!(await fillCustomerRecord(tx, found.customer, recordFill))) {
+          throw new RecordFilledElsewhere();
+        }
         const created = await tx.application.create({
           data: parseRow('application', applicationRowSchema, {
             id,

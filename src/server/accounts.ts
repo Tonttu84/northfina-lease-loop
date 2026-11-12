@@ -1,11 +1,17 @@
-// Accounts and the sign-in link (D93, D94; docs/features/accounts.md). One account per customer
-// and one for the back office, seeded from the data pack. A visitor types an e-mail; the account with that e-mail
-// gets a single-use link that works today and tomorrow; opening it sets the signed session
-// cookie (D92) and confirms the e-mail. No e-mail is sent: while the demo tools are on, the
-// token is also kept in clear (`demo_token`) so the demo page's outbox can show the link.
+// Accounts and the sign-in link (D93, D94, D107; docs/features/accounts.md). One account per
+// customer and one for the back office, seeded from the data pack. A visitor types an e-mail;
+// the account with that e-mail gets a single-use link that works today and tomorrow; opening
+// it sets the signed session cookie (D92) and confirms the e-mail. An e-mail no account has
+// signs up: a blank consumer customer and its account are made in the same audited change as
+// the link (D107). No e-mail is sent: while the demo tools are on, the token is also kept in
+// clear (`demo_token`) so the demo page's outbox can show the link.
 // The owner of the Account and LoginToken tables (team rule 3).
-import { randomBytes } from 'node:crypto';
-import type { Account as AccountRow, LoginToken as LoginTokenRow } from '@/generated/prisma/client';
+import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  Prisma,
+  type Account as AccountRow,
+  type LoginToken as LoginTokenRow,
+} from '@/generated/prisma/client';
 import {
   actorOfAccount,
   hashLoginToken,
@@ -26,6 +32,7 @@ import type { Customer } from '@/data/schemas';
 import { ADMIN_ACTOR, ANONYMOUS_ACTOR, type Actor } from './actor';
 import { withAudit, type TransactionClient } from './audit';
 import type { AccountView } from './account-schemas';
+import { createBlankConsumer, newCustomerId } from './customers';
 import type { PrismaClient } from './prisma-client';
 import { parseRow } from './row-rules';
 
@@ -102,33 +109,65 @@ export async function accountOfActor(db: Db, actor: Actor): Promise<AccountView 
 }
 
 export type LoginLinkRequested = {
-  /** Null when no account has that e-mail: the caller answers the same either way. */
-  link: { token: string; expiresOn: string; accountId: string } | null;
+  link: { token: string; expiresOn: string; accountId: string };
+  /** True when this request made the account (D107). The route's answer never says so. */
+  signedUp: boolean;
 };
 
+/** P2002 on the unique `Account.email`: another request signed the same e-mail up first. */
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
 /**
- * A sign-in link for the account with `email`, if there is one: the token goes to the caller
- * once (the demo outbox or, in production, the mailer), only its hash is stored, plus the
- * token in clear while `demoTools` is on (D94). An unknown e-mail makes no row and no audit
- * entry, and the caller's answer does not differ.
+ * A sign-in link for the account with `email`: the token goes to the caller once (the demo
+ * outbox or, in production, the mailer), only its hash is stored, plus the token in clear
+ * while `demoTools` is on (D94). An e-mail no account has signs up (D107), with the tools on
+ * or off: a blank consumer customer, its unconfirmed account and the link are made in one
+ * transaction with one audit row (`account.signed_up`), and the caller's answer does not
+ * differ. Two requests at once for one new e-mail: the unique e-mail refuses the second
+ * sign-up whole, and that request then finds the account and sends it a plain link.
  */
 export async function requestLoginLink(
   db: PrismaClient,
   input: { email: string; today: string; demoTools: boolean }
 ): Promise<LoginLinkRequested> {
   const email = accountEmailSchema.parse(input.email);
-  const account = await db.account.findUnique({ where: { email } });
-  if (!account) return { link: null };
+  const existing = await db.account.findUnique({ where: { email } });
+  if (existing) return { link: await sendLoginLink(db, existing, input), signedUp: false };
+  try {
+    return { link: await signUp(db, email, input), signedUp: true };
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    const winner = await db.account.findUnique({ where: { email } });
+    if (!winner) throw error;
+    return { link: await sendLoginLink(db, winner, input), signedUp: false };
+  }
+}
+
+type LinkRequest = { today: string; demoTools: boolean };
+
+/** A new token and the row that stores its hash for `accountId`. */
+function newLoginToken(accountId: string, input: LinkRequest) {
   const token = randomBytes(24).toString('base64url');
   const expiresOn = loginLinkExpiresOn(input.today);
   const data = parseRow('login_token', loginTokenRowSchema, {
-    account_id: account.id,
+    account_id: accountId,
     token_hash: hashLoginToken(token),
     demo_token: input.demoTools ? token : null,
     sent_on: input.today,
     expires_on: expiresOn,
     used_on: null,
   });
+  return { token, expiresOn, data };
+}
+
+async function sendLoginLink(
+  db: PrismaClient,
+  account: AccountRow,
+  input: LinkRequest
+): Promise<LoginLinkRequested['link']> {
+  const { token, expiresOn, data } = newLoginToken(account.id, input);
   await withAudit(
     db,
     {
@@ -136,11 +175,50 @@ export async function requestLoginLink(
       action: 'account.login_link_sent',
       entityType: 'account',
       entityId: account.id,
-      details: { email, expiresOn, demoOutbox: input.demoTools },
+      details: { email: account.email, expiresOn, demoOutbox: input.demoTools },
     },
     (tx) => tx.loginToken.create({ data })
   );
-  return { link: { token, expiresOn, accountId: account.id } };
+  return { token, expiresOn, accountId: account.id };
+}
+
+/**
+ * The sign-up (D107): the customer (through its owner, `createBlankConsumer`), the account
+ * and its first link, all or nothing. Both ids are made here, not by the database, because
+ * the audit entry names them before the transaction runs.
+ */
+async function signUp(
+  db: PrismaClient,
+  email: string,
+  input: LinkRequest
+): Promise<LoginLinkRequested['link']> {
+  const accountId = randomUUID();
+  const customerId = newCustomerId();
+  const { token, expiresOn, data: tokenRow } = newLoginToken(accountId, input);
+  const account = parseRow('account', accountRowSchema, {
+    id: accountId,
+    customer_id: customerId,
+    role: 'customer',
+    email,
+    email_confirmed: false,
+    confirmed_on: null,
+  });
+  await withAudit(
+    db,
+    {
+      actor: ANONYMOUS_ACTOR,
+      action: 'account.signed_up',
+      entityType: 'account',
+      entityId: accountId,
+      details: { email, customerId, expiresOn, demoOutbox: input.demoTools },
+    },
+    async (tx) => {
+      await createBlankConsumer(tx, { id: customerId, email, today: input.today });
+      await tx.account.create({ data: account });
+      await tx.loginToken.create({ data: tokenRow });
+    }
+  );
+  return { token, expiresOn, accountId };
 }
 
 export type LoginLinkState = {
