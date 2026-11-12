@@ -1,9 +1,10 @@
 // The write schema of the `Customer` row (prisma/schema.prisma, D107), parsed on the server
-// before every write the app makes (D23): the sign-up's blank consumer and the columns a first
-// application fills. The seed writes the data pack's customers as the pack's own schema read
-// them. One table holds the three types, so the columns a type does not have must be null,
-// and the ones it cannot be without must be there; a consumer may lack every optional one
-// (a sign-up holds only its e-mail).
+// before every write the app makes (D23): the sign-up's blank consumer, and what an
+// application's answers fill (a sign-up's missing fields; the PEP flag on any customer). The
+// seed writes the data pack's customers as the pack's own schema read them. One table holds
+// the three types, so the columns a type does not have must be null, and the ones it cannot
+// be without must be there; a consumer may lack every optional one (a sign-up holds only its
+// e-mail).
 import { z } from 'zod';
 import { employmentSchema } from '@/data/schemas';
 import { recordCountrySchema } from '@/domain/customers/record';

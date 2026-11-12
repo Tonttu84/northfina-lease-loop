@@ -40,6 +40,24 @@ describe('accountRowSchema', () => {
     ).toBe('2026-11-05');
   });
 
+  it('second review, finding 2: refuses an e-mail that is not well-formed Unicode', () => {
+    // A lone surrogate is valid JSON, but SQLite stores it as U+FFFD: the stored address would
+    // no longer be the one typed, and the record fill's "name is still the e-mail" never matches.
+    expect(
+      accountRowSchema.safeParse({ ...accountRow(), email: '\ud800x@example.com' }).success
+    ).toBe(false);
+    expect(
+      accountRowSchema.safeParse({ ...accountRow(), email: 'x@exam\udfffple.com' }).success
+    ).toBe(false);
+    // A real pair (an emoji) and letters outside ASCII are well formed.
+    expect(accountRowSchema.safeParse({ ...accountRow(), email: '😀@example.com' }).success).toBe(
+      true
+    );
+    expect(accountRowSchema.safeParse({ ...accountRow(), email: 'päivi@example.fi' }).success).toBe(
+      true
+    );
+  });
+
   it('refuses what is not an e-mail, an unknown role and an extra column', () => {
     expect(accountRowSchema.safeParse({ ...accountRow(), email: 'aino' }).success).toBe(false);
     expect(accountRowSchema.safeParse({ ...accountRow(), role: 'staff' }).success).toBe(false);

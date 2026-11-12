@@ -121,6 +121,14 @@ describe('POST /api/login', () => {
     }
   });
 
+  it('second review, finding 2: a lone surrogate in the e-mail is a 400, and nobody signs up', async () => {
+    const before = await holder.db.customer.count();
+    const { status, body } = await ask({ email: '\ud800x@example.com' });
+    expect(status).toBe(400);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(await holder.db.customer.count()).toBe(before);
+  });
+
   it('signs a new e-mail up while the demo tools are off too, with the same linkless answer', async () => {
     vi.stubEnv('DEMO_TOOLS', '0');
     const { status, body } = await ask({ email: 'new.person@example.com' });

@@ -258,6 +258,7 @@ getApplication(db, id): Promise<ApplicationView | null>;
 ## Open questions
 
 - A sign-up's first answers stick even when typed wrong: the corrected answer is a difference and waits for a person, and nobody can edit the record yet ([accounts.md](accounts.md), open questions). The employment is filled but not compared (D38 never listed it; no rule reads it).
+- The PEP "yes" is remembered on data-pack customers too, and the seed never overwrites a record: in a shared demo database a persona stays PEP until `npm run db:reset`. A "yes" and a "no" sent at the same instant by a customer whose record says no: the "no" was evaluated against the record as read and is approved by the rules. Nothing is gained over sending the "no" first, which is approved anyway; a strict latch would re-read `is_pep` inside the transaction.
 
 - The signatory signs through the signing link (D46); no e-mail is sent in the demo, the decision page shows the link in a demo outbox. See [signatories.md](signatories.md) for what production replaces.
 - Affordability uses the chosen term's gross rent; the page could suggest the shortest term that passes (Mikko's 36 months).

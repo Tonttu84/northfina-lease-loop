@@ -204,7 +204,11 @@ function createdDetails(
 }
 
 /** Thrown inside the transaction when another application filled the record first (D107). */
-class RecordFilledElsewhere extends Error {}
+class RecordFilledElsewhere extends Error {
+  constructor() {
+    super('the customer record kept changing while the application was evaluated');
+  }
+}
 
 /** How often an application is evaluated again when the record changed under it (rule 11). */
 const RECORD_ATTEMPTS = 3;
@@ -218,9 +222,10 @@ const RECORD_ATTEMPTS = 3;
  * held by a pending or approved application (`quote_in_use`, checked inside the transaction).
  * A record that lacks fields (a sign-up's, D107) gets them from these answers in the same
  * transaction, whatever the decision, and a PEP "yes" is set on any record, so the next
- * application is compared with them. Two first applications at once: the fill is conditional on the record being as it was read, so the
- * loser writes nothing and is evaluated again, against the record the winner filled; after
- * `RECORD_ATTEMPTS` evaluations it fails.
+ * application is compared with them. Two first applications at once: the fill is conditional
+ * on the record being as it was read, so the loser writes nothing and is evaluated again,
+ * against the record the winner filled; after `RECORD_ATTEMPTS` evaluations it fails with a
+ * message (a 500: three other fills between three reads is a bug, not a request to refuse).
  */
 export async function createApplication(
   db: PrismaClient,

@@ -124,8 +124,9 @@ function isUniqueViolation(error: unknown): boolean {
  * while `demoTools` is on (D94). An e-mail no account has signs up (D107), with the tools on
  * or off: a blank consumer customer, its unconfirmed account and the link are made in one
  * transaction with one audit row (`account.signed_up`), and the caller's answer does not
- * differ (the public audit log does: it names the action, with the e-mail masked). Two requests at once for one new e-mail: the unique e-mail refuses the second
- * sign-up whole, and that request then finds the account and sends it a plain link.
+ * differ (the public audit log does: it names the action, with the e-mail masked). Two
+ * requests at once for one new e-mail: the unique e-mail refuses the second sign-up whole,
+ * and that request then finds the account and sends it a plain link.
  */
 export async function requestLoginLink(
   db: PrismaClient,

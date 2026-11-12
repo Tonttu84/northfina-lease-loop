@@ -75,5 +75,6 @@ What is smart: one rounding, half up, in one function; the price locked and the 
 
 ## If something goes wrong
 
+- A data-pack customer's pre-fill answers "yes" to the PEP question, or their application waits for a person on that question: someone answered "yes" for them once, and the record keeps it (D107). `npm run db:reset` puts the data pack's records back.
 - A Run button answers "already run": the database is not fresh. The button links the earlier records, which still show the numbers; or `npm run db:reset` and reload.
 - The clock is on the wrong day: set it on the demo page, or run the card again after a reset.

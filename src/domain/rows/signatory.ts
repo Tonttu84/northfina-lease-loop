@@ -6,13 +6,18 @@ import { idSchema, isoDateSchema, ON_VALID_FIELDS } from './fields';
 /** The `granted_by` of an entry no signatory granted: the register check, simulated (D46). */
 export const REGISTER_CHECK_SIMULATED = 'register_check_simulated';
 
-/** An e-mail as stored: trimmed, lower case, something@something.tld. */
+/**
+ * An e-mail as stored: trimmed, lower case, something@something.tld, and well-formed Unicode.
+ * A lone surrogate is valid JSON, but SQLite stores it as U+FFFD, so the stored address would
+ * not be the one typed and nothing compared with it would match again.
+ */
 export const signatoryEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
   .max(200)
-  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'not an e-mail address');
+  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'not an e-mail address')
+  .refine((email) => email.isWellFormed(), 'not well-formed text');
 
 export const signatoryNameSchema = z.string().trim().min(1).max(200);
 

@@ -1,9 +1,10 @@
 // Reading and writing customers. Rows are read into the app's record shape
-// (`customerRecordSchema`, D107): a data-pack customer reads back exactly as data/customers.json
-// has it; the three types share one table, and the fields a type does not have, or a sign-up
-// has not answered yet, are null in the row and absent in the shape. The owner of the Customer
-// table (team rule 3): the seed, the sign-up's blank consumer and the first application's fill
-// are written here.
+// (`customerRecordSchema`, D107): a data-pack customer reads back as data/customers.json has
+// it (but for `is_pep`, once an application answered "yes"); the three types share one table,
+// and the fields a type does not have, or a sign-up has not answered yet, are null in the row
+// and absent in the shape. The owner of the Customer table (team rule 3): the seed, the
+// sign-up's blank consumer and what an application's answers fill (a sign-up's missing
+// fields, and the PEP flag on any customer) are written here.
 import { randomBytes } from 'node:crypto';
 import type { Customer as CustomerRow, PrismaClient } from '@/generated/prisma/client';
 import { loadCustomers } from '@/data/load';
