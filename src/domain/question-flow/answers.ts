@@ -1,5 +1,6 @@
 // From the applicant's answers to the eligibility input, and the small conversions around it.
-import type { ConsumerLimits, Customer, Question } from '@/data/schemas';
+import type { ConsumerLimits, Question } from '@/data/schemas';
+import { recordHoldsName, type CustomerRecord } from '@/domain/customers/record';
 import { splitVat } from '@/domain/money-math';
 import type { Answer, Answers, FlowContext } from './engine';
 import type { EligibilityInput } from './eligibility';
@@ -187,11 +188,12 @@ export function eligibilityInputFromAnswers(args: InputFromAnswers): Eligibility
 }
 
 /**
- * The answers a data-pack customer would give, so a demo can pre-fill the flow and the tests
+ * The answers a customer on record would give, so a demo can pre-fill the flow and the tests
  * can run every persona. Fields the pack does not know (usage purpose, farm registry, PEP
- * details) get a neutral placeholder.
+ * details) get a neutral placeholder; a field a sign-up's record does not hold yet (D107)
+ * gets no answer, and the e-mail it shows as its name is never offered as the name.
  */
-export function answersFromCustomer(customer: Customer): Record<string, Answer> {
+export function answersFromCustomer(customer: CustomerRecord): Record<string, Answer> {
   const answers: Record<string, Answer> = {
     q_customer_type: customer.type,
     q_email: customer.email,
@@ -199,15 +201,28 @@ export function answersFromCustomer(customer: Customer): Record<string, Answer> 
     q_farm_registry: '123-456-789',
     q_pep: customer.is_pep ? 'yes' : 'no',
   };
+  const set = (id: string, value: string | undefined) => {
+    if (value !== undefined) answers[id] = value;
+  };
   if (customer.is_pep) answers.q_pep_details = '-';
   if (customer.type === 'consumer' || customer.type === 'sole_trader') {
-    answers.q_full_name = customer.name;
-    answers.q_birth_date = customer.birth_date;
-    answers.q_country = ['FI', 'SE', 'EE'].includes(customer.country) ? customer.country : 'other';
+    set('q_full_name', recordHoldsName(customer) ? customer.name : undefined);
+    set('q_birth_date', customer.birth_date);
+    set(
+      'q_country',
+      customer.country === undefined || ['FI', 'SE', 'EE'].includes(customer.country)
+        ? customer.country
+        : 'other'
+    );
   }
   if (customer.type === 'consumer') {
-    answers.q_employment = customer.employment;
-    answers.q_monthly_income = String(customer.monthly_net_income_cents);
+    set('q_employment', customer.employment);
+    set(
+      'q_monthly_income',
+      customer.monthly_net_income_cents === undefined
+        ? undefined
+        : String(customer.monthly_net_income_cents)
+    );
   }
   if (customer.type === 'sole_trader' || customer.type === 'company') {
     answers.q_business_id = customer.business_id;

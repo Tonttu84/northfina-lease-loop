@@ -165,6 +165,57 @@ describe('answersFromCustomer', () => {
   });
 });
 
+describe('answersFromCustomer for a signed-up record (D107)', () => {
+  const blank = {
+    id: 'cust-0123456789abcdef',
+    type: 'consumer' as const,
+    name: 'new.person@example.com',
+    email: 'new.person@example.com',
+    is_pep: false,
+    story: 'Signed up in the app with this e-mail on 2026-11-05.',
+  };
+
+  it('pre-fills only what the record holds: the type, the e-mail and the neutral placeholders', () => {
+    expect(answersFromCustomer(blank)).toEqual({
+      q_customer_type: 'consumer',
+      q_email: 'new.person@example.com',
+      q_usage_purpose: 'commuting',
+      q_farm_registry: '123-456-789',
+      q_pep: 'no',
+    });
+  });
+
+  it('never offers the e-mail as the person’s name, and leaves the flow incomplete', () => {
+    const ctx = {
+      customerType: 'consumer',
+      category: 'e_bike',
+      financedCents: 389_000,
+      termMonths: 36,
+    };
+    const answers = pruneAnswers(bank, ctx, answersFromCustomer(blank));
+    expect(answers).not.toHaveProperty('q_full_name');
+    expect(isComplete(bank, ctx, answers)).toBe(false);
+  });
+
+  it('pre-fills a field once the record holds it, "other" for a country answered so', () => {
+    const held = {
+      ...blank,
+      name: 'Nea Person',
+      birth_date: '1990-04-12',
+      country: 'other',
+      employment: 'employed' as const,
+      monthly_net_income_cents: 320_000,
+    };
+    expect(answersFromCustomer(held)).toMatchObject({
+      q_full_name: 'Nea Person',
+      q_birth_date: '1990-04-12',
+      q_country: 'other',
+      q_employment: 'employed',
+      q_monthly_income: '320000',
+    });
+  });
+});
+
 describe('validateAnswer', () => {
   const q = (id: string) => bank.find((x) => x.id === id)!;
 

@@ -89,6 +89,27 @@ export const returnAssessmentRow = () => ({
   assessment_json: JSON.stringify({ options: [] }),
 });
 
+/** Aino as a row: card 1's consumer from data/customers.json (D107 gave the table a write schema). */
+export const customerRow = () => ({
+  id: 'cust-aino',
+  type: 'consumer',
+  name: 'Aino Virtanen',
+  birth_date: '1997-04-12',
+  country: 'FI',
+  city: 'Helsinki',
+  email: 'aino.virtanen@example.com',
+  employment: 'employed',
+  monthly_net_income_cents: 320000,
+  business_id: null,
+  vat_registered: null,
+  annual_revenue_cents: null,
+  applicant_can_sign: null,
+  beneficial_owners_json: null,
+  is_pep: false,
+  story: 'Wants an e-bike for commuting. The happy path.',
+  preferred_locale: null,
+});
+
 /** Aino's account, not yet confirmed (D93). */
 export const accountRow = () => ({
   id: 'account-1',

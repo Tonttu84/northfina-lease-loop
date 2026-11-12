@@ -17,6 +17,7 @@ import {
 } from '@/data/schemas';
 import { accountRoleSchema, accountRowSchema, loginTokenRowSchema } from '@/domain/rows/account';
 import { applicationRowSchema } from '@/domain/rows/application';
+import { customerRowSchema } from '@/domain/rows/customer';
 import { contractRowSchema } from '@/domain/rows/contract';
 import { invoiceRowSchema } from '@/domain/rows/invoice';
 import { quoteRowSchema } from '@/domain/rows/quote';
@@ -32,6 +33,7 @@ import {
   accountRow,
   applicationRow,
   contractRow,
+  customerRow,
   invoiceRow,
   loginTokenRow,
   quoteRow,
@@ -75,6 +77,7 @@ const GUARDED: Record<string, { schema: z.ZodObject; example: () => Record<strin
   ReturnAssessment: { schema: returnAssessmentRowSchema, example: returnAssessmentRow },
   Account: { schema: accountRowSchema, example: accountRow },
   LoginToken: { schema: loginTokenRowSchema, example: loginTokenRow },
+  Customer: { schema: customerRowSchema, example: customerRow },
 };
 
 /** The Zod enum of every column whose comment lists its values. */

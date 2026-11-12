@@ -1,0 +1,8 @@
+# Sign-up: any e-mail signs in (D107): time log
+
+Branch `feat/signup` from `main` (`24b7f7b`). Real clock (Helsinki, +0200), 2026-11-12; the commit stamps are the anchors. The task: on the sign-in page an e-mail with no account dead-ended ("no account has that e-mail"); the owner decided that an unknown e-mail creates an account on the spot, as a blank consumer customer with only the e-mail on record.
+
+- 09:19 the task begins in a local session (the owner and an agent): investigation and design; the findings and the owner's decision arrive in the brief.
+- 09:26 a cloud session takes the brief over: `feat/signup` from `origin/main`, `npm ci`, `npm run db:setup`; read `AGENTS.md`, the shared working agreements, `accounts.ts`, `customers.ts`, `applications.ts`, the record check, the engine, the row schemas and their tests, D38, D93, D94. No sign-up exists anywhere in the code. The owner, 09:27: "That means that there is a sign up feature": it is named and documented as one.
+- 09:30 `prisma/schema.prisma`: `Customer.country` and `Customer.city` nullable; `npm run db:migrate -- --name signup_blank_customer`. `name` stays non-null and holds the e-mail (the owner's display name).
+- 09:31 to 09:36 tests first, then the code (team rules 1 and 2): `src/domain/customers/record.ts` (the app's record shape, `recordHoldsName`, `blankConsumerRow`), `src/domain/rows/customer.ts` (the row's write schema, the fill's update schema), `src/domain/question-flow/record-fill.ts`; `recordMismatches` and `answersFromCustomer` read the app's shape; `Customer` in `tests/schema-columns.test.ts`, its example row; the contract comment and the route table row.
