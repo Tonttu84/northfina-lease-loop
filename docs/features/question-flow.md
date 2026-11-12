@@ -56,6 +56,8 @@ The request body is parsed before anything is read (`createApplicationBodySchema
 
 The applicant is a customer we know, and only that customer applies in their own name: the `customerId` of `POST /api/applications` must be the actor (D17), else 403 `NOT_APPLICANT` (D40); the admin applies for a customer only with `onBehalfOf` naming them, which the audit records (D47). Without it, Mikko could send Aino's id with her answers and be approved in her name. `recordMismatches` compares eight answers with the record: customer type, birth date, e-mail (case ignored), country (a country outside FI, SE, EE on record is answered "other"), monthly net income, business id (spaces ignored), whether the applicant may sign (`applicant_can_sign`: card 6's coordinator answering "yes" would otherwise be approved and sign the contract himself) and annual revenue; amounts compare as cents, so `0320000` is Aino's 320 000. Aino typing 5 000 000 a month for the farm machine of card 7 is held, not approved (review finding 4). A difference is not refused, but the case is never approved by a rule: it goes to `manual_review` with `answer_differs_from_record { question }` for each, after `pep`; the decision page names the question in the visitor's language. A failed rule still rejects first.
 
+**A sign-up's record (D107).** Someone who signed up with an e-mail ([accounts.md](accounts.md)) is a consumer whose record holds the e-mail and nothing else, so the first application has only the type and the e-mail to differ from: `recordMismatches` skips a field the record does not hold, and the e-mail the record shows as its name is not a name (`recordHoldsName`). That alone would reopen the hole D38 closed: rejected as too young, the applicant could apply again with another birth date, or with a bigger income, and never be held. So the first answers stick. `recordFillFromAnswers` picks, from the pruned answers, each of the full name, the birth date, the country (FI, SE, EE, or `other` as answered), the employment and the monthly net income that the record lacks, and `createApplication` writes them to the customer inside the application's own `withAudit` transaction (`fillCustomerRecord`), whatever the rules decided; the audit row lists the columns (`recordFilled`), not the values. The next application is compared with them like anyone's. Worked example: a sign-up applies for `ebike-003` on 5 November 2026 with birth date 2009-03-10 and is rejected `too_young { eighteenOn: 2027-03-10 }`; the record now holds 2009-03-10. The same person applies for `ebike-004` with 1990-04-12: every rule passes, and the case goes to `manual_review` with `answer_differs_from_record { question: q_birth_date }`. A field is filled once and never overwritten; a later application fills only what is still missing. The write is conditional on the columns being as they were read, so of two first applications at the same instant one fills the record and the other is evaluated again, against it (at most three evaluations, then it fails). A sign-up who answers **sole trader** fills the person's fields that flow asks (name, birth date, country) and one who answers **company** fills nothing; both are consumers on record, so both go to `manual_review` on `q_customer_type`, every time. A data-pack customer's record holds every field of its type, so nothing is ever filled there.
+
 **The trap**: Mikko (`cust-mikko`, a consumer born 2009-03-10) answers "Who is leasing?" with **company** and a valid business id. The age question is not asked any more, so the rules alone would approve him; with the record check he goes to `manual_review` with `answer_differs_from_record { question: q_customer_type }`.
 
 ### Eligibility (D9)
@@ -134,7 +136,7 @@ Typo Trading Oy (`cust-broken-id`) has **1234567-8**: 1·7 + 2·9 + 3·10 + 4·5
 - **D9** eligibility: the rules above, every check a code with params.
 - **D10** manual review and the signatory: the four statuses; the admin decides a manual review, the named signatory signs (through the link, D39 and D46).
 - **D37** birth dates from 120 years ago up to today; under 18 stays a reason.
-- **D38** an answer that differs from the customer record holds the case for a person.
+- **D38** an answer that differs from the customer record holds the case for a person. **D107** a sign-up's blank record is filled from its first application's answers, in that application's transaction, so D38 has something to compare the next one with.
 - **D39** (narrows D10) only the signing link signs an `awaiting_signatory` case; the applicant cannot name themself, answered or on record.
 - **D40** (narrows D17) only the acting customer applies, in their own name.
 - **D46** the company's signatory list and the signing link ([signatories.md](signatories.md)).
@@ -179,10 +181,14 @@ answerProblem(question, answer, { today, answers?, applicantEmail? }): // null, 
 birthDateRange(today: string): { earliest: string; latest: string };
 parseEurosToCents(input: string): number | null;
 grossFromNetCents(netCents: number, vatRateBp: number): number;
-answersFromCustomer(customer: Customer): Record<string, Answer>;
+answersFromCustomer(customer: CustomerRecord): Record<string, Answer>; // no answer for a field the record lacks (D107)
 
 // record-check.ts
-recordMismatches(record: Customer, answers: Answers): string[]; // question ids, the bank's order (type, birth date, e-mail, country, income, business id, can sign, revenue, PEP denied)
+recordMismatches(record: CustomerRecord, answers: Answers): string[]; // question ids, the bank's order (type, name, birth date, e-mail, country, income, business id, can sign, revenue, PEP denied); a field the record lacks is skipped
+
+// record-fill.ts (D107)
+recordFillFromAnswers(record: CustomerRecord, answers: Answers): CustomerRecordFill; // { name?, birth_date?, country?, employment?, monthly_net_income_cents? }: only what a consumer record lacks and the answers give
+applyRecordFill(record: CustomerRecord, fill: CustomerRecordFill): CustomerRecord; // the record as it reads afterwards
 
 // plausibility.ts (D48–D52)
 plausibilityHolds(limits: ConsumerLimits | undefined, input: PlausibilityInput): Reason[];
@@ -215,6 +221,7 @@ getApplication(db, id): Promise<ApplicationView | null>;
 - Message keys `apply.*`, `question.*`, `decision.*` in the four files
 
 - `src/domain/question-flow/withdraw.ts` and `src/server/withdraw.test.ts` (D87); `nameWords` in `record-check.ts` (D89).
+- `src/domain/question-flow/record-fill.ts`, `src/domain/customers/record.ts` (`CustomerRecord`), `fillCustomerRecord` in `src/server/customers.ts`, `src/server/applications.signup.test.ts` (D107).
 
 ## Tests that pin the numbers
 
@@ -247,8 +254,11 @@ getApplication(db, id): Promise<ApplicationView | null>;
 | Random customer × asset × term × down payment: a known refusal or a decision whose codes have keys in all four languages (seed 20261105)                  | `src/domain/scenarios/question-flow.property.test.ts`                                                                                                                              |
 | Declining then signing, signing twice, anonymous, the quote's last valid day, the reason chain pep → differs → signatory → reviewed → signed              | `src/server/applications.hardening.test.ts`                                                                                                                                        |
 | The routes: unknown keys, wrong types, a 100 000-character answer, 65 answers, every wrong actor; always `fail()` with a code                             | `src/app/api/applications/route.test.ts`                                                                                                                                           |
+| D107: a sign-up's first answers fill the record; too young, then an adult birth date → `manual_review`; `other` kept; "company" fills nothing             | `src/server/applications.signup.test.ts`; `record-fill.test.ts`; `record-check.test.ts` and `answers.test.ts` "signed-up record"                                                   |
 
 ## Open questions
+
+- A sign-up's first answers stick even when typed wrong: the corrected answer is a difference and waits for a person, and nobody can edit the record yet ([accounts.md](accounts.md), open questions). The employment is filled but not compared (D38 never listed it; no rule reads it).
 
 - The signatory signs through the signing link (D46); no e-mail is sent in the demo, the decision page shows the link in a demo outbox. See [signatories.md](signatories.md) for what production replaces.
 - Affordability uses the chosen term's gross rent; the page could suggest the shortest term that passes (Mikko's 36 months).

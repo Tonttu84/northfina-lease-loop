@@ -4,6 +4,7 @@
 // birth date or income and never be held. The first answers are written to the record in the
 // application's own transaction, whatever the rules decided, so they stick: the next
 // application is compared with them and a difference goes to a person.
+import { z } from 'zod';
 import { employmentSchema, isoDateSchema } from '@/data/schemas';
 import {
   recordCountrySchema,
@@ -27,6 +28,18 @@ function held<T>(
   return parsed.success ? parsed.data : undefined;
 }
 
+/** A money answer (integer cents as digits) as cents. */
+const centsAnswerSchema = z
+  .string()
+  .regex(/^\d{1,13}$/)
+  .transform(Number);
+
+/** The full name answered, unless it is blank or the record's own e-mail typed as a name. */
+function answeredName(email: string, answer: Answer | undefined): string | undefined {
+  const name = text(answer);
+  return name !== undefined && recordHoldsName({ name, email }) ? name : undefined;
+}
+
 /**
  * The columns to fill: for a consumer record, each of the full name, the birth date, the
  * country (FI, SE, EE or `other`, as answered), the employment and the monthly net income
@@ -42,34 +55,26 @@ export function recordFillFromAnswers(
   answers: Answers
 ): CustomerRecordFill {
   if (record.type !== 'consumer') return {};
-  const fill: CustomerRecordFill = {};
-  const name = text(answers.q_full_name);
-  if (
-    !recordHoldsName(record) &&
-    name !== undefined &&
-    recordHoldsName({ name, email: record.email })
-  ) {
-    fill.name = name;
-  }
-  if (record.birth_date === undefined) {
-    const birthDate = held(isoDateSchema, answers.q_birth_date);
-    if (birthDate !== undefined) fill.birth_date = birthDate;
-  }
-  if (record.country === undefined) {
-    const country = held(recordCountrySchema, answers.q_country);
-    if (country !== undefined) fill.country = country;
-  }
-  if (record.employment === undefined) {
-    const employment = held(employmentSchema, answers.q_employment);
-    if (employment !== undefined) fill.employment = employment;
-  }
-  if (record.monthly_net_income_cents === undefined) {
-    const income = text(answers.q_monthly_income);
-    if (income !== undefined && /^\d{1,13}$/.test(income)) {
-      fill.monthly_net_income_cents = Number(income);
-    }
-  }
-  return fill;
+  const answered = {
+    name: answeredName(record.email, answers.q_full_name),
+    birth_date: held(isoDateSchema, answers.q_birth_date),
+    country: held(recordCountrySchema, answers.q_country),
+    employment: held(employmentSchema, answers.q_employment),
+    monthly_net_income_cents: held(centsAnswerSchema, answers.q_monthly_income),
+  };
+  const lacks: Record<keyof CustomerRecordFill, boolean> = {
+    name: !recordHoldsName(record),
+    birth_date: record.birth_date === undefined,
+    country: record.country === undefined,
+    employment: record.employment === undefined,
+    monthly_net_income_cents: record.monthly_net_income_cents === undefined,
+  };
+  // Each kept value was parsed by its column's own schema above.
+  return Object.fromEntries(
+    Object.entries(answered).filter(
+      ([column, value]) => value !== undefined && lacks[column as keyof typeof lacks]
+    )
+  ) as CustomerRecordFill;
 }
 
 /** The record with a fill applied, as the database reads it afterwards. Consumers only. */

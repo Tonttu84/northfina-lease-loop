@@ -187,6 +187,49 @@ export function eligibilityInputFromAnswers(args: InputFromAnswers): Eligibility
   };
 }
 
+type Person = Extract<CustomerRecord, { type: 'consumer' | 'sole_trader' }>;
+type Company = Extract<CustomerRecord, { type: 'company' }>;
+type Prefill = Record<string, Answer | undefined>;
+
+/** The record's country as the flow's choice: itself in FI, SE and EE, otherwise "other". */
+const countryChoice = (country: string | undefined) =>
+  country === undefined || ['FI', 'SE', 'EE'].includes(country) ? country : 'other';
+
+const yesNo = (value: boolean) => (value ? 'yes' : 'no');
+
+function personAnswers(customer: Person): Prefill {
+  const own: Prefill =
+    customer.type === 'consumer'
+      ? {
+          q_employment: customer.employment,
+          q_monthly_income:
+            customer.monthly_net_income_cents === undefined
+              ? undefined
+              : String(customer.monthly_net_income_cents),
+        }
+      : { q_business_id: customer.business_id, q_vat_registered: yesNo(customer.vat_registered) };
+  return {
+    q_full_name: recordHoldsName(customer) ? customer.name : undefined,
+    q_birth_date: customer.birth_date,
+    q_country: countryChoice(customer.country),
+    ...own,
+  };
+}
+
+function companyAnswers(customer: Company): Prefill {
+  return {
+    q_business_id: customer.business_id,
+    q_vat_registered: yesNo(customer.vat_registered),
+    q_company_name: customer.name,
+    q_can_sign: yesNo(customer.applicant_can_sign),
+    q_signatory_email: customer.applicant_can_sign
+      ? undefined
+      : `signatory@${customer.email.split('@')[1]}`,
+    q_annual_revenue: String(customer.annual_revenue_cents),
+    q_beneficial_owners: customer.beneficial_owners ?? ['-'],
+  };
+}
+
 /**
  * The answers a customer on record would give, so a demo can pre-fill the flow and the tests
  * can run every persona. Fields the pack does not know (usage purpose, farm registry, PEP
@@ -194,47 +237,16 @@ export function eligibilityInputFromAnswers(args: InputFromAnswers): Eligibility
  * gets no answer, and the e-mail it shows as its name is never offered as the name.
  */
 export function answersFromCustomer(customer: CustomerRecord): Record<string, Answer> {
-  const answers: Record<string, Answer> = {
+  const answers: Prefill = {
     q_customer_type: customer.type,
     q_email: customer.email,
     q_usage_purpose: 'commuting',
     q_farm_registry: '123-456-789',
-    q_pep: customer.is_pep ? 'yes' : 'no',
+    q_pep: yesNo(customer.is_pep),
+    q_pep_details: customer.is_pep ? '-' : undefined,
+    ...(customer.type === 'company' ? companyAnswers(customer) : personAnswers(customer)),
   };
-  const set = (id: string, value: string | undefined) => {
-    if (value !== undefined) answers[id] = value;
-  };
-  if (customer.is_pep) answers.q_pep_details = '-';
-  if (customer.type === 'consumer' || customer.type === 'sole_trader') {
-    set('q_full_name', recordHoldsName(customer) ? customer.name : undefined);
-    set('q_birth_date', customer.birth_date);
-    set(
-      'q_country',
-      customer.country === undefined || ['FI', 'SE', 'EE'].includes(customer.country)
-        ? customer.country
-        : 'other'
-    );
-  }
-  if (customer.type === 'consumer') {
-    set('q_employment', customer.employment);
-    set(
-      'q_monthly_income',
-      customer.monthly_net_income_cents === undefined
-        ? undefined
-        : String(customer.monthly_net_income_cents)
-    );
-  }
-  if (customer.type === 'sole_trader' || customer.type === 'company') {
-    answers.q_business_id = customer.business_id;
-    answers.q_vat_registered = customer.vat_registered ? 'yes' : 'no';
-  }
-  if (customer.type === 'company') {
-    answers.q_company_name = customer.name;
-    answers.q_can_sign = customer.applicant_can_sign ? 'yes' : 'no';
-    if (!customer.applicant_can_sign)
-      answers.q_signatory_email = `signatory@${customer.email.split('@')[1]}`;
-    answers.q_annual_revenue = String(customer.annual_revenue_cents);
-    answers.q_beneficial_owners = customer.beneficial_owners ?? ['-'];
-  }
-  return answers;
+  return Object.fromEntries(
+    Object.entries(answers).filter((entry): entry is [string, Answer] => entry[1] !== undefined)
+  );
 }

@@ -18,7 +18,7 @@ Open `http://localhost:3000/en/demo` in a window about 1 280 px wide, with a sec
 
 The demo tools (the clock, the Run buttons, the "continue as" picker and the sign-in links' outbox) are on under `npm run dev`. On a production build (`npm run build && npm start`) they are off unless `.env` says `DEMO_TOOLS="1"`; set that for a pitch on a built app. A `.env` created before 9 November 2026 may still say `"1"`, since `npm run db:setup` never rewrites an existing file ([features/security.md](features/security.md)). The actor cookie is signed with a `SESSION_SECRET` that `npm run db:setup`, `npm run dev` and `npm start` add to `.env` when it is missing (D92).
 
-Signing in is by e-mail link, no password: type an account's e-mail on `/en/login` (a customer's address from the data pack, or `backoffice@leaseloop.example`), and the link appears on the demo page's outbox, since no e-mail leaves the demo; opening it signs you in and confirms the e-mail on your account page ([features/accounts.md](features/accounts.md)). "Continue as" stays as a shortcut while the demo tools are on.
+Signing in is by e-mail link, no password: type an e-mail on `/en/login` (a customer's address from the data pack, or `backoffice@leaseloop.example`), and the link appears on the demo page's outbox, since no e-mail leaves the demo; opening it signs you in and confirms the e-mail on your account page ([features/accounts.md](features/accounts.md)). Any other e-mail signs up (D107): it becomes a new consumer customer that holds only the e-mail, the same link signs it in, and its first application fills in the name, birth date, country, employment and income. "Continue as" stays as a shortcut while the demo tools are on.
 
 ## 0:00 to 1:00, what it is
 

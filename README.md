@@ -40,7 +40,7 @@ npm run dev          # http://localhost:3000
 
 The landing page opens in English (Finnish, Swedish and Estonian are in the header). `http://localhost:3000/en/demo` has one Run button per scenario card; the pitch walkthrough is [docs/demo.md](docs/demo.md).
 
-Sign in by e-mail link, no password: enter a customer's e-mail from the data pack, or `backoffice@leaseloop.example`, on `/en/login` and open the link from the demo page's outbox, since no e-mail leaves the demo. The demo tools (clock, Run buttons, "Continue as", outbox) are on under `npm run dev`; on a production build see [docs/demo.md](docs/demo.md#the-demo-tools-and-signing-in).
+Sign in or sign up by e-mail link, no password: enter an e-mail on `/en/login` and open the link from the demo page's outbox, since no e-mail leaves the demo. A customer's e-mail from the data pack signs in as that customer and `backoffice@leaseloop.example` as the back office; any other e-mail signs up as a new customer, whose first application fills in the record. The demo tools (clock, Run buttons, "Continue as", outbox) are on under `npm run dev`; on a production build see [docs/demo.md](docs/demo.md#the-demo-tools-and-signing-in).
 
 | Command             | What it does                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -77,7 +77,7 @@ One page per slice under `docs/features/` ([template](docs/features/README.md));
 - **Leasing:** [pricing and quotes](docs/features/pricing.md), [the question flow and the application](docs/features/question-flow.md), [contracts and signing](docs/features/contracts.md), [company signatories and the signing link](docs/features/signatories.md), [invoicing: VAT by invoice date, the balance](docs/features/invoicing.md), [exits: buy out, return, pass on, early exit](docs/features/exits.md)
 - **Circular life:** [second life: assessment, matchmaking and re-pricing](docs/features/second-life.md), [circular impact and the passport](docs/features/circular-impact.md)
 - **The app:** [catalogue, asset statuses, demo clock, actor and audit trail](docs/features/catalogue.md), [My leases](docs/features/my-leases.md), grown into the [user portal](docs/features/user-portal.md), [the look](docs/features/look.md), [demo cards: one button per scenario card](docs/features/demo-cards.md), [responsive layout: every page at every screen size, language and text size](docs/features/responsive-layout.md)
-- **Accounts and access:** [accounts: sign in by e-mail link, the demo outbox](docs/features/accounts.md), [authorization: who may do what, checked before the action](docs/features/authorization.md)
+- **Accounts and access:** [accounts: sign in or sign up by e-mail link, the demo outbox](docs/features/accounts.md), [authorization: who may do what, checked before the action](docs/features/authorization.md)
 - **Audit and security:** [the tamper-evident audit chain, signed and anchored](docs/features/audit-chain.md), [security: demo mode, headers, signed session, limits, strict bodies, no raw SQL](docs/features/security.md), and the [security overview](docs/security-overview.md) with every feature's threat, test and one-minute demo
 - **Data and tests:** [row schemas](docs/features/row-schemas.md), [test isolation](docs/features/test-isolation.md), [browser tests: the pitch run clicked through with Playwright](docs/features/e2e-tests.md)
 
